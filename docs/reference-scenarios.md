@@ -102,3 +102,15 @@ candidate 또는 node cap에 도달하면 best-known proposal을 보존하고 `s
 ## Queue Benchmark
 
 5:5 solo queue의 100, 500, 1000 ticket에서 proposal 하나의 64-candidate bounded comparison을 실행한다. P1 gate는 benchmark가 실행 가능하고 결정적인지만 확인하며 machine-specific timing을 제품 SLO로 기록하지 않는다.
+
+## S13: Assignment Acknowledgment
+
+confirmed new-match assignment는 `pending`으로 시작한다. 같은 operation ID와 completed payload의 반복은 첫 acknowledged time을 포함한 동일 read model을 반환한다. 같은 ID의 다른 payload는 `IdempotencyConflict`, 다른 operation의 terminal 전이는 `InvalidTransition`이다.
+
+## S14: Backfill Roster CAS Handoff
+
+backfill completion은 assignment의 session ID와 expected roster version을 그대로 사용하고 더 높은 resulting version을 요구한다. non-advancing version은 assignment를 pending으로 남긴다. 외부 authority가 newer roster를 관측한 fixture는 `StaleSnapshot` failed acknowledgment로 terminal state를 남긴다.
+
+## S15: Cancellation And Concurrency
+
+assignment cancellation은 consumed ticket을 자동 복원하지 않는다. complete와 cancel이 동시에 도착하면 정확히 하나만 성공하고 다른 요청은 typed terminal transition failure다.

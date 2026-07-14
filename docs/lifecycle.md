@@ -87,3 +87,25 @@ stateDiagram-v2
 ## P0 Recovery Boundary
 
 프로세스가 재시작되면 active input, reservation, assignment를 복구하지 않는다. producer가 active ticket과 session snapshot을 다시 제출한다. durable recovery와 delivery guarantee는 persistence milestone에서 별도 source of truth와 함께 설계한다.
+
+## Assignment Acknowledgment Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: confirm reservation
+    Pending --> Completed: external apply succeeded
+    Pending --> Cancelled: consumer cancelled
+    Pending --> Failed: external apply failed
+    Completed --> Completed: same operation and payload
+    Cancelled --> Cancelled: same operation and payload
+    Failed --> Failed: same operation and payload
+    Completed --> [*]
+    Cancelled --> [*]
+    Failed --> [*]
+```
+
+- terminal acknowledgment는 opaque `operationID`에 묶이며 같은 ID와 payload의 반복만 허용한다.
+- new match completion은 roster detail을 요구하지 않는다.
+- backfill completion은 assignment의 `sessionID`와 expected `rosterVersion`을 정확히 반복하고 더 높은 resulting version을 기록한다.
+- session authority가 더 최신 roster를 관측하면 같은 version evidence와 `StaleSnapshot` failure를 terminal outcome으로 기록할 수 있다.
+- terminal assignment는 다른 operation으로 전이하지 않는다. 취소와 실패도 과거 ticket을 되살리지 않는다.

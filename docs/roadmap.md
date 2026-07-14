@@ -26,8 +26,8 @@
 - [x] idempotent fixed-TTL reservation
 - [x] revision/roster conflict detection과 atomic retry boundary
 - [x] assignment commit
-- [ ] assignment completion과 cancellation acknowledgment
-- [ ] backfill roster CAS handoff
+- [x] assignment completion과 cancellation acknowledgment
+- [x] backfill roster CAS handoff
 
 ## P3: Runtime And Operations
 

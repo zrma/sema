@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-`P0: Architecture Foundation`과 `P1: Objective Policy`가 완료되었다. 현재 milestone은 `P2: Assignment Lifecycle`이며, confirmed assignment와 외부 session authority 사이의 idempotent completion/cancellation contract를 고정한다.
+`P0: Architecture Foundation`, `P1: Objective Policy`, `P2: Assignment Lifecycle`이 완료되었다. 현재 milestone은 `P3: Application Runtime`이며, 검증된 package를 transport-neutral application service로 조합한다.
 
 ## Established
 
@@ -23,6 +23,8 @@
 - versioned role requirement와 wait-based skill/role relaxation.
 - best-known bounded candidate ranking과 replayable objective evidence.
 - stable unmatched reason과 100/500/1000 ticket queue benchmark.
+- pending/complete/cancel/fail assignment state와 idempotent acknowledgment.
+- backfill expected/resulting roster version CAS handoff와 stale failure outcome.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
@@ -32,7 +34,6 @@
 - 대규모 queue를 위한 candidate index와 partition.
 - global optimum 또는 품질 근사 보장.
 - reservation/assignment persistence와 distributed coordination.
-- assignment cancellation과 backfill roster write-back.
 - API/server entrypoint, observability, deployment.
 
 ## Risks And Decisions Pending
@@ -46,4 +47,4 @@
 
 ## Next Slice
 
-`docs/todo-0003-assignment-lifecycle/spec.md`에 따라 assignment acknowledgment/cancellation과 backfill roster CAS handoff를 구현한다.
+`docs/todo-0004-application-runtime/spec.md`에 따라 package orchestration facade와 end-to-end application fixture를 구현한다.

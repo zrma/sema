@@ -1,6 +1,6 @@
 # P2 Assignment Lifecycle Spec
 
-- Status: Active
+- Status: Complete
 
 ## Objective
 
@@ -41,3 +41,11 @@ confirmed `Assignment`와 실제 game/session authority의 적용 결과를 idem
 - automatic ticket requeue policy.
 - assignment timeout과 reconciliation worker.
 - distributed coordinator와 process restart recovery.
+
+## Completion Evidence
+
+- `AssignmentStatus`, acknowledgment request/read model, stable failure code가 domain contract에 포함된다.
+- coordinator가 pending assignment를 completed/cancelled/failed로 원자적으로 전이하고 defensive read를 제공한다.
+- new-match completion, cancellation no-resurrection, backfill version advance, stale failure를 fixture로 검증한다.
+- 동일 operation replay, conflicting payload, different terminal operation을 typed outcome으로 검증한다.
+- concurrent complete/cancel fixture와 전체 race detector가 single-winner를 확인한다.

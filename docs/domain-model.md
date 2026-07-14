@@ -100,8 +100,10 @@ producer는 자신이 소유한 aggregate의 revision을 증가시킨다. coordi
 - `assignmentID`, `reservationID`, `proposalID`: 확정 요청과 원 proposal의 연결.
 - `kind`, `teams`, optional `backfill`: 소비자가 실행할 확정 배치.
 - `confirmedAt`: commit 시각.
+- `status`: `pending`, `completed`, `cancelled`, `failed` 중 하나.
+- optional `acknowledgment`: terminal operation ID, outcome, failure detail, backfill expected/resulting roster version, acknowledged time.
 
-assignment 생성과 동시에 사용한 active ticket은 소비된다. P0에서는 assignment를 취소해 ticket을 자동 복원하지 않는다.
+assignment 생성과 동시에 사용한 active ticket은 소비된다. terminal acknowledgment는 외부 allocation/session authority의 적용 결과이며 assignment 취소나 실패는 과거 ticket revision을 자동 복원하지 않는다.
 
 ## Hard And Soft Boundary
 
