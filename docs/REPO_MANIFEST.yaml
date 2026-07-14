@@ -11,6 +11,11 @@ active_work_glob: docs/todo-*/spec.md
 
 checks:
   full: scripts/check.sh
+  go_format: gofmt
+  go_static_analysis: go vet ./...
+  go_test: go test ./...
+  go_race: go test -race ./...
+  planner_benchmark: go test ./internal/planner -run ^$ -bench ^BenchmarkPlanReferenceWorkloads$
   harness: scripts/check-agent-harness-interface.sh
   publication: scripts/check-publication-boundary.py
 

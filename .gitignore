@@ -209,3 +209,6 @@ $RECYCLE.BIN/
 tmp/
 *.prof
 *.trace
+*.test
+coverage.out
+bin/

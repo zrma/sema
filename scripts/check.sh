@@ -19,7 +19,8 @@ for required_file in \
   docs/decisions/0001-implementation-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
-  docs/todo-0001-foundation/decisions.md; do
+  docs/todo-0001-foundation/decisions.md \
+  go.mod; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2
     exit 1
@@ -38,5 +39,17 @@ git check-ignore -q .env || {
   printf 'repository check failed: local environment files are not ignored\n' >&2
   exit 1
 }
+
+unformatted=$(find . -type f -name '*.go' -not -path './vendor/*' -exec gofmt -l {} +)
+if [ -n "$unformatted" ]; then
+  printf 'repository check failed: unformatted Go files\n%s\n' "$unformatted" >&2
+  exit 1
+fi
+
+go mod tidy -diff
+go vet ./...
+go test ./...
+go test -race ./...
+go test ./internal/planner -run '^$' -bench '^BenchmarkPlanReferenceWorkloads$' -benchtime=1x
 
 printf 'sema repository checks passed\n'
