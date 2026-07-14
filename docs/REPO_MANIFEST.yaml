@@ -4,6 +4,9 @@ agent_harness: docs/agent-harness.md
 status: docs/status.md
 roadmap: docs/roadmap.md
 architecture: docs/architecture.md
+domain_model: docs/domain-model.md
+lifecycle: docs/lifecycle.md
+reference_scenarios: docs/reference-scenarios.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:

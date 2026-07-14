@@ -12,6 +12,9 @@ for required_file in \
   docs/status.md \
   docs/roadmap.md \
   docs/architecture.md \
+  docs/domain-model.md \
+  docs/lifecycle.md \
+  docs/reference-scenarios.md \
   docs/reference-workloads.md \
   docs/decisions/0001-implementation-baseline.md \
   docs/REPO_MANIFEST.yaml \
