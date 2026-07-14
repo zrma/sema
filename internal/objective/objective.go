@@ -25,12 +25,17 @@ func Evaluate(
 	kind domain.ProposalKind,
 ) Evaluation {
 	evaluation := Evaluation{Admissible: true, HardViolation: constraint.HardViolation(teams, policy, kind)}
-	roleCounts := make([]map[string]int, len(teams))
+	var roleCounts []map[string]int
+	if kind == domain.ProposalNewMatch && len(policy.RoleRequirements) > 0 {
+		roleCounts = make([]map[string]int, len(teams))
+	}
 	minimumAverage, maximumAverage := 0, 0
 	hasAverage := false
 
 	for team, tickets := range teams {
-		roleCounts[team] = make(map[string]int)
+		if roleCounts != nil {
+			roleCounts[team] = make(map[string]int)
+		}
 		teamSkill, teamPlayers := 0, 0
 		for _, ticket := range tickets {
 			waitMillis := now.Sub(ticket.EnqueuedAt).Milliseconds()
@@ -41,7 +46,9 @@ func Evaluate(
 			for _, player := range ticket.Players {
 				teamSkill += player.Skill
 				teamPlayers++
-				roleCounts[team][player.Role]++
+				if roleCounts != nil {
+					roleCounts[team][player.Role]++
+				}
 				if player.LatencyMillis > evaluation.Evidence.MaxLatencyMillis {
 					evaluation.Evidence.MaxLatencyMillis = player.LatencyMillis
 				}

@@ -22,17 +22,31 @@ func HardViolation(
 	policy domain.MatchmakingPolicy,
 	kind domain.ProposalKind,
 ) bool {
+	hasHardRole := false
+	if kind == domain.ProposalNewMatch {
+		for _, requirement := range policy.RoleRequirements {
+			if requirement.Hard {
+				hasHardRole = true
+				break
+			}
+		}
+	}
 	for _, tickets := range teams {
-		roleCounts := make(map[string]int)
+		var roleCounts map[string]int
+		if hasHardRole {
+			roleCounts = make(map[string]int)
+		}
 		for _, ticket := range tickets {
 			for _, player := range ticket.Players {
 				if player.LatencyMillis > policy.MaxLatencyMillis {
 					return true
 				}
-				roleCounts[player.Role]++
+				if roleCounts != nil {
+					roleCounts[player.Role]++
+				}
 			}
 		}
-		if kind == domain.ProposalBackfill {
+		if !hasHardRole {
 			continue
 		}
 		for _, requirement := range policy.RoleRequirements {

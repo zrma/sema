@@ -8,12 +8,15 @@ import (
 	"sort"
 	"time"
 
+	"sema/internal/constraint"
 	"sema/internal/domain"
+	"sema/internal/objective"
 )
 
 const (
-	defaultMaxProposals   = 64
-	defaultMaxSearchNodes = 100_000
+	defaultMaxProposals             = 64
+	defaultMaxSearchNodes           = 100_000
+	defaultMaxCandidatesPerProposal = 64
 )
 
 // Plan returns a deterministic set of mutually disjoint proposals.
@@ -25,7 +28,7 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 	available := make([]domain.MatchTicket, 0, len(snapshot.MatchTickets))
 	hardRejected := make([]domain.MatchTicket, 0)
 	for _, ticket := range snapshot.MatchTickets {
-		if withinLatencyCap(ticket, snapshot.Policy.MaxLatencyMillis) {
+		if constraint.TicketAllowed(ticket, snapshot.Policy.TeamSize, snapshot.Policy.MaxLatencyMillis) {
 			available = append(available, domain.CloneMatchTicket(ticket))
 		} else {
 			hardRejected = append(hardRejected, domain.CloneMatchTicket(ticket))
@@ -49,23 +52,36 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 	if maxSearchNodes == 0 {
 		maxSearchNodes = defaultMaxSearchNodes
 	}
+	maxCandidates := snapshot.Policy.MaxCandidatesPerProposal
+	if maxCandidates == 0 {
+		maxCandidates = defaultMaxCandidatesPerProposal
+	}
 	budget := searchBudget{max: maxSearchNodes}
 	batch := domain.ProposalBatch{SnapshotID: snapshot.ID}
+	lastSearch := placementSearch{}
 
 	for _, backfill := range backfills {
 		if len(batch.Proposals) >= maxProposals || budget.exhausted {
 			break
 		}
-		placement, found, searchNodes := findPlacement(available, backfill.OpenSlotsByTeam, &budget)
-		if !found {
+		lastSearch = findBestPlacement(
+			available,
+			backfill.OpenSlotsByTeam,
+			snapshot,
+			domain.ProposalBackfill,
+			maxCandidates,
+			&budget,
+		)
+		batch.BudgetExhausted = batch.BudgetExhausted || lastSearch.truncated
+		if !lastSearch.found {
 			continue
 		}
-		proposal := buildProposal(snapshot, placement, len(batch.Proposals)+1, searchNodes)
+		proposal := buildProposal(snapshot, lastSearch, len(batch.Proposals)+1)
 		proposal.Kind = domain.ProposalBackfill
 		target := domain.BackfillReference(backfill)
 		proposal.Backfill = &target
 		batch.Proposals = append(batch.Proposals, proposal)
-		available = removePlaced(available, placement)
+		available = removePlaced(available, lastSearch.placement)
 	}
 
 	newMatchSlots := make([]int, snapshot.Policy.TeamCount)
@@ -73,24 +89,40 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 		newMatchSlots[index] = snapshot.Policy.TeamSize
 	}
 	for len(batch.Proposals) < maxProposals && !budget.exhausted {
-		placement, found, searchNodes := findPlacement(available, newMatchSlots, &budget)
-		if !found {
+		lastSearch = findBestPlacement(
+			available,
+			newMatchSlots,
+			snapshot,
+			domain.ProposalNewMatch,
+			maxCandidates,
+			&budget,
+		)
+		batch.BudgetExhausted = batch.BudgetExhausted || lastSearch.truncated
+		if !lastSearch.found {
 			break
 		}
-		batch.Proposals = append(batch.Proposals, buildProposal(snapshot, placement, len(batch.Proposals)+1, searchNodes))
-		available = removePlaced(available, placement)
+		batch.Proposals = append(batch.Proposals, buildProposal(snapshot, lastSearch, len(batch.Proposals)+1))
+		available = removePlaced(available, lastSearch.placement)
 	}
 
+	reason := unmatchedReason(len(batch.Proposals), maxProposals, budget, lastSearch)
+	reasons := make(map[domain.TicketID]domain.UnmatchedReason, len(available)+len(hardRejected))
+	for _, ticket := range available {
+		reasons[ticket.ID] = reason
+	}
+	for _, ticket := range hardRejected {
+		reasons[ticket.ID] = domain.UnmatchedHardConstraint
+	}
 	available = append(available, hardRejected...)
 	sortTickets(available)
 	batch.Unmatched = make([]domain.UnmatchedTicket, len(available))
 	for index, ticket := range available {
 		batch.Unmatched[index] = domain.UnmatchedTicket{
 			Ticket: domain.TicketReference(ticket),
-			Reason: domain.UnmatchedInsufficientCapacity,
+			Reason: reasons[ticket.ID],
 		}
 	}
-	batch.BudgetExhausted = budget.exhausted
+	batch.BudgetExhausted = batch.BudgetExhausted || budget.exhausted
 	return batch, nil
 }
 
@@ -109,19 +141,34 @@ func (budget *searchBudget) visit() bool {
 	return true
 }
 
-func findPlacement(
+type placementSearch struct {
+	placement         [][]domain.MatchTicket
+	evaluation        objective.Evaluation
+	found             bool
+	exactCandidates   int
+	searchNodes       int
+	truncated         bool
+	sawHardFailure    bool
+	sawQualityFailure bool
+}
+
+func findBestPlacement(
 	tickets []domain.MatchTicket,
 	slots []int,
+	snapshot domain.MatchmakingSnapshot,
+	kind domain.ProposalKind,
+	maxCandidates int,
 	budget *searchBudget,
-) ([][]domain.MatchTicket, bool, int) {
+) placementSearch {
 	startNodes := budget.used
+	result := placementSearch{}
 	remaining := slices.Clone(slots)
 	totalNeeded := 0
 	for _, count := range remaining {
 		totalNeeded += count
 	}
 	if totalNeeded == 0 {
-		return nil, false, 0
+		return result
 	}
 
 	suffixPlayers := make([]int, len(tickets)+1)
@@ -129,20 +176,36 @@ func findPlacement(
 		suffixPlayers[index] = suffixPlayers[index+1] + len(tickets[index].Players)
 	}
 	if suffixPlayers[0] < totalNeeded {
-		return nil, false, 0
+		return result
 	}
 
 	assigned := make([][]int, len(slots))
 	teamSkills := make([]int, len(slots))
-	var result [][]domain.MatchTicket
 	var search func(index int, needed int) bool
 	search = func(index int, needed int) bool {
 		if !budget.visit() {
-			return false
+			return true
 		}
 		if needed == 0 {
-			result = materializePlacement(tickets, assigned)
-			return true
+			placement := materializePlacement(tickets, assigned)
+			evaluation := objective.Evaluate(snapshot.Now, placement, snapshot.Policy, kind)
+			result.exactCandidates++
+			switch {
+			case evaluation.HardViolation:
+				result.sawHardFailure = true
+			case !evaluation.Admissible:
+				result.sawQualityFailure = true
+			case !result.found || objective.Compare(evaluation, result.evaluation) < 0 ||
+				(objective.Compare(evaluation, result.evaluation) == 0 && comparePlacement(placement, result.placement) < 0):
+				result.placement = placement
+				result.evaluation = evaluation
+				result.found = true
+			}
+			if result.exactCandidates >= maxCandidates {
+				result.truncated = true
+				return true
+			}
+			return false
 		}
 		if index == len(tickets) || suffixPlayers[index] < needed {
 			return false
@@ -164,22 +227,24 @@ func findPlacement(
 			remaining[team] -= partySize
 			teamSkills[team] += partySkill
 			assigned[team] = append(assigned[team], index)
-			if search(index+1, needed-partySize) {
-				return true
-			}
+			stop := search(index+1, needed-partySize)
 			assigned[team] = assigned[team][:len(assigned[team])-1]
 			teamSkills[team] -= partySkill
 			remaining[team] += partySize
-			if budget.exhausted {
-				return false
+			if stop {
+				return true
 			}
 		}
 
 		return search(index+1, needed)
 	}
 
-	found := search(0, totalNeeded)
-	return result, found, budget.used - startNodes
+	search(0, totalNeeded)
+	result.searchNodes = budget.used - startNodes
+	result.evaluation.Evidence.CandidatesEvaluated = result.exactCandidates
+	result.evaluation.Evidence.SearchNodes = result.searchNodes
+	result.evaluation.Evidence.SearchTruncated = result.truncated || budget.exhausted
+	return result
 }
 
 type teamCandidate struct {
@@ -228,7 +293,7 @@ func materializePlacement(tickets []domain.MatchTicket, assigned [][]int) [][]do
 	for team, indexes := range assigned {
 		placement[team] = make([]domain.MatchTicket, len(indexes))
 		for index, ticketIndex := range indexes {
-			placement[team][index] = domain.CloneMatchTicket(tickets[ticketIndex])
+			placement[team][index] = tickets[ticketIndex]
 		}
 	}
 	return placement
@@ -236,17 +301,16 @@ func materializePlacement(tickets []domain.MatchTicket, assigned [][]int) [][]do
 
 func buildProposal(
 	snapshot domain.MatchmakingSnapshot,
-	placement [][]domain.MatchTicket,
+	search placementSearch,
 	sequence int,
-	searchNodes int,
 ) domain.MatchProposal {
 	proposal := domain.MatchProposal{
 		ID:            domain.ProposalID(fmt.Sprintf("%s/p%04d", snapshot.ID, sequence)),
 		Kind:          domain.ProposalNewMatch,
 		PolicyVersion: snapshot.Policy.Version,
-		Teams:         make([]domain.TeamAssignment, len(placement)),
+		Teams:         make([]domain.TeamAssignment, len(search.placement)),
 	}
-	for team, tickets := range placement {
+	for team, tickets := range search.placement {
 		assignment := domain.TeamAssignment{Team: team, Tickets: make([]domain.TicketRef, len(tickets))}
 		for index, ticket := range tickets {
 			assignment.Tickets[index] = domain.TicketReference(ticket)
@@ -254,43 +318,45 @@ func buildProposal(
 		}
 		proposal.Teams[team] = assignment
 	}
-	proposal.Evidence = calculateEvidence(snapshot.Now, placement, searchNodes)
+	proposal.Evidence = search.evaluation.Evidence
 	return proposal
 }
 
-func calculateEvidence(now time.Time, placement [][]domain.MatchTicket, searchNodes int) domain.ScoreEvidence {
-	evidence := domain.ScoreEvidence{SearchNodes: searchNodes}
-	minimumAverage, maximumAverage := 0, 0
-	hasAverage := false
-	for _, tickets := range placement {
-		teamSkill, teamPlayers := 0, 0
-		for _, ticket := range tickets {
-			wait := now.Sub(ticket.EnqueuedAt).Milliseconds()
-			if wait > evidence.OldestWaitMillis {
-				evidence.OldestWaitMillis = wait
+func comparePlacement(left, right [][]domain.MatchTicket) int {
+	for team := 0; team < len(left) && team < len(right); team++ {
+		for index := 0; index < len(left[team]) && index < len(right[team]); index++ {
+			if result := cmp.Compare(left[team][index].ID, right[team][index].ID); result != 0 {
+				return result
 			}
-			for _, player := range ticket.Players {
-				teamSkill += player.Skill
-				teamPlayers++
-				if player.LatencyMillis > evidence.MaxLatencyMillis {
-					evidence.MaxLatencyMillis = player.LatencyMillis
-				}
+			if result := cmp.Compare(left[team][index].Revision, right[team][index].Revision); result != 0 {
+				return result
 			}
 		}
-		if teamPlayers == 0 {
-			continue
+		if result := cmp.Compare(len(left[team]), len(right[team])); result != 0 {
+			return result
 		}
-		average := teamSkill / teamPlayers
-		if !hasAverage || average < minimumAverage {
-			minimumAverage = average
-		}
-		if !hasAverage || average > maximumAverage {
-			maximumAverage = average
-		}
-		hasAverage = true
 	}
-	evidence.TeamSkillGap = maximumAverage - minimumAverage
-	return evidence
+	return cmp.Compare(len(left), len(right))
+}
+
+func unmatchedReason(
+	proposalCount int,
+	maxProposals int,
+	budget searchBudget,
+	search placementSearch,
+) domain.UnmatchedReason {
+	switch {
+	case proposalCount >= maxProposals:
+		return domain.UnmatchedProposalLimit
+	case budget.exhausted || search.truncated:
+		return domain.UnmatchedSearchBudget
+	case search.sawQualityFailure:
+		return domain.UnmatchedQualityThreshold
+	case search.sawHardFailure:
+		return domain.UnmatchedHardConstraint
+	default:
+		return domain.UnmatchedInsufficientCapacity
+	}
 }
 
 func removePlaced(tickets []domain.MatchTicket, placement [][]domain.MatchTicket) []domain.MatchTicket {
@@ -307,15 +373,6 @@ func removePlaced(tickets []domain.MatchTicket, placement [][]domain.MatchTicket
 		}
 	}
 	return remaining
-}
-
-func withinLatencyCap(ticket domain.MatchTicket, cap int) bool {
-	for _, player := range ticket.Players {
-		if player.LatencyMillis > cap {
-			return false
-		}
-	}
-	return true
 }
 
 func totalSkill(ticket domain.MatchTicket) int {
