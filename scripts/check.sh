@@ -12,6 +12,8 @@ for required_file in \
   docs/status.md \
   docs/roadmap.md \
   docs/architecture.md \
+  docs/reference-workloads.md \
+  docs/decisions/0001-implementation-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/open-questions.md; do

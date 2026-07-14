@@ -2,7 +2,7 @@
 
 ## Intent
 
-Sema는 주어진 수요 집합에서 유효한 조합을 탐색하고, hard constraint를 만족하면서 soft objective를 최적화한 match proposal을 만든다. 검색 결과를 실제 세션 배치로 확정하는 side effect는 별도 coordinator가 담당한다.
+Sema는 주어진 수요 집합에서 유효한 조합을 탐색하고, hard constraint를 만족하면서 time-dependent soft objective를 최적화한다. 한 cycle은 ticket이 서로 겹치지 않는 여러 match를 `ProposalBatch`로 반환하며, 검색 결과를 실제 세션 배치로 확정하는 side effect는 coordinator가 담당한다.
 
 ```mermaid
 flowchart LR
@@ -13,48 +13,66 @@ flowchart LR
     S --> D[Candidate Discovery]
     D --> C[Hard Constraints]
     C --> O[Scoring and Optimization]
-    O --> MP[MatchProposal]
-    MP --> RC[Reservation Coordinator]
+    O --> PB[ProposalBatch]
+    PB --> RC[Reservation Coordinator]
     RC --> A[Assignment]
 ```
 
 ## Core Model
 
-- `MatchTicket`: 한 플레이어 또는 함께 움직여야 하는 파티가 새 세션을 찾는 요청.
-- `BackfillTicket`: 이미 존재하는 세션이 roster와 open slot을 제시하며 추가 플레이어를 찾는 요청.
+- `MatchTicket`: 한 플레이어 또는 함께 움직여야 하는 파티가 새 세션을 찾는 요청. `ticketID`와 `revision`으로 freshness를 식별한다.
+- `BackfillTicket`: 이미 존재하는 세션이 roster와 open slot을 제시하며 추가 플레이어를 찾는 요청. 자체 `ticketID`와 `revision`, 대상 `sessionID`와 `rosterVersion`을 고정한다.
 - `MatchmakingSnapshot`: 탐색 한 번에 사용된 tickets, session state, policy version의 immutable view.
-- `MatchProposal`: 선택된 tickets, team/slot 배치, score breakdown, policy version, evidence를 포함한 비확정 결과.
-- `Reservation`: proposal에 포함된 자원을 제한 시간 동안 배타적으로 확보한 상태.
+- `ProposalBatch`: 같은 snapshot에서 생성한 서로 ticket이 겹치지 않는 ordered `MatchProposal` 집합과 unmatched ticket 목록.
+- `MatchProposal`: 선택된 tickets, team/slot 배치, score breakdown, policy version, 입력 revision, evidence를 포함한 비확정 결과.
+- `Reservation`: proposal의 revision을 검증한 뒤 `reservationID`, `proposalID`, `expiresAt`에 묶어 배타적으로 확보한 상태.
 - `Assignment`: reservation이 검증된 뒤 소비자가 실행할 수 있도록 확정된 배치.
+
+## Objective Schedule
+
+- 초기 대기 구간은 skill balance와 role composition 품질을 우선한다.
+- 대기 시간이 늘어나면 wait time의 가중치를 올리고 skill/role 허용 범위를 단계적으로 넓힌다.
+- 확장된 후보 안에서는 network latency가 낮은 조합을 우선하며 absolute cap을 넘는 후보는 항상 제외한다.
+- party integrity와 session capacity는 완화하지 않는 hard constraint다.
 
 ## Boundaries
 
 - `discovery`는 검색 공간을 줄이되 유효 후보를 임의로 확정하지 않는다.
 - `constraints`는 위반 시 후보를 제거하는 boolean contract를 제공한다.
 - `scoring`은 유효 후보를 비교할 objective vector와 explanation을 제공한다.
-- `optimizer`는 시간·후보 수 budget 안에서 하나 이상의 proposal을 반환한다.
-- `coordinator`만 reservation과 assignment 상태를 변경한다.
+- `optimizer`는 시간·후보 수 budget 안에서 mutually disjoint proposal set을 구성한다.
+- `coordinator`만 reservation과 assignment 상태를 변경하고 revision을 compare-and-swap으로 검증한다.
 - `adapters`는 API, queue, database, telemetry를 연결하지만 domain decision을 소유하지 않는다.
 
 ## Invariants
 
-1. 하나의 ticket은 동시에 둘 이상의 active reservation에 속하지 않는다.
-2. hard constraint 위반 proposal은 score와 관계없이 반환하지 않는다.
-3. 같은 snapshot, policy, seed, budget은 같은 ordered proposal을 만든다.
-4. proposal은 사용한 policy version과 score evidence를 포함한다.
-5. reservation과 assignment mutation은 idempotency key를 요구한다.
-6. stale session roster로 만든 backfill proposal은 commit 전에 거부한다.
+1. 하나의 ticket은 한 `ProposalBatch`에서 최대 하나의 proposal에만 속한다.
+2. 하나의 ticket은 동시에 둘 이상의 active reservation에 속하지 않는다.
+3. hard constraint 위반 proposal은 score와 관계없이 반환하지 않는다.
+4. 같은 snapshot, policy, seed, budget은 같은 ordered proposal batch를 만든다.
+5. proposal은 사용한 policy version, ticket revision, roster version, score evidence를 포함한다.
+6. reservation과 assignment mutation은 idempotency key를 요구한다.
+7. reserve/commit 시 현재 revision이 다르면 전체 mutation을 적용하지 않고 `StaleSnapshot`을 반환한다.
+
+## Initial Consistency Model
+
+- P0의 `Coordinator`가 reservation authority이며 planner는 외부 상태를 변경하지 않는다.
+- reservation은 opaque `reservationID`를 confirm/cancel token으로 사용하고 fixed TTL을 적용하며 P0에서는 별도 lease owner나 renewal을 지원하지 않는다.
+- 프로세스 내부 상태가 실행 중 source of truth다.
+- 프로세스 재시작은 모든 미확정 reservation을 폐기하며 producer가 active ticket과 session snapshot을 다시 제출한다.
+- durable recovery가 요구되면 persistence milestone에서 reservation/assignment store와 delivery contract를 별도로 설계한다.
 
 ## Failure Model
 
-- 탐색 budget 소진은 오류가 아니라 best-known proposal 또는 명시적 no-match 결과다.
+- 탐색 budget 소진은 오류가 아니라 best-known `ProposalBatch` 또는 명시적 no-match 결과다.
 - stale snapshot과 reservation conflict는 재탐색 가능한 typed outcome이다.
-- persistence timeout은 성공으로 추정하지 않으며 idempotent read-after-write로 상태를 판정한다.
+- batch reservation 도중 하나라도 충돌하면 해당 proposal에는 부분 reservation을 남기지 않는다.
 - policy evaluation failure는 해당 policy version의 proposal 생성을 중단하고 관측 가능한 원인으로 노출한다.
 
 ## Initial Non-goals
 
-- 구현 언어와 storage engine을 architecture 문서만으로 확정하지 않는다.
+- planner와 coordinator를 별도 process로 배포하지 않는다.
+- P0에서 durable persistence와 process restart recovery를 제공하지 않는다.
 - allocation server hosting, game server lifecycle, identity/auth 전체를 소유하지 않는다.
 - 모든 게임에 공통인 단일 quality formula를 제공하지 않는다.
 - 처음부터 global optimum을 보장하지 않는다. budget과 approximation contract를 명시한다.

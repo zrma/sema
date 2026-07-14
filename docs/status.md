@@ -2,20 +2,24 @@
 
 ## Current Milestone
 
-`P0: Architecture Foundation`을 시작할 수 있는 repository bootstrap이 완료되었다.
+`P0: Architecture Foundation`의 product와 implementation baseline이 확정되었고 domain schema 및 Go vertical slice를 시작할 수 있다.
 
 ## Established
 
 - 프로젝트 이름과 repository identity: Sema.
-- domain vocabulary: `MatchTicket`, `BackfillTicket`, `MatchProposal`, `Reservation`, `Assignment`.
-- planner와 coordinator의 side-effect boundary.
+- domain vocabulary: `MatchTicket`, `BackfillTicket`, `ProposalBatch`, `MatchProposal`, `Reservation`, `Assignment`.
+- output contract: 한 cycle에서 ticket이 겹치지 않는 여러 match proposal.
+- reference workloads: 2:2부터 50:50 team match, 총원 100명의 duo/squad battle royale.
+- objective schedule: skill balance와 role composition에서 wait time과 latency 쪽으로 시간 기반 완화.
+- consistency baseline: per-aggregate revision, reserve/commit CAS, in-process coordinator authority.
+- implementation baseline: Go, 하나의 deployable process, 인메모리 상태.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
 
 ## Not Implemented
 
-- executable package와 implementation language.
+- Go module과 executable package.
 - canonical domain schema와 lifecycle tests.
 - candidate index, constraint engine, scorer, optimizer.
 - reservation/assignment persistence와 distributed coordination.
@@ -23,11 +27,13 @@
 
 ## Risks And Decisions Pending
 
-- match quality, queue latency, compute budget의 objective 우선순위.
-- consistency와 failure recovery 수준.
-- workload fixture 없이 구현 언어와 topology를 먼저 선택할 위험.
+- matchmaking cycle p95, maximum queue wait, absolute latency cap의 수치.
+- skill uncertainty와 team balance metric.
+- role composition의 hard/soft 경계.
+- mixed-party battle royale과 backfill fixture의 P0 범위.
+- 인메모리 baseline은 process restart recovery를 제공하지 않는다.
 - public repository 전환 여부와 remote identity.
 
 ## Next Slice
 
-`docs/todo-0001-foundation/spec.md`에 따라 domain contract와 deterministic reference scenarios를 고정한다.
+`docs/todo-0001-foundation/spec.md`에 따라 domain schema와 lifecycle을 고정하고 Go 인메모리 vertical slice를 구현한다.

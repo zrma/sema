@@ -5,31 +5,34 @@
 - [x] Sema repository와 `jj` Git backend 초기화
 - [x] GPT-5.6 AI-first agent harness와 publication boundary gate 적용
 - [x] 초기 domain vocabulary와 component boundary 문서화
+- [x] reference workload matrix와 multi-match output contract 확정
+- [x] Go 단일 프로세스·인메모리 implementation baseline 결정
+- [x] revision/CAS consistency 기본값 결정
 - [ ] canonical entity schema와 lifecycle 정의
-- [ ] new-match와 backfill reference fixture 정의
-- [ ] implementation stack decision record 작성
+- [ ] executable new-match와 backfill reference fixture 정의
+- [ ] Go 최소 vertical slice 구현
 
 ## P1: Deterministic Match Core
 
 - [ ] immutable matchmaking snapshot
 - [ ] candidate partition과 bounded enumeration
 - [ ] hard constraint evaluation
-- [ ] soft objective scoring과 explanation
-- [ ] deterministic proposal generation과 replay test
+- [ ] time-dependent soft objective scoring과 explanation
+- [ ] deterministic multi-match `ProposalBatch`와 replay test
 
 ## P2: Reservation And Assignment
 
 - [ ] proposal acceptance와 rejection lifecycle
-- [ ] idempotent reservation
-- [ ] conflict detection과 retry policy
+- [ ] idempotent fixed-TTL reservation
+- [ ] revision conflict detection과 retry policy
 - [ ] assignment commit과 cancellation
 - [ ] backfill roster update
 
 ## P3: Runtime And Operations
 
 - [ ] ticket/session ingestion API
-- [ ] persistence와 recovery
-- [ ] horizontal worker coordination
+- [ ] durable persistence와 restart recovery
+- [ ] process 분리 여부와 horizontal worker coordination 재평가
 - [ ] metrics, traces, decision audit
 - [ ] load, soak, failure-injection validation
 

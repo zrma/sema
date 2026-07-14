@@ -6,7 +6,7 @@
 
 - 공통 하네스 인터페이스와 Sema overlay: `docs/agent-harness.md`.
 - 현재 상태와 방향: `docs/HANDOFF.md`, `docs/status.md`, `docs/roadmap.md`.
-- architecture와 현재 작업: `docs/architecture.md`, 활성 `docs/todo-*/spec.md`와 `open-questions.md`.
+- architecture, workload, 현재 작업: `docs/architecture.md`, `docs/reference-workloads.md`, 활성 `docs/todo-*/spec.md`와 `open-questions.md`.
 
 <!-- agent-harness-baseline:start -->
 ## Agent Harness Baseline (GPT-5.6)
@@ -34,5 +34,5 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - domain contract와 state transition은 `docs/architecture.md` 및 활성 foundation spec을 source of truth로 사용한다.
 - 새 매치와 backfill을 같은 탐색 core에서 다루되 입력 타입과 lifecycle은 명시적으로 구분한다.
 - proposal 생성과 reservation/commit side effect를 분리하고 deterministic replay evidence를 우선한다.
-- 구현 언어와 distributed topology는 검증 가능한 decision record 없이 암묵적으로 확정하지 않는다.
+- 구현 baseline은 ADR 0001의 Go 단일 프로세스·인메모리 구조를 따르며 변경은 새 architecture decision으로 남긴다.
 - 기본 검증은 `scripts/check.sh`; 로컬 VCS는 `jj`; push는 명시적 권한이 있을 때만 수행한다.
