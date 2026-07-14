@@ -10,6 +10,7 @@ type (
 	ProposalID    string
 	ReservationID string
 	AssignmentID  string
+	OperationID   string
 	Revision      uint64
 )
 
@@ -162,11 +163,37 @@ type Reservation struct {
 }
 
 type Assignment struct {
-	ID            AssignmentID
-	ReservationID ReservationID
-	ProposalID    ProposalID
-	Kind          ProposalKind
-	Teams         []TeamAssignment
-	Backfill      *BackfillTarget
-	ConfirmedAt   time.Time
+	ID             AssignmentID
+	ReservationID  ReservationID
+	ProposalID     ProposalID
+	Kind           ProposalKind
+	Teams          []TeamAssignment
+	Backfill       *BackfillTarget
+	ConfirmedAt    time.Time
+	Status         AssignmentStatus
+	Acknowledgment *AssignmentAcknowledgment
+}
+
+type AssignmentStatus string
+
+const (
+	AssignmentPending   AssignmentStatus = "pending"
+	AssignmentCompleted AssignmentStatus = "completed"
+	AssignmentCancelled AssignmentStatus = "cancelled"
+	AssignmentFailed    AssignmentStatus = "failed"
+)
+
+type AssignmentAcknowledgmentRequest struct {
+	OperationID            OperationID
+	Outcome                AssignmentStatus
+	SessionID              SessionID
+	ExpectedRosterVersion  Revision
+	ResultingRosterVersion Revision
+	FailureCode            FailureCode
+	Reason                 string
+}
+
+type AssignmentAcknowledgment struct {
+	AssignmentAcknowledgmentRequest
+	AcknowledgedAt time.Time
 }

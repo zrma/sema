@@ -44,3 +44,19 @@ func FailureCodeOf(err error) (FailureCode, bool) {
 	}
 	return failure.Code, true
 }
+
+// ValidFailureCode reports whether a code belongs to the stable domain outcome set.
+func ValidFailureCode(code FailureCode) bool {
+	switch code {
+	case FailureInvalidInput,
+		FailureInvalidRevision,
+		FailureStaleSnapshot,
+		FailureReservationConflict,
+		FailureReservationExpired,
+		FailureInvalidTransition,
+		FailureIdempotencyConflict:
+		return true
+	default:
+		return false
+	}
+}

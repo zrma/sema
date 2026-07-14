@@ -284,6 +284,7 @@ func (coordinator *Coordinator) Confirm(
 		Teams:         domain.CloneTeams(record.proposal.Teams),
 		Backfill:      domain.CloneBackfillTarget(record.proposal.Backfill),
 		ConfirmedAt:   now,
+		Status:        domain.AssignmentPending,
 	}
 	for _, ref := range record.proposal.Tickets {
 		delete(coordinator.matchTickets, ref.ID)
@@ -296,6 +297,55 @@ func (coordinator *Coordinator) Confirm(
 	record.assignment = assignmentID
 	coordinator.assignments[assignmentID] = assignment
 	return cloneAssignment(assignment), nil
+}
+
+// AcknowledgeAssignment records the external application outcome exactly once.
+func (coordinator *Coordinator) AcknowledgeAssignment(
+	assignmentID domain.AssignmentID,
+	request domain.AssignmentAcknowledgmentRequest,
+	now time.Time,
+) (domain.Assignment, error) {
+	if assignmentID == "" || request.OperationID == "" || now.IsZero() {
+		return domain.Assignment{}, domain.NewFailure(domain.FailureInvalidInput, "assignment, operation, and acknowledgment time are required")
+	}
+	coordinator.mu.Lock()
+	defer coordinator.mu.Unlock()
+
+	assignment, exists := coordinator.assignments[assignmentID]
+	if !exists {
+		return domain.Assignment{}, domain.NewFailure(domain.FailureInvalidTransition, "assignment %q does not exist", assignmentID)
+	}
+	if assignment.Status != domain.AssignmentPending {
+		if assignment.Acknowledgment != nil && assignment.Acknowledgment.OperationID == request.OperationID {
+			if reflect.DeepEqual(assignment.Acknowledgment.AssignmentAcknowledgmentRequest, request) {
+				return cloneAssignment(assignment), nil
+			}
+			return domain.Assignment{}, domain.NewFailure(domain.FailureIdempotencyConflict, "operation ID %q was reused with another outcome", request.OperationID)
+		}
+		return domain.Assignment{}, domain.NewFailure(domain.FailureInvalidTransition, "assignment %q is already terminal", assignmentID)
+	}
+	if err := validateAcknowledgment(assignment, request); err != nil {
+		return domain.Assignment{}, err
+	}
+	acknowledgment := &domain.AssignmentAcknowledgment{
+		AssignmentAcknowledgmentRequest: request,
+		AcknowledgedAt:                  now,
+	}
+	assignment.Status = request.Outcome
+	assignment.Acknowledgment = acknowledgment
+	coordinator.assignments[assignmentID] = assignment
+	return cloneAssignment(assignment), nil
+}
+
+// Assignment returns a defensive copy of the current assignment read model.
+func (coordinator *Coordinator) Assignment(assignmentID domain.AssignmentID) (domain.Assignment, bool) {
+	coordinator.mu.Lock()
+	defer coordinator.mu.Unlock()
+	assignment, exists := coordinator.assignments[assignmentID]
+	if !exists {
+		return domain.Assignment{}, false
+	}
+	return cloneAssignment(assignment), true
 }
 
 // Cancel releases an active reservation. Repeating the same cancel is idempotent.
@@ -403,5 +453,65 @@ func cloneReservation(reservation domain.Reservation) domain.Reservation {
 func cloneAssignment(assignment domain.Assignment) domain.Assignment {
 	assignment.Teams = domain.CloneTeams(assignment.Teams)
 	assignment.Backfill = domain.CloneBackfillTarget(assignment.Backfill)
+	if assignment.Acknowledgment != nil {
+		acknowledgment := *assignment.Acknowledgment
+		assignment.Acknowledgment = &acknowledgment
+	}
 	return assignment
+}
+
+func validateAcknowledgment(
+	assignment domain.Assignment,
+	request domain.AssignmentAcknowledgmentRequest,
+) error {
+	if request.OperationID == "" {
+		return domain.NewFailure(domain.FailureInvalidInput, "assignment acknowledgment operation ID is required")
+	}
+	switch request.Outcome {
+	case domain.AssignmentCompleted:
+		if request.FailureCode != "" || request.Reason != "" {
+			return domain.NewFailure(domain.FailureInvalidInput, "completed assignment cannot carry failure detail")
+		}
+		if assignment.Kind == domain.ProposalBackfill {
+			return validateBackfillVersions(assignment, request)
+		}
+		if hasRosterDetail(request) {
+			return domain.NewFailure(domain.FailureInvalidInput, "new-match completion cannot carry roster detail")
+		}
+	case domain.AssignmentCancelled:
+		if request.Reason == "" || request.FailureCode != "" || hasRosterDetail(request) {
+			return domain.NewFailure(domain.FailureInvalidInput, "cancelled assignment needs only a reason")
+		}
+	case domain.AssignmentFailed:
+		if !domain.ValidFailureCode(request.FailureCode) || request.Reason == "" {
+			return domain.NewFailure(domain.FailureInvalidInput, "failed assignment needs a failure code and reason")
+		}
+		if assignment.Kind == domain.ProposalBackfill && request.FailureCode == domain.FailureStaleSnapshot {
+			return validateBackfillVersions(assignment, request)
+		}
+		if hasRosterDetail(request) {
+			return domain.NewFailure(domain.FailureInvalidInput, "non-stale failure cannot carry roster detail")
+		}
+	default:
+		return domain.NewFailure(domain.FailureInvalidInput, "assignment outcome %q is not terminal", request.Outcome)
+	}
+	return nil
+}
+
+func validateBackfillVersions(
+	assignment domain.Assignment,
+	request domain.AssignmentAcknowledgmentRequest,
+) error {
+	if assignment.Backfill == nil || request.SessionID != assignment.Backfill.SessionID ||
+		request.ExpectedRosterVersion != assignment.Backfill.RosterVersion {
+		return domain.NewFailure(domain.FailureStaleSnapshot, "backfill acknowledgment does not match the assigned roster snapshot")
+	}
+	if request.ResultingRosterVersion <= request.ExpectedRosterVersion {
+		return domain.NewFailure(domain.FailureInvalidInput, "resulting roster version must advance")
+	}
+	return nil
+}
+
+func hasRosterDetail(request domain.AssignmentAcknowledgmentRequest) bool {
+	return request.SessionID != "" || request.ExpectedRosterVersion != 0 || request.ResultingRosterVersion != 0
 }

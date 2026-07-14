@@ -236,6 +236,167 @@ func TestUpsertRevisionAndSnapshotCopies(t *testing.T) {
 	}
 }
 
+func TestAssignmentCompletionIsIdempotentAndReadable(t *testing.T) {
+	owner := newCoordinator(t, time.Minute)
+	upsertSoloTickets(t, owner, 4)
+	proposal := firstProposal(t, owner, testPolicy(2, 2))
+	if _, err := owner.Reserve(proposal, "reservation-complete", fixtureNow); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := owner.Confirm("reservation-complete", "assignment-complete", fixtureNow.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	request := domain.AssignmentAcknowledgmentRequest{
+		OperationID: "operation-complete",
+		Outcome:     domain.AssignmentCompleted,
+	}
+	first, err := owner.AcknowledgeAssignment("assignment-complete", request, fixtureNow.Add(2*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := owner.AcknowledgeAssignment("assignment-complete", request, fixtureNow.Add(3*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(first, second) || first.Status != domain.AssignmentCompleted {
+		t.Fatalf("idempotent completion changed: first=%#v second=%#v", first, second)
+	}
+
+	conflicting := request
+	conflicting.Outcome = domain.AssignmentCancelled
+	conflicting.Reason = "consumer cancelled"
+	_, err = owner.AcknowledgeAssignment("assignment-complete", conflicting, fixtureNow.Add(3*time.Second))
+	assertFailureCode(t, err, domain.FailureIdempotencyConflict)
+	request.OperationID = "another-operation"
+	_, err = owner.AcknowledgeAssignment("assignment-complete", request, fixtureNow.Add(3*time.Second))
+	assertFailureCode(t, err, domain.FailureInvalidTransition)
+
+	first.Acknowledgment.Reason = "mutated by caller"
+	stored, exists := owner.Assignment("assignment-complete")
+	if !exists || stored.Acknowledgment.Reason != "" {
+		t.Fatal("assignment read model was not defensively copied")
+	}
+}
+
+func TestAssignmentCancellationDoesNotResurrectTickets(t *testing.T) {
+	owner := newCoordinator(t, time.Minute)
+	upsertSoloTickets(t, owner, 4)
+	proposal := firstProposal(t, owner, testPolicy(2, 2))
+	if _, err := owner.Reserve(proposal, "reservation-cancel-assignment", fixtureNow); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := owner.Confirm("reservation-cancel-assignment", "assignment-cancel", fixtureNow.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	request := domain.AssignmentAcknowledgmentRequest{
+		OperationID: "operation-cancel",
+		Outcome:     domain.AssignmentCancelled,
+		Reason:      "allocation rejected",
+	}
+	assignment, err := owner.AcknowledgeAssignment("assignment-cancel", request, fixtureNow.Add(2*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if assignment.Status != domain.AssignmentCancelled {
+		t.Fatalf("assignment status = %q; want cancelled", assignment.Status)
+	}
+	snapshot, err := owner.Snapshot("after-assignment-cancel", fixtureNow.Add(3*time.Second), testPolicy(2, 2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.MatchTickets) != 0 {
+		t.Fatalf("cancelled assignment resurrected tickets: %#v", snapshot.MatchTickets)
+	}
+}
+
+func TestBackfillAcknowledgmentValidatesRosterCAS(t *testing.T) {
+	t.Run("completed", func(t *testing.T) {
+		owner, assignment := confirmedBackfillAssignment(t)
+		request := backfillAcknowledgment(assignment, domain.AssignmentCompleted, "operation-backfill-complete")
+		completed, err := owner.AcknowledgeAssignment(assignment.ID, request, fixtureNow.Add(2*time.Second))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if completed.Status != domain.AssignmentCompleted || completed.Acknowledgment.ResultingRosterVersion != 8 {
+			t.Fatalf("completed assignment = %#v", completed)
+		}
+	})
+
+	t.Run("non-advancing-version", func(t *testing.T) {
+		owner, assignment := confirmedBackfillAssignment(t)
+		request := backfillAcknowledgment(assignment, domain.AssignmentCompleted, "operation-invalid-version")
+		request.ResultingRosterVersion = request.ExpectedRosterVersion
+		_, err := owner.AcknowledgeAssignment(assignment.ID, request, fixtureNow.Add(2*time.Second))
+		assertFailureCode(t, err, domain.FailureInvalidInput)
+		stored, _ := owner.Assignment(assignment.ID)
+		if stored.Status != domain.AssignmentPending {
+			t.Fatalf("invalid acknowledgment changed assignment status to %q", stored.Status)
+		}
+	})
+
+	t.Run("stale-failure", func(t *testing.T) {
+		owner, assignment := confirmedBackfillAssignment(t)
+		request := backfillAcknowledgment(assignment, domain.AssignmentFailed, "operation-backfill-stale")
+		request.FailureCode = domain.FailureStaleSnapshot
+		request.Reason = "session authority observed a newer roster"
+		failed, err := owner.AcknowledgeAssignment(assignment.ID, request, fixtureNow.Add(2*time.Second))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if failed.Status != domain.AssignmentFailed || failed.Acknowledgment.FailureCode != domain.FailureStaleSnapshot {
+			t.Fatalf("failed assignment = %#v", failed)
+		}
+	})
+}
+
+func TestConcurrentAssignmentTerminalTransitionHasOneWinner(t *testing.T) {
+	owner := newCoordinator(t, time.Minute)
+	upsertSoloTickets(t, owner, 4)
+	proposal := firstProposal(t, owner, testPolicy(2, 2))
+	if _, err := owner.Reserve(proposal, "reservation-terminal-race", fixtureNow); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := owner.Confirm("reservation-terminal-race", "assignment-terminal-race", fixtureNow.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	requests := []domain.AssignmentAcknowledgmentRequest{
+		{OperationID: "operation-complete", Outcome: domain.AssignmentCompleted},
+		{OperationID: "operation-cancel", Outcome: domain.AssignmentCancelled, Reason: "allocation rejected"},
+	}
+	start := make(chan struct{})
+	results := make(chan error, len(requests))
+	var wait sync.WaitGroup
+	for _, request := range requests {
+		request := request
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			_, err := owner.AcknowledgeAssignment("assignment-terminal-race", request, fixtureNow.Add(2*time.Second))
+			results <- err
+		}()
+	}
+	close(start)
+	wait.Wait()
+	close(results)
+
+	successes, transitions := 0, 0
+	for err := range results {
+		if err == nil {
+			successes++
+			continue
+		}
+		if code, ok := domain.FailureCodeOf(err); ok && code == domain.FailureInvalidTransition {
+			transitions++
+			continue
+		}
+		t.Fatalf("unexpected terminal transition result: %v", err)
+	}
+	if successes != 1 || transitions != 1 {
+		t.Fatalf("successes = %d, invalid transitions = %d; want 1, 1", successes, transitions)
+	}
+}
+
 func newCoordinator(t *testing.T, ttl time.Duration) *coordinator.Coordinator {
 	t.Helper()
 	owner, err := coordinator.New(ttl)
@@ -307,6 +468,46 @@ func proposalFor(id domain.ProposalID, refs ...domain.TicketRef) domain.MatchPro
 		PolicyVersion: "test-v1",
 		Teams:         []domain.TeamAssignment{{Team: 0, Tickets: append([]domain.TicketRef(nil), refs...)}},
 		Tickets:       append([]domain.TicketRef(nil), refs...),
+	}
+}
+
+func confirmedBackfillAssignment(t *testing.T) (*coordinator.Coordinator, domain.Assignment) {
+	t.Helper()
+	owner := newCoordinator(t, time.Minute)
+	upsertSoloTickets(t, owner, 2)
+	backfill := domain.BackfillTicket{
+		ID:              "backfill-ack",
+		Revision:        1,
+		SessionID:       "session-ack",
+		RosterVersion:   7,
+		OpenSlotsByTeam: []int{1, 1},
+		EnqueuedAt:      fixtureNow.Add(-time.Minute),
+	}
+	if err := owner.UpsertBackfillTicket(backfill); err != nil {
+		t.Fatal(err)
+	}
+	proposal := firstProposal(t, owner, testPolicy(2, 2))
+	if _, err := owner.Reserve(proposal, "reservation-backfill-ack", fixtureNow); err != nil {
+		t.Fatal(err)
+	}
+	assignment, err := owner.Confirm("reservation-backfill-ack", "assignment-backfill-ack", fixtureNow.Add(time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return owner, assignment
+}
+
+func backfillAcknowledgment(
+	assignment domain.Assignment,
+	outcome domain.AssignmentStatus,
+	operationID domain.OperationID,
+) domain.AssignmentAcknowledgmentRequest {
+	return domain.AssignmentAcknowledgmentRequest{
+		OperationID:            operationID,
+		Outcome:                outcome,
+		SessionID:              assignment.Backfill.SessionID,
+		ExpectedRosterVersion:  assignment.Backfill.RosterVersion,
+		ResultingRosterVersion: assignment.Backfill.RosterVersion + 1,
 	}
 }
 
