@@ -22,6 +22,8 @@
 - short-wait, long-wait, role, latency tie-break reference fixture.
 - queue size별 benchmark와 search budget evidence.
 
+세부 schema와 ordering은 `policy.md`가 소유한다.
+
 ## Acceptance
 
 - 짧게 기다린 fixture는 더 낮은 team skill gap과 role penalty를 가진 후보를 선택한다.
