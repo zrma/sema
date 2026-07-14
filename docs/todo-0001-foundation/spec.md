@@ -8,7 +8,7 @@ Sema의 canonical domain contract와 lifecycle을 고정하고, 확정된 Go 단
 
 - 대표 workload와 party distribution: `docs/reference-workloads.md`.
 - implementation baseline: `docs/decisions/0001-implementation-baseline.md`.
-- consistency 기본값과 남은 policy 질문: `open-questions.md`.
+- 확정된 consistency 기본값과 후속 policy parameters: `decisions.md`.
 
 ## Deliverables
 

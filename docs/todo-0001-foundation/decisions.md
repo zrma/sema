@@ -1,4 +1,4 @@
-# P0 Decisions And Open Questions
+# P0 Decisions
 
 ## Confirmed Product Contract
 
@@ -27,12 +27,12 @@
 - 실제 처리량, 독립 scaling, failure isolation 근거가 생긴 뒤에만 별도 process로 분리한다.
 - 첫 vertical slice는 인메모리로 구현하고 production recovery requirement가 구체화된 뒤 영속 저장소를 도입한다.
 
-## Remaining Open Questions
+## Policy Parameters To Define
 
-- matchmaking cycle p95 budget, maximum queue wait, absolute network latency cap의 수치는 얼마인가?
-- skill을 어떤 값과 uncertainty model로 표현하고 team balance를 어떤 metric으로 비교할 것인가?
-- role composition의 필수 조건과 대기 시간에 따라 완화할 수 있는 조건은 각각 무엇인가?
-- mixed-party battle royale과 backfill fixture를 P0에 포함할 것인가?
+- matchmaking cycle p95 budget, maximum queue wait, absolute network latency cap의 수치는 executable fixture와 benchmark로 정한다.
+- skill representation, uncertainty model, team balance metric은 domain schema와 reference scenario에서 정한다.
+- role composition의 hard constraint와 대기 시간에 따라 완화할 soft constraint를 policy contract로 분리한다.
+- mixed-party battle royale과 backfill fixture의 P0 포함 범위는 fixture 작성 시 비용과 coverage를 기준으로 정한다.
 
 ## Decision Gate
 

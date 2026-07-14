@@ -6,7 +6,7 @@
 
 - 공통 하네스 인터페이스와 Sema overlay: `docs/agent-harness.md`.
 - 현재 상태와 방향: `docs/HANDOFF.md`, `docs/status.md`, `docs/roadmap.md`.
-- architecture, workload, 현재 작업: `docs/architecture.md`, `docs/reference-workloads.md`, 활성 `docs/todo-*/spec.md`와 `open-questions.md`.
+- architecture, workload, 현재 작업: `docs/architecture.md`, `docs/reference-workloads.md`, 활성 `docs/todo-*/spec.md`와 `decisions.md`.
 
 <!-- agent-harness-baseline:start -->
 ## Agent Harness Baseline (GPT-5.6)

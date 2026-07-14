@@ -16,7 +16,7 @@ for required_file in \
   docs/decisions/0001-implementation-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
-  docs/todo-0001-foundation/open-questions.md; do
+  docs/todo-0001-foundation/decisions.md; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2
     exit 1
