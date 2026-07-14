@@ -52,6 +52,9 @@ producer는 자신이 소유한 aggregate의 revision을 증가시킨다. coordi
 - `maxLatencyMillis`: 절대 network latency hard cap.
 - `maxProposals`: 한 batch에서 반환할 proposal 상한. 0은 구현 기본값을 사용한다.
 - `maxSearchNodes`: 한 planning cycle의 bounded enumeration 상한. 0은 구현 기본값을 사용한다.
+- `maxCandidatesPerProposal`: proposal 하나에서 비교할 exact placement 상한. 0은 구현 기본값을 사용한다.
+- `roleRequirements`: team별 hard 또는 soft minimum role count.
+- `relaxationSteps`: oldest ticket wait에 따라 skill/role 허용 범위와 wait 우선순위를 바꾸는 ordered schedule.
 
 ### `MatchmakingSnapshot`
 
@@ -71,7 +74,7 @@ producer는 자신이 소유한 aggregate의 revision을 증가시킨다. coordi
 - `teams`: team index와 그 team에 배치할 ordered `TicketRef` 목록.
 - `tickets`: proposal 전체의 ordered `TicketRef` 목록.
 - `backfill`: backfill일 때만 대상 ticket/session/roster version을 기록한다.
-- `evidence`: team skill gap, maximum latency, oldest wait, 사용한 search node 수.
+- `evidence`: relaxation level, role penalty, team skill gap, oldest/total wait, maximum latency, 비교한 candidate와 search budget.
 
 `TicketRef`는 `ticketID`와 `revision`을 함께 가진다. proposal은 아직 side effect가 없는 제안이며 배치나 좌석을 소유하지 않는다.
 
@@ -82,7 +85,7 @@ producer는 자신이 소유한 aggregate의 revision을 증가시킨다. coordi
 - `unmatched`: 이번 budget에서 배치하지 못한 active `MatchTicket` 목록.
 - `budgetExhausted`: search budget 때문에 best-known 결과로 종료했는지 나타낸다.
 
-한 batch의 `MatchTicket`은 최대 한 proposal에만 나타난다. 하나의 `BackfillTicket`도 최대 한 backfill proposal에만 나타난다. P0는 같은 ticket 집합에 대한 대안 proposal을 반환하지 않는다.
+각 unmatched 항목은 `hard_constraint`, `insufficient_capacity`, `quality_threshold`, `search_budget`, `proposal_limit` 중 stable 대표 reason을 가진다. 한 batch의 `MatchTicket`은 최대 한 proposal에만 나타난다. 하나의 `BackfillTicket`도 최대 한 backfill proposal에만 나타난다. P0는 같은 ticket 집합에 대한 대안 proposal을 반환하지 않는다.
 
 ### `Reservation`
 
@@ -110,4 +113,4 @@ assignment 생성과 동시에 사용한 active ticket은 소비된다. P0에서
 - active ticket/backfill revision과 roster version 일치.
 - batch 및 active reservation 사이의 ticket 배타성.
 
-skill balance, role composition, wait time, hard cap 안의 상대 latency는 soft objective다. P0 vertical slice는 skill gap과 latency/wait evidence를 계산하지만 최종 game-specific weighting과 time schedule은 고정하지 않는다.
+skill balance, soft role composition, wait time, hard cap 안의 상대 latency는 soft objective다. P1은 versioned relaxation step과 replay 가능한 lexicographic evidence를 제공한다. team skill은 player 정수 skill의 team별 평균을 정수 나눗셈으로 계산하며 rating/uncertainty model 자체는 policy 밖의 입력 책임이다.

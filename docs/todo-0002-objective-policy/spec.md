@@ -1,6 +1,6 @@
 # P1 Objective Policy Spec
 
-- Status: Active
+- Status: Complete
 
 ## Objective
 
@@ -50,3 +50,12 @@
 - global optimum 보장.
 - distributed search와 durable state.
 - public API compatibility와 remote publication.
+
+## Completion Evidence
+
+- `policy.md`가 role, relaxation, objective ordering, evidence, unmatched reason을 고정한다.
+- `internal/constraint`와 `internal/objective`가 hard rule과 soft candidate comparison을 분리한다.
+- planner가 first-valid search 대신 candidate/node budget 안의 best-known placement를 선택한다.
+- fixture가 skill, soft/hard role, short/long wait, latency tie-break, candidate truncation, stable unmatched reason을 실행한다.
+- 기존 2:2~50:50, 100인 duo/squad, backfill와 coordinator lifecycle test가 그대로 통과한다.
+- reference workload와 100/500/1000 ticket queue benchmark가 full gate에 포함된다.

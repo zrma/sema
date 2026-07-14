@@ -18,13 +18,14 @@
 - 대표 workload는 2:2부터 50:50까지의 team match와 총원 100명의 duo/squad battle royale이다.
 - `internal/domain`, `internal/planner`, `internal/coordinator`에 P0 Go vertical slice가 구현되어 있다.
 - planner는 backfill-first bounded enumeration과 deterministic disjoint batch를 만들고 coordinator는 revision CAS와 fixed-TTL reservation/assignment를 소유한다.
+- role/skill quality는 versioned wait relaxation에 따라 best-known candidate를 비교하며 unmatched ticket에는 stable reason이 남는다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - numeric SLO, skill metric, role schema, production persistence는 아직 결정하지 않았다.
 - 현재 publication class는 원격 visibility가 결정되기 전까지 `internal`이다.
 
 ## Current Work
 
-`docs/todo-0001-foundation/spec.md`는 완료되었다. 현재 작업은 `docs/todo-0002-objective-policy/spec.md`이며, 현재 first-valid bounded search를 explicit scoring과 wait-based relaxation이 있는 candidate comparison으로 발전시킨다.
+P0 foundation과 P1 objective policy는 완료되었다. 현재 작업은 `docs/todo-0003-assignment-lifecycle/spec.md`이며, confirmed assignment를 외부 session authority의 CAS 적용 결과와 안전하게 연결한다.
 
 ## Completion Rule
 

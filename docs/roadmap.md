@@ -17,7 +17,7 @@
 - [x] immutable matchmaking snapshot
 - [x] deterministic queue ordering과 bounded enumeration
 - [x] party, capacity, absolute latency hard constraint evaluation
-- [ ] time-dependent soft objective scoring과 explanation
+- [x] time-dependent soft objective scoring과 explanation
 - [x] deterministic multi-match `ProposalBatch`와 replay test
 
 ## P2: Reservation And Assignment
@@ -26,8 +26,8 @@
 - [x] idempotent fixed-TTL reservation
 - [x] revision/roster conflict detection과 atomic retry boundary
 - [x] assignment commit
-- [ ] assignment cancellation
-- [ ] backfill roster update
+- [ ] assignment completion과 cancellation acknowledgment
+- [ ] backfill roster CAS handoff
 
 ## P3: Runtime And Operations
 

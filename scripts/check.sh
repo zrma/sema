@@ -22,6 +22,7 @@ for required_file in \
   docs/todo-0001-foundation/decisions.md \
   docs/todo-0002-objective-policy/spec.md \
   docs/todo-0002-objective-policy/policy.md \
+  docs/todo-0003-assignment-lifecycle/spec.md \
   go.mod; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2

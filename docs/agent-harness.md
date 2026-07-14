@@ -90,5 +90,6 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Architecture: `docs/architecture.md`.
 - Workloads and decisions: `docs/reference-workloads.md`, `docs/decisions/0001-implementation-baseline.md`.
 - Completed foundation: `docs/todo-0001-foundation/spec.md`, `docs/todo-0001-foundation/decisions.md`.
-- Active objective policy: `docs/todo-0002-objective-policy/spec.md`.
+- Completed objective policy: `docs/todo-0002-objective-policy/spec.md`.
+- Active assignment lifecycle: `docs/todo-0003-assignment-lifecycle/spec.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.
