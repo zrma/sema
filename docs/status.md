@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-`P0: Architecture Foundation`, `P1: Objective Policy`, `P2: Assignment Lifecycle`이 완료되었다. 현재 milestone은 `P3: Application Runtime`이며, 검증된 package를 transport-neutral application service로 조합한다.
+`P0: Architecture Foundation`, `P1: Objective Policy`, `P2: Assignment Lifecycle`, P3의 transport-neutral application engine이 완료되었다. 현재는 첫 외부 consumer와 delivery/recovery 요구를 받아 runtime adapter를 선택하는 decision gate다.
 
 ## Established
 
@@ -25,6 +25,7 @@
 - stable unmatched reason과 100/500/1000 ticket queue benchmark.
 - pending/complete/cancel/fail assignment state와 idempotent acknowledgment.
 - backfill expected/resulting roster version CAS handoff와 stale failure outcome.
+- ingestion부터 terminal assignment까지 조합하는 `internal/engine` facade와 end-to-end fixture.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
@@ -47,4 +48,4 @@
 
 ## Next Slice
 
-`docs/todo-0004-application-runtime/spec.md`에 따라 package orchestration facade와 end-to-end application fixture를 구현한다.
+`docs/todo-0005-runtime-adapter/spec.md`의 decision input을 확정한 뒤 첫 external adapter와 필요한 durability contract를 구현한다.

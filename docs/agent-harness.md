@@ -92,5 +92,6 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Completed foundation: `docs/todo-0001-foundation/spec.md`, `docs/todo-0001-foundation/decisions.md`.
 - Completed objective policy: `docs/todo-0002-objective-policy/spec.md`.
 - Completed assignment lifecycle: `docs/todo-0003-assignment-lifecycle/spec.md`.
-- Active application runtime: `docs/todo-0004-application-runtime/spec.md`.
+- Completed application runtime: `docs/todo-0004-application-runtime/spec.md`.
+- Runtime adapter decision gate: `docs/todo-0005-runtime-adapter/spec.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

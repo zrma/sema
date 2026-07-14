@@ -1,6 +1,6 @@
 # P3 Application Runtime Spec
 
-- Status: Active
+- Status: Complete
 
 ## Objective
 
@@ -33,3 +33,12 @@ P3 facade 이후 외부 transport와 durable persistence는 실제 consumer, del
 - executable server process와 deployment manifest.
 - durable repository와 process restart recovery.
 - metrics backend와 distributed tracing exporter.
+
+## Completion Evidence
+
+- `internal/engine`이 ingestion, snapshot/plan, reserve/confirm/cancel, assignment acknowledgment/read를 한 경계로 제공한다.
+- facade는 wall clock과 ID를 생성하지 않고 caller 입력을 그대로 사용한다.
+- new-match flow가 repeated deterministic plan부터 completed assignment까지 실행된다.
+- backfill stale roster failure가 terminal assignment read model까지 실행된다.
+- active reservation이 새 cycle에서 제외되고 cancel 뒤 다시 planning되는 흐름을 실행한다.
+- engine end-to-end fixture를 포함한 full/race gate가 통과한다.
