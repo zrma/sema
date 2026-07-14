@@ -8,23 +8,23 @@
 - [x] reference workload matrix와 multi-match output contract 확정
 - [x] Go 단일 프로세스·인메모리 implementation baseline 결정
 - [x] revision/CAS consistency 기본값 결정
-- [ ] canonical entity schema와 lifecycle 정의
-- [ ] executable new-match와 backfill reference fixture 정의
-- [ ] Go 최소 vertical slice 구현
+- [x] canonical entity schema와 lifecycle 정의
+- [x] executable new-match와 backfill reference fixture 정의
+- [x] Go 최소 vertical slice 구현
 
 ## P1: Deterministic Match Core
 
-- [ ] immutable matchmaking snapshot
-- [ ] candidate partition과 bounded enumeration
-- [ ] hard constraint evaluation
+- [x] immutable matchmaking snapshot
+- [x] deterministic queue ordering과 bounded enumeration
+- [x] party, capacity, absolute latency hard constraint evaluation
 - [ ] time-dependent soft objective scoring과 explanation
-- [ ] deterministic multi-match `ProposalBatch`와 replay test
+- [x] deterministic multi-match `ProposalBatch`와 replay test
 
 ## P2: Reservation And Assignment
 
-- [ ] proposal acceptance와 rejection lifecycle
-- [ ] idempotent fixed-TTL reservation
-- [ ] revision conflict detection과 retry policy
+- [x] proposal reserve, confirm, cancel, expiry lifecycle
+- [x] idempotent fixed-TTL reservation
+- [x] revision/roster conflict detection과 atomic retry boundary
 - [ ] assignment commit과 cancellation
 - [ ] backfill roster update
 

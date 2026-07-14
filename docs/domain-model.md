@@ -60,7 +60,7 @@ producer는 자신이 소유한 aggregate의 revision을 증가시킨다. coordi
 - `backfillTickets`: 기존 세션의 빈자리 수요.
 - `policy`: 이번 cycle에 적용할 versioned policy.
 
-같은 snapshot 안에서 ticket ID와 player ID는 각각 유일해야 한다. planner는 입력 slice를 변경하지 않는다.
+같은 snapshot 안에서 ticket ID와 player ID는 각각 유일해야 한다. active reservation이 소유한 ticket과 backfill 수요는 새 snapshot에서 제외한다. planner는 입력 slice를 변경하지 않는다.
 
 ## Output Entities
 

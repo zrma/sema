@@ -13,11 +13,6 @@ from pathlib import Path
 from typing import Iterable
 
 
-EXCLUDED_PATHS = {
-    "scripts/check-agent-harness-interface.sh",
-    "scripts/check-publication-boundary.py",
-}
-
 SAFE_HOME_USERS = {
     "example",
     "local-user",
@@ -49,10 +44,14 @@ SAFE_NETWORK_LITERALS = {
     "192.168.0.0/16",
 }
 
-RAW_EVIDENCE_PATH = re.compile(
-    r"(?i)(?:^|/)(?:(?:microk8s|kubernetes|cluster)[-_])?"
+RAW_EVIDENCE_NAME = (
+    r"(?:[a-z0-9][a-z0-9._-]*[-_])?"
     r"(?:healthcheck|diagnostic|support-bundle|cluster-dump)[-_]"
-    r"[0-9]{8}(?:[-_][0-9]{4,6})?(?:/|$)"
+    r"[0-9]{8}(?:[-_][0-9]{4,6})?"
+)
+RAW_EVIDENCE_PATH = re.compile(rf"(?i)(?:^|/){RAW_EVIDENCE_NAME}(?:/|$)")
+RAW_EVIDENCE_REFERENCE = re.compile(
+    rf"(?i)(?<![a-z0-9._/-]){RAW_EVIDENCE_NAME}(?:/|$)"
 )
 
 
@@ -150,7 +149,7 @@ def text_files(root: Path) -> Iterable[tuple[str, str]]:
         files.update(item for item in run_git(root, "ls-files", "--others", "--exclude-standard", "-z").split("\0") if item)
     except RuntimeError:
         pass
-    for relative in sorted(files - EXCLUDED_PATHS):
+    for relative in sorted(files):
         path = root / relative
         if not path.is_file():
             continue
@@ -164,7 +163,10 @@ def fixed_patterns(owner: str, repository: str) -> list[tuple[str, re.Pattern[st
     return [
         (
             "portfolio-disclosure",
-            re.compile(r"(?i)(?:\b[0-9]+\s*(?:repositories|repos)\b|[0-9]+개\s*저장소|all\s+repositories|cross-repository\s+agent-harness)"),
+            re.compile(
+                r"(?i)(?:\b[0-9]+\s*(?:repositories|repos)\b|[0-9]+개\s*저장소|"
+                r"all\s+repositories|cross-repository\s+agent-harness)"
+            ),
         ),
         (
             "cross-repository-revision",
@@ -212,6 +214,9 @@ def scan_text(
     record_like = Path(relative.split("@", 1)[0]).suffix.lower() in {".log", ".md", ".txt"}
     if RAW_EVIDENCE_PATH.search(relative):
         findings.add(Finding(relative, 1, "raw-runtime-evidence-path"))
+    for match in RAW_EVIDENCE_REFERENCE.finditer(text):
+        line_no = text.count("\n", 0, match.start()) + 1
+        findings.add(Finding(relative, line_no, "raw-runtime-evidence-reference"))
     for kind, pattern in patterns:
         for match in pattern.finditer(text):
             line_no = text.count("\n", 0, match.start()) + 1
@@ -284,6 +289,7 @@ def self_test() -> int:
         ("docs/HANDOFF.md", f"Run kubectl --context {private_context} get pods."),
         ("docs/HANDOFF.md", f"Connect to {private_hostname}."),
         (evidence_path, "ready"),
+        ("docs/HANDOFF.md", f"Read {evidence_path} before publishing."),
     ]
     safe = [
         ("fixture", "See https://github.com/example/public-app/releases."),
@@ -299,6 +305,16 @@ def self_test() -> int:
         return 1
     if any(scan_text(path, text, patterns, top_levels) for path, text in safe):
         print("self-test failed: safe fixture was rejected", file=sys.stderr)
+        return 1
+    checker_path = Path(__file__)
+    checker_findings = scan_text(
+        "scripts/check-publication-boundary.py",
+        checker_path.read_text(encoding="utf-8"),
+        patterns,
+        top_levels,
+    )
+    if checker_findings:
+        print("self-test failed: checker source violates its own publication boundary", file=sys.stderr)
         return 1
     print("publication boundary repository gate self-test passed")
     return 0

@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-`P0: Architecture Foundation`의 product와 implementation baseline이 확정되었고 domain schema 및 Go vertical slice를 시작할 수 있다.
+`P0: Architecture Foundation`이 완료되었다. 현재 milestone은 `P1: Objective Policy`이며, deterministic vertical slice 위에 skill, role, wait time, latency의 명시적 scoring/relaxation contract를 추가한다.
 
 ## Established
 
@@ -13,17 +13,24 @@
 - objective schedule: skill balance와 role composition에서 wait time과 latency 쪽으로 시간 기반 완화.
 - consistency baseline: per-aggregate revision, reserve/commit CAS, in-process coordinator authority.
 - implementation baseline: Go, 하나의 deployable process, 인메모리 상태.
+- canonical entity schema, lifecycle, typed failure contract.
+- immutable snapshot과 party-preserving bounded enumeration.
+- deterministic multi-match와 backfill-first `ProposalBatch`.
+- in-memory coordinator의 revision/roster CAS, atomic fixed-TTL reservation, idempotent assignment.
+- 2:2부터 50:50, 100인 duo/squad, stale/conflict/expiry/concurrency reference test.
+- Go format, module hygiene, vet, test, race detector, planner benchmark가 포함된 local/CI gate.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
 
 ## Not Implemented
 
-- Go module과 executable package.
-- canonical domain schema와 lifecycle tests.
-- candidate index, constraint engine, scorer, optimizer.
+- time-dependent skill/role/wait/latency policy와 대안 후보 비교 scorer.
+- 대규모 queue를 위한 candidate index와 partition.
+- global optimum 또는 품질 근사 보장.
 - reservation/assignment persistence와 distributed coordination.
-- API, observability, benchmark, deployment.
+- assignment cancellation과 backfill roster write-back.
+- API/server entrypoint, observability, deployment.
 
 ## Risks And Decisions Pending
 
@@ -36,4 +43,4 @@
 
 ## Next Slice
 
-`docs/todo-0001-foundation/spec.md`에 따라 domain schema와 lifecycle을 고정하고 Go 인메모리 vertical slice를 구현한다.
+`docs/todo-0002-objective-policy/spec.md`에 따라 explicit objective vector, wait-based relaxation, role contract, unmatched reason을 fixture-first로 구현한다.

@@ -27,7 +27,7 @@ stateDiagram-v2
 
 ## Planning Lifecycle
 
-1. coordinator 또는 adapter가 active input과 versioned policy로 immutable snapshot을 만든다.
+1. coordinator 또는 adapter가 reservation되지 않은 active input과 versioned policy로 immutable snapshot을 만든다.
 2. planner가 입력 유효성, hard latency cap, party capacity를 검증한다.
 3. backfill 수요를 deterministic order로 먼저 채운다.
 4. 남은 `MatchTicket`으로 새 match를 반복 구성한다.

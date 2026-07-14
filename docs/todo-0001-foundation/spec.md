@@ -1,5 +1,7 @@
 # P0 Foundation Spec
 
+- Status: Complete
+
 ## Objective
 
 Sema의 canonical domain contract와 lifecycle을 고정하고, 확정된 Go 단일 프로세스·인메모리 baseline에서 deterministic reference scenarios를 실행 가능한 형태로 검증한다.
@@ -46,3 +48,11 @@ Sema의 canonical domain contract와 lifecycle을 고정하고, 확정된 Go 단
 - game-specific ranking formula의 최종 수치.
 - UI와 운영 dashboard.
 - remote push, repository visibility, release.
+
+## Completion Evidence
+
+- `docs/domain-model.md`, `docs/lifecycle.md`, `docs/reference-scenarios.md`가 identity, freshness, transition, fixture를 소유한다.
+- `internal/domain`, `internal/planner`, `internal/coordinator`가 Go package boundary와 인메모리 vertical slice를 구현한다.
+- reference test가 2:2부터 50:50까지의 team workload, 총원 100명의 duo/squad, backfill 우선순위, party integrity, deterministic disjoint batch를 실행한다.
+- coordinator test가 stale reserve/confirm CAS, backfill roster freshness, atomic conflict, fixed TTL, cancel/retry, idempotent confirm, concurrent single-winner를 실행한다.
+- `scripts/check.sh`가 format, module hygiene, vet, test, race detector, reference benchmark, repository/harness gate를 모두 실행한다.
