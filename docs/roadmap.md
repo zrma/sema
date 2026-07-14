@@ -25,7 +25,8 @@
 - [x] proposal reserve, confirm, cancel, expiry lifecycle
 - [x] idempotent fixed-TTL reservation
 - [x] revision/roster conflict detection과 atomic retry boundary
-- [ ] assignment commit과 cancellation
+- [x] assignment commit
+- [ ] assignment cancellation
 - [ ] backfill roster update
 
 ## P3: Runtime And Operations

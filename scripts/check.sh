@@ -20,6 +20,7 @@ for required_file in \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
+  docs/todo-0002-objective-policy/spec.md \
   go.mod; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2
