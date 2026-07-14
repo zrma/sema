@@ -1,0 +1,22 @@
+schema_version: 1
+entrypoint: docs/HANDOFF.md
+agent_harness: docs/agent-harness.md
+status: docs/status.md
+roadmap: docs/roadmap.md
+architecture: docs/architecture.md
+active_work_glob: docs/todo-*/spec.md
+
+checks:
+  full: scripts/check.sh
+  harness: scripts/check-agent-harness-interface.sh
+  publication: scripts/check-publication-boundary.py
+
+vcs:
+  local: jj
+  change_message: "<type>: <summary>"
+  push_requires_explicit_permission: true
+
+publication:
+  class: internal
+  public_transition_requires_live_visibility_check: true
+  public_push_requires_machine_local_inventory_gate: true
