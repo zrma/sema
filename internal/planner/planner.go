@@ -83,9 +83,12 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 
 	available = append(available, hardRejected...)
 	sortTickets(available)
-	batch.Unmatched = make([]domain.TicketRef, len(available))
+	batch.Unmatched = make([]domain.UnmatchedTicket, len(available))
 	for index, ticket := range available {
-		batch.Unmatched[index] = domain.TicketReference(ticket)
+		batch.Unmatched[index] = domain.UnmatchedTicket{
+			Ticket: domain.TicketReference(ticket),
+			Reason: domain.UnmatchedInsufficientCapacity,
+		}
 	}
 	batch.BudgetExhausted = budget.exhausted
 	return batch, nil

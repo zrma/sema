@@ -54,6 +54,23 @@ func TestValidateProposalRequiresCanonicalFlattening(t *testing.T) {
 	assertFailureCode(t, err, domain.FailureInvalidInput)
 }
 
+func TestValidatePolicyRequiresMonotonicRelaxation(t *testing.T) {
+	policy := domain.MatchmakingPolicy{
+		Version:          "policy-v1",
+		TeamCount:        2,
+		TeamSize:         2,
+		MaxLatencyMillis: 200,
+		RoleRequirements: []domain.RoleRequirement{{Role: "healer", MinPerTeam: 1}},
+		RelaxationSteps: []domain.RelaxationStep{
+			{AfterWait: 0, MaxTeamSkillGap: 50, MaxRolePenalty: 0, PrioritizeWait: true},
+			{AfterWait: 30 * time.Second, MaxTeamSkillGap: 40, MaxRolePenalty: 1},
+		},
+	}
+
+	err := domain.ValidatePolicy(policy)
+	assertFailureCode(t, err, domain.FailureInvalidInput)
+}
+
 func assertFailureCode(t *testing.T, err error, expected domain.FailureCode) {
 	t.Helper()
 	code, ok := domain.FailureCodeOf(err)

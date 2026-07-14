@@ -15,8 +15,40 @@ func ValidatePolicy(policy MatchmakingPolicy) error {
 	if policy.MaxLatencyMillis <= 0 {
 		return NewFailure(FailureInvalidInput, "maximum latency must be positive")
 	}
-	if policy.MaxProposals < 0 || policy.MaxSearchNodes < 0 {
+	if policy.MaxProposals < 0 || policy.MaxSearchNodes < 0 || policy.MaxCandidatesPerProposal < 0 {
 		return NewFailure(FailureInvalidInput, "planning limits cannot be negative")
+	}
+	roles := make(map[string]struct{}, len(policy.RoleRequirements))
+	for _, requirement := range policy.RoleRequirements {
+		if requirement.Role == "" || requirement.MinPerTeam <= 0 || requirement.MinPerTeam > policy.TeamSize {
+			return NewFailure(FailureInvalidInput, "role requirements need a role and a feasible positive minimum")
+		}
+		if _, exists := roles[requirement.Role]; exists {
+			return NewFailure(FailureInvalidInput, "role %q is configured more than once", requirement.Role)
+		}
+		roles[requirement.Role] = struct{}{}
+	}
+	if len(policy.RelaxationSteps) > 0 {
+		previous := policy.RelaxationSteps[0]
+		if previous.AfterWait != 0 {
+			return NewFailure(FailureInvalidInput, "the first relaxation step must start at zero wait")
+		}
+		if previous.MaxTeamSkillGap < 0 || previous.MaxRolePenalty < 0 {
+			return NewFailure(FailureInvalidInput, "relaxation limits cannot be negative")
+		}
+		for index := 1; index < len(policy.RelaxationSteps); index++ {
+			current := policy.RelaxationSteps[index]
+			if current.AfterWait <= previous.AfterWait {
+				return NewFailure(FailureInvalidInput, "relaxation wait thresholds must increase")
+			}
+			if current.MaxTeamSkillGap < previous.MaxTeamSkillGap || current.MaxRolePenalty < previous.MaxRolePenalty {
+				return NewFailure(FailureInvalidInput, "relaxation limits cannot become stricter")
+			}
+			if previous.PrioritizeWait && !current.PrioritizeWait {
+				return NewFailure(FailureInvalidInput, "wait priority cannot be disabled by a later relaxation step")
+			}
+			previous = current
+		}
 	}
 	return nil
 }

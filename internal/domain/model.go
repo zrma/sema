@@ -39,14 +39,30 @@ type BackfillTicket struct {
 	EnqueuedAt      time.Time
 }
 
+type RoleRequirement struct {
+	Role       string
+	MinPerTeam int
+	Hard       bool
+}
+
+type RelaxationStep struct {
+	AfterWait       time.Duration
+	MaxTeamSkillGap int
+	MaxRolePenalty  int
+	PrioritizeWait  bool
+}
+
 // MatchmakingPolicy defines the bounded P0 planning envelope.
 type MatchmakingPolicy struct {
-	Version          string
-	TeamCount        int
-	TeamSize         int
-	MaxLatencyMillis int
-	MaxProposals     int
-	MaxSearchNodes   int
+	Version                  string
+	TeamCount                int
+	TeamSize                 int
+	MaxLatencyMillis         int
+	MaxProposals             int
+	MaxSearchNodes           int
+	MaxCandidatesPerProposal int
+	RoleRequirements         []RoleRequirement
+	RelaxationSteps          []RelaxationStep
 }
 
 // MatchmakingSnapshot is an immutable input to the planner.
@@ -82,10 +98,16 @@ type TeamAssignment struct {
 }
 
 type ScoreEvidence struct {
-	TeamSkillGap     int
-	MaxLatencyMillis int
-	OldestWaitMillis int64
-	SearchNodes      int
+	RelaxationLevel     int
+	WaitPriority        bool
+	RolePenalty         int
+	TeamSkillGap        int
+	OldestWaitMillis    int64
+	TotalWaitMillis     int64
+	MaxLatencyMillis    int
+	CandidatesEvaluated int
+	SearchNodes         int
+	SearchTruncated     bool
 }
 
 // MatchProposal is a side-effect-free placement proposal.
@@ -102,8 +124,23 @@ type MatchProposal struct {
 type ProposalBatch struct {
 	SnapshotID      SnapshotID
 	Proposals       []MatchProposal
-	Unmatched       []TicketRef
+	Unmatched       []UnmatchedTicket
 	BudgetExhausted bool
+}
+
+type UnmatchedReason string
+
+const (
+	UnmatchedHardConstraint       UnmatchedReason = "hard_constraint"
+	UnmatchedInsufficientCapacity UnmatchedReason = "insufficient_capacity"
+	UnmatchedQualityThreshold     UnmatchedReason = "quality_threshold"
+	UnmatchedSearchBudget         UnmatchedReason = "search_budget"
+	UnmatchedProposalLimit        UnmatchedReason = "proposal_limit"
+)
+
+type UnmatchedTicket struct {
+	Ticket TicketRef
+	Reason UnmatchedReason
 }
 
 type ReservationStatus string
