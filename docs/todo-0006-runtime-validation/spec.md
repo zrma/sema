@@ -1,6 +1,6 @@
 # P3 Runtime Validation Spec
 
-- Status: Planned
+- Status: Complete
 
 ## Objective
 
@@ -27,3 +27,12 @@ same-process engine baseline을 유지한 채 reference workload의 full applica
 - HTTP/gRPC/queue adapter와 telemetry exporter.
 - durable persistence, restart recovery와 multi-replica coordination.
 - production load generator와 deployment manifest.
+
+## Completion Evidence
+
+- engine benchmark가 reference workload와 100/500/1000 ticket queue에서 ingestion부터 pending assignment까지 실행된다.
+- benchmark가 proposal, matched/unmatched reason, search budget과 pending assignment metric을 보고한다.
+- engine fixture가 reservation expiry의 whole-proposal release, concurrent terminal transition의 single winner, restart/replay boundary를 검증한다.
+- focused test/race/benchmark와 full repository gate가 통과한다.
+
+metric 정의와 측정 경계는 `docs/runtime-validation.md`가 소유한다.

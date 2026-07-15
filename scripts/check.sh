@@ -16,6 +16,7 @@ for required_file in \
   docs/lifecycle.md \
   docs/reference-scenarios.md \
   docs/reference-workloads.md \
+  docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
   docs/decisions/0002-runtime-adapter-baseline.md \
   docs/REPO_MANIFEST.yaml \
@@ -27,6 +28,7 @@ for required_file in \
   docs/todo-0004-application-runtime/spec.md \
   docs/todo-0005-runtime-adapter/spec.md \
   docs/todo-0006-runtime-validation/spec.md \
+  docs/todo-0007-demand-index/spec.md \
   go.mod; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2
@@ -58,5 +60,6 @@ go vet ./...
 go test ./...
 go test -race ./...
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x
+go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x
 
 printf 'sema repository checks passed\n'

@@ -7,6 +7,7 @@ architecture: docs/architecture.md
 domain_model: docs/domain-model.md
 lifecycle: docs/lifecycle.md
 reference_scenarios: docs/reference-scenarios.md
+runtime_validation: docs/runtime-validation.md
 implementation_decision: docs/decisions/0001-implementation-baseline.md
 runtime_adapter_decision: docs/decisions/0002-runtime-adapter-baseline.md
 active_work_glob: docs/todo-*/spec.md
@@ -18,6 +19,7 @@ checks:
   go_test: go test ./...
   go_race: go test -race ./...
   planner_benchmark: go test ./internal/planner -run ^$ -bench ^BenchmarkPlan
+  engine_benchmark: go test ./internal/engine -run ^$ -bench ^BenchmarkEngine
   harness: scripts/check-agent-harness-interface.sh
   publication: scripts/check-publication-boundary.py
 

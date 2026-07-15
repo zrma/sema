@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -200,6 +201,99 @@ func TestRestartDropsAssignmentReadModel(t *testing.T) {
 	afterRestart := newEngine(t)
 	if _, exists := afterRestart.Assignment(assignment.ID); exists {
 		t.Fatal("fresh engine retained assignment read model")
+	}
+}
+
+func TestReservationExpiryThroughEngineReleasesWholeProposal(t *testing.T) {
+	runtime, err := engine.New(time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	submitSoloTickets(t, runtime, 4)
+	policy := testPolicy(2, 2)
+	batch, err := runtime.Plan("snapshot-before-expiry", fixtureNow, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runtime.Reserve(batch.Proposals[0], "reservation-expiry-engine", fixtureNow); err != nil {
+		t.Fatal(err)
+	}
+	_, err = runtime.Confirm(
+		"reservation-expiry-engine",
+		"assignment-after-expiry",
+		fixtureNow.Add(time.Second),
+	)
+	if code, ok := domain.FailureCodeOf(err); !ok || code != domain.FailureReservationExpired {
+		t.Fatalf("confirm error = %v; want %s", err, domain.FailureReservationExpired)
+	}
+
+	replanned, err := runtime.Plan("snapshot-after-expiry", fixtureNow.Add(time.Second), policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(replanned.Proposals) != 1 || len(replanned.Proposals[0].Tickets) != 4 {
+		t.Fatalf("expiry left partially reserved demand: %#v", replanned)
+	}
+}
+
+func TestConcurrentTerminalAcknowledgmentThroughEngineHasOneWinner(t *testing.T) {
+	runtime := newEngine(t)
+	submitSoloTickets(t, runtime, 4)
+	batch, err := runtime.Plan("snapshot-terminal-race", fixtureNow, testPolicy(2, 2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runtime.Reserve(batch.Proposals[0], "reservation-terminal-race", fixtureNow); err != nil {
+		t.Fatal(err)
+	}
+	assignment, err := runtime.Confirm(
+		"reservation-terminal-race",
+		"assignment-terminal-race",
+		fixtureNow.Add(time.Second),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	requests := []domain.AssignmentAcknowledgmentRequest{
+		{OperationID: "operation-complete", Outcome: domain.AssignmentCompleted},
+		{OperationID: "operation-cancel", Outcome: domain.AssignmentCancelled, Reason: "allocation rejected"},
+	}
+	start := make(chan struct{})
+	results := make(chan error, len(requests))
+	var wait sync.WaitGroup
+	for _, request := range requests {
+		request := request
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			_, err := runtime.AcknowledgeAssignment(assignment.ID, request, fixtureNow.Add(2*time.Second))
+			results <- err
+		}()
+	}
+	close(start)
+	wait.Wait()
+	close(results)
+
+	successes, invalidTransitions := 0, 0
+	for err := range results {
+		if err == nil {
+			successes++
+			continue
+		}
+		if code, ok := domain.FailureCodeOf(err); ok && code == domain.FailureInvalidTransition {
+			invalidTransitions++
+			continue
+		}
+		t.Fatalf("unexpected acknowledgment result: %v", err)
+	}
+	if successes != 1 || invalidTransitions != 1 {
+		t.Fatalf("successes = %d, invalid transitions = %d; want 1, 1", successes, invalidTransitions)
+	}
+	stored, exists := runtime.Assignment(assignment.ID)
+	if !exists || stored.Acknowledgment == nil || stored.Status == domain.AssignmentPending {
+		t.Fatalf("terminal assignment read model = %#v, %v", stored, exists)
 	}
 }
 
