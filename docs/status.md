@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog가 완료되었다. 현재는 fixed snapshot corpus에서 여러 policy를 비교하는 offline simulation milestone이다.
+P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog/simulation이 완료되었다. 현재는 첫 production-facing integration input이 필요한 decision gate다.
 
 ## Established
 
@@ -33,6 +33,7 @@ P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog가 완
 - active ticket player ownership index와 atomic higher-revision replacement/cleanup fixture.
 - canonical policy fingerprint와 snapshot/policy/placement-aware proposal identity.
 - explicit registration, defensive read와 version conflict를 제공하는 process-local policy catalog.
+- side-effect-free multi-policy simulation과 canonical coverage/quality summary.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
@@ -55,4 +56,4 @@ P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog가 완
 
 ## Next Slice
 
-`docs/todo-0010-policy-simulation/spec.md`에 따라 side-effect-free multi-policy simulation runner와 result summary를 구현한다.
+`docs/todo-0011-integration-decision/spec.md`의 consumer, durability, acknowledgment, replica, numeric SLO와 compatibility input을 확정한 뒤 production-facing slice를 선택한다.

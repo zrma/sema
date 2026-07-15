@@ -26,13 +26,14 @@
 - coordinator의 player ownership index가 queue-wide duplicate scan 없이 active ticket uniqueness를 유지한다.
 - canonical policy fingerprint와 content-aware proposal ID가 replay identity를 실제 rule content에 연결한다.
 - process-local policy catalog가 explicit registration 뒤 version-only planning을 제공한다.
+- offline simulation이 policy/scenario 순서와 무관한 canonical comparison report를 만든다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - numeric SLO, skill metric, role schema, production persistence는 아직 결정하지 않았다.
 - 현재 publication class는 원격 visibility가 결정되기 전까지 `internal`이다.
 
 ## Current Work
 
-P0 foundation부터 same-process policy catalog까지 완료되었다. 현재 작업은 `docs/todo-0010-policy-simulation/spec.md`의 side-effect-free offline policy comparison이다. 실제 분리 요구가 생기기 전에는 protocol이나 database를 추가하지 않는다.
+P0 foundation부터 offline policy simulation까지 완료되었다. 현재는 `docs/todo-0011-integration-decision/spec.md`의 실제 consumer, durability, deployment, SLO와 compatibility input이 필요한 decision gate다. 그 전에는 protocol이나 database를 추가하지 않는다.
 
 ## Completion Rule
 

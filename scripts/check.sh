@@ -16,6 +16,7 @@ for required_file in \
   docs/lifecycle.md \
   docs/reference-scenarios.md \
   docs/reference-workloads.md \
+  docs/policy-simulation.md \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
   docs/decisions/0002-runtime-adapter-baseline.md \
@@ -34,6 +35,7 @@ for required_file in \
   docs/todo-0008-policy-identity/spec.md \
   docs/todo-0009-policy-catalog/spec.md \
   docs/todo-0010-policy-simulation/spec.md \
+  docs/todo-0011-integration-decision/spec.md \
   go.mod; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2

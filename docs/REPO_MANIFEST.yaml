@@ -8,6 +8,7 @@ domain_model: docs/domain-model.md
 lifecycle: docs/lifecycle.md
 reference_scenarios: docs/reference-scenarios.md
 runtime_validation: docs/runtime-validation.md
+policy_simulation: docs/policy-simulation.md
 implementation_decision: docs/decisions/0001-implementation-baseline.md
 runtime_adapter_decision: docs/decisions/0002-runtime-adapter-baseline.md
 policy_identity_decision: docs/decisions/0003-policy-identity.md

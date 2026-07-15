@@ -99,4 +99,5 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Policy identity: `docs/todo-0008-policy-identity/spec.md`.
 - Policy catalog: `docs/todo-0009-policy-catalog/spec.md`.
 - Policy simulation: `docs/todo-0010-policy-simulation/spec.md`.
+- Next integration decision: `docs/todo-0011-integration-decision/spec.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

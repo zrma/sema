@@ -45,7 +45,7 @@
 
 - [x] policy content fingerprint와 replay identity
 - [x] versioned policy contract
-- [ ] rule simulation과 offline evaluation
+- [x] rule simulation과 offline evaluation
 - [ ] SDK와 integration examples
 - [ ] compatibility and migration policy
 - [ ] distribution and release workflow

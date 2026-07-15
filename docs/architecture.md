@@ -42,6 +42,7 @@ flowchart LR
 - `scoring`은 유효 후보를 비교할 objective vector와 explanation을 제공한다.
 - `optimizer`는 시간·후보 수 budget 안에서 mutually disjoint proposal set을 구성한다.
 - `policy catalog`는 process lifetime에서 version을 하나의 canonical fingerprint와 defensive rule copy에 묶는다.
+- `simulation`은 immutable scenario corpus에서 여러 registered policy를 planner로만 평가하고 canonical report를 만든다.
 - `coordinator`만 reservation과 assignment 상태를 변경하고 revision을 compare-and-swap으로 검증한다.
 - coordinator는 active match ticket의 player ownership index를 함께 갱신해 한 player가 둘 이상의 active ticket에 속하지 않게 한다.
 - `adapters`는 API, queue, database, telemetry를 연결하지만 domain decision을 소유하지 않는다.

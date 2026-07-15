@@ -1,6 +1,6 @@
 # P4 Policy Simulation Spec
 
-- Status: Planned
+- Status: Complete
 
 ## Objective
 
@@ -27,3 +27,13 @@ versioned policy를 fixed snapshot corpus에 side effect 없이 실행하고 결
 - policy winner 자동 activation과 rollout.
 - file/database schema, remote job runner와 UI.
 - game-specific quality threshold 결정.
+
+## Completion Evidence
+
+- `internal/simulation.Run`이 policy 후보를 catalog에서 선검증하고 immutable scenario를 planner에만 전달한다.
+- report가 policy version/fingerprint와 scenario ID 순으로 canonicalize된다.
+- result가 full `ProposalBatch`, matched/unmatched reason, search budget과 score summary를 함께 제공한다.
+- policy/scenario order independence, conflict rejection과 team/battle-royale/backfill/no-match fixture가 통과한다.
+- focused simulation test, race detector와 전체 repository gate가 통과한다.
+
+입출력과 summary contract는 `docs/policy-simulation.md`가 소유한다.

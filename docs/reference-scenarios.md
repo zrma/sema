@@ -134,3 +134,7 @@ fixed TTL에 도달한 reservation의 confirm은 `ReservationExpired`이고 prop
 ## S19: Process-Local Policy Catalog
 
 first registration과 same-content retry는 같은 fingerprint/read model을 반환한다. 같은 version의 changed rule은 `PolicyConflict`이고 기존 entry가 유지된다. concurrent first registration은 정확히 한 content만 선택한다. engine은 registered version으로만 plan하며 새 process에는 policy entry가 없다.
+
+## S20: Offline Policy Simulation
+
+2:2 team, 100-player duo battle royale, backfill과 no-match scenario corpus를 side effect 없이 실행한다. policy와 scenario 입력 순서를 뒤집어도 version/fingerprint와 scenario ID로 정렬된 report는 같아야 한다. conflicting policy는 report 생성 전에 실패하고 각 result는 full batch와 matched/unmatched reason, search budget, score summary를 함께 가진다.
