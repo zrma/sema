@@ -2,7 +2,7 @@
 
 ## Scope
 
-현재 runtime evidence는 same-process `internal/engine` boundary를 대상으로 한다. 각 benchmark iteration은 새 engine 생성, ticket ingestion, plan, 모든 proposal의 reserve와 confirm을 포함한다. fixture 생성과 외부 network/storage는 측정 경로에 포함하지 않는다.
+현재 runtime evidence는 same-process `internal/engine` boundary를 대상으로 한다. 각 benchmark iteration은 새 engine 생성, policy registration, ticket ingestion, plan, 모든 proposal의 reserve와 confirm을 포함한다. fixture 생성과 외부 network/storage는 측정 경로에 포함하지 않는다.
 
 이 evidence는 구현 간 비교와 구조적 병목 탐색에 사용한다. machine-specific elapsed time이나 allocation 수치를 제품 SLO로 기록하지 않는다.
 

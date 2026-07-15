@@ -237,6 +237,12 @@ func CloneProposal(proposal MatchProposal) MatchProposal {
 	return proposal
 }
 
+func ClonePolicy(policy MatchmakingPolicy) MatchmakingPolicy {
+	policy.RoleRequirements = slices.Clone(policy.RoleRequirements)
+	policy.RelaxationSteps = slices.Clone(policy.RelaxationSteps)
+	return policy
+}
+
 func TicketReference(ticket MatchTicket) TicketRef {
 	return TicketRef{ID: ticket.ID, Revision: ticket.Revision}
 }

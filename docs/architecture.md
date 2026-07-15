@@ -41,6 +41,7 @@ flowchart LR
 - `constraints`는 위반 시 후보를 제거하는 boolean contract를 제공한다.
 - `scoring`은 유효 후보를 비교할 objective vector와 explanation을 제공한다.
 - `optimizer`는 시간·후보 수 budget 안에서 mutually disjoint proposal set을 구성한다.
+- `policy catalog`는 process lifetime에서 version을 하나의 canonical fingerprint와 defensive rule copy에 묶는다.
 - `coordinator`만 reservation과 assignment 상태를 변경하고 revision을 compare-and-swap으로 검증한다.
 - coordinator는 active match ticket의 player ownership index를 함께 갱신해 한 player가 둘 이상의 active ticket에 속하지 않게 한다.
 - `adapters`는 API, queue, database, telemetry를 연결하지만 domain decision을 소유하지 않는다.
@@ -55,6 +56,7 @@ flowchart LR
 6. reservation과 assignment mutation은 idempotency key를 요구한다.
 7. reserve/commit 시 현재 revision이 다르면 전체 mutation을 적용하지 않고 `StaleSnapshot`을 반환한다.
 8. proposal identity는 snapshot, policy fingerprint와 canonical placement가 같을 때만 같다.
+9. engine planning은 catalog에 등록된 exact policy version만 사용한다.
 
 ## Initial Consistency Model
 

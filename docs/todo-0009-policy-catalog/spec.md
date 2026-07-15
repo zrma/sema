@@ -1,6 +1,6 @@
 # P4 Policy Catalog Spec
 
-- Status: Planned
+- Status: Complete
 
 ## Objective
 
@@ -27,3 +27,13 @@ same-process runtime에서 policy version이 하나의 canonical fingerprint만 
 - remote distribution, authorization과 rollout percentage.
 - public schema/version negotiation과 migration.
 - policy activation schedule와 multi-tenant ownership.
+
+## Completion Evidence
+
+- `internal/policy.Catalog`이 validated defensive copy와 canonical fingerprint를 version별로 저장한다.
+- identical registration, conflict rollback과 concurrent first registration fixture가 통과한다.
+- engine이 explicit `RegisterPolicy`와 version-only `Plan`/`Snapshot` boundary를 제공한다.
+- unregistered version은 `InvalidInput`, same-version different content는 `PolicyConflict`다.
+- focused policy/engine test, race detector와 전체 repository gate가 통과한다.
+
+장기 decision은 `docs/decisions/0004-policy-catalog.md`가 소유한다.

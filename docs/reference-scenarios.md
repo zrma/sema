@@ -130,3 +130,7 @@ fixed TTL에 도달한 reservation의 confirm은 `ReservationExpired`이고 prop
 ## S18: Policy Content Identity
 
 같은 snapshot, policy content와 placement를 반복하면 같은 fingerprint와 proposal ID가 만들어진다. role requirement 입력 순서만 바꾼 policy도 같은 fingerprint다. 같은 version에서 latency cap 등 rule content를 바꾸면 placement가 같아도 fingerprint와 proposal ID가 달라지고, 같은 reservation ID에 두 proposal을 사용하면 `IdempotencyConflict`다.
+
+## S19: Process-Local Policy Catalog
+
+first registration과 same-content retry는 같은 fingerprint/read model을 반환한다. 같은 version의 changed rule은 `PolicyConflict`이고 기존 entry가 유지된다. concurrent first registration은 정확히 한 content만 선택한다. engine은 registered version으로만 plan하며 새 process에는 policy entry가 없다.

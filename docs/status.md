@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P3 runtime validation/demand index와 P4 policy content identity가 완료되었다. 현재는 같은 version을 하나의 content fingerprint에 묶는 same-process policy catalog milestone이다.
+P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog가 완료되었다. 현재는 fixed snapshot corpus에서 여러 policy를 비교하는 offline simulation milestone이다.
 
 ## Established
 
@@ -32,6 +32,7 @@ P0부터 P3 runtime validation/demand index와 P4 policy content identity가 완
 - reservation expiry whole-proposal release와 concurrent terminal acknowledgment single-winner fixture.
 - active ticket player ownership index와 atomic higher-revision replacement/cleanup fixture.
 - canonical policy fingerprint와 snapshot/policy/placement-aware proposal identity.
+- explicit registration, defensive read와 version conflict를 제공하는 process-local policy catalog.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
@@ -54,4 +55,4 @@ P0부터 P3 runtime validation/demand index와 P4 policy content identity가 완
 
 ## Next Slice
 
-`docs/todo-0009-policy-catalog/spec.md`에 따라 in-memory policy registration과 exact-content planning contract를 구현한다.
+`docs/todo-0010-policy-simulation/spec.md`에 따라 side-effect-free multi-policy simulation runner와 result summary를 구현한다.

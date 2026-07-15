@@ -83,6 +83,7 @@ stateDiagram-v2
 | `ReservationExpired` | confirm 전에 TTL이 끝남 | re-plan 후 새 reservation |
 | `InvalidTransition` | confirmed/cancelled 상태에서 허용되지 않은 전이 | 호출 흐름 수정 |
 | `IdempotencyConflict` | 같은 idempotency ID를 다른 payload에 재사용함 | 새 ID 또는 원 요청 사용 |
+| `PolicyConflict` | 같은 policy version을 다른 canonical content에 재사용함 | 새 version으로 등록 |
 
 ## P0 Recovery Boundary
 

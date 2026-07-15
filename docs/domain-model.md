@@ -60,6 +60,8 @@ coordinator는 active ticket과 함께 player ownership을 유지한다. higher 
 
 validated policy는 모든 field를 포함하는 canonical SHA-256 fingerprint를 가진다. role requirement는 unique role name 순으로 canonicalize하고 relaxation step의 순서는 보존한다. fingerprint는 content identity이며 policy 권한이나 signature를 뜻하지 않는다.
 
+same-process policy catalog는 first registration에서 version과 fingerprint를 묶는다. 동일 content 재등록은 idempotent하고 같은 version의 다른 content는 `PolicyConflict`다. catalog와 engine read는 defensive copy이며 process restart 뒤 consumer가 policy를 다시 등록한다.
+
 ### `MatchmakingSnapshot`
 
 - `snapshotID`, `now`: replay identity와 wait time 계산 기준.

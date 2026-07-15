@@ -60,13 +60,16 @@ func benchmarkEngineLifecycle(
 		if err != nil {
 			b.Fatal(err)
 		}
+		if _, err := runtime.RegisterPolicy(policy); err != nil {
+			b.Fatal(err)
+		}
 		for _, ticket := range tickets {
 			if err := runtime.SubmitMatchTicket(ticket); err != nil {
 				b.Fatal(err)
 			}
 		}
 
-		batch, err := runtime.Plan(domain.SnapshotID("benchmark-"+b.Name()), fixtureNow, policy)
+		batch, err := runtime.Plan(domain.SnapshotID("benchmark-"+b.Name()), fixtureNow, policy.Version)
 		if err != nil {
 			b.Fatal(err)
 		}

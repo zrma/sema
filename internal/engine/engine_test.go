@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -16,12 +17,13 @@ func TestNewMatchLifecycleThroughEngine(t *testing.T) {
 	runtime := newEngine(t)
 	submitSoloTickets(t, runtime, 4)
 	policy := testPolicy(2, 2)
+	registerPolicy(t, runtime, policy)
 
-	first, err := runtime.Plan("snapshot-new-match", fixtureNow, policy)
+	first, err := runtime.Plan("snapshot-new-match", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := runtime.Plan("snapshot-new-match", fixtureNow, policy)
+	second, err := runtime.Plan("snapshot-new-match", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,6 +59,47 @@ func TestNewMatchLifecycleThroughEngine(t *testing.T) {
 	}
 }
 
+func TestPolicyCatalogControlsPlanning(t *testing.T) {
+	runtime := newEngine(t)
+	policy := testPolicy(2, 2)
+	fingerprint, err := runtime.RegisterPolicy(policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, storedFingerprint, exists := runtime.Policy(policy.Version)
+	if !exists || storedFingerprint != fingerprint || !reflect.DeepEqual(stored, policy) {
+		t.Fatalf("registered policy = %#v, %q, %v", stored, storedFingerprint, exists)
+	}
+	stored.MaxLatencyMillis = 1
+	again, _, _ := runtime.Policy(policy.Version)
+	if again.MaxLatencyMillis != policy.MaxLatencyMillis {
+		t.Fatal("policy read mutation leaked into catalog")
+	}
+
+	conflicting := policy
+	conflicting.MaxLatencyMillis++
+	_, err = runtime.RegisterPolicy(conflicting)
+	if code, ok := domain.FailureCodeOf(err); !ok || code != domain.FailurePolicyConflict {
+		t.Fatalf("policy conflict = %v; want %s", err, domain.FailurePolicyConflict)
+	}
+	submitSoloTickets(t, runtime, 4)
+	batch, err := runtime.Plan("snapshot-registered-policy", fixtureNow, policy.Version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 1 || batch.Proposals[0].PolicyFingerprint != fingerprint {
+		t.Fatalf("plan did not use registered policy: %#v", batch)
+	}
+
+	_, err = runtime.Plan("snapshot-unregistered-policy", fixtureNow, "missing-policy")
+	if code, ok := domain.FailureCodeOf(err); !ok || code != domain.FailureInvalidInput {
+		t.Fatalf("unregistered policy error = %v; want %s", err, domain.FailureInvalidInput)
+	}
+	if _, _, exists := newEngine(t).Policy(policy.Version); exists {
+		t.Fatal("fresh process retained policy catalog")
+	}
+}
+
 func TestBackfillStaleOutcomeThroughEngine(t *testing.T) {
 	runtime := newEngine(t)
 	submitSoloTickets(t, runtime, 2)
@@ -71,7 +114,9 @@ func TestBackfillStaleOutcomeThroughEngine(t *testing.T) {
 	if err := runtime.SubmitBackfillTicket(backfill); err != nil {
 		t.Fatal(err)
 	}
-	batch, err := runtime.Plan("snapshot-backfill", fixtureNow, testPolicy(2, 2))
+	policy := testPolicy(2, 2)
+	registerPolicy(t, runtime, policy)
+	batch, err := runtime.Plan("snapshot-backfill", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,14 +156,15 @@ func TestCancelledReservationReturnsTicketsToNextCycle(t *testing.T) {
 	runtime := newEngine(t)
 	submitSoloTickets(t, runtime, 4)
 	policy := testPolicy(2, 2)
-	first, err := runtime.Plan("snapshot-before-cancel", fixtureNow, policy)
+	registerPolicy(t, runtime, policy)
+	first, err := runtime.Plan("snapshot-before-cancel", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := runtime.Reserve(first.Proposals[0], "reservation-cancel-engine", fixtureNow); err != nil {
 		t.Fatal(err)
 	}
-	reserved, err := runtime.Plan("snapshot-while-reserved", fixtureNow.Add(time.Second), policy)
+	reserved, err := runtime.Plan("snapshot-while-reserved", fixtureNow.Add(time.Second), policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +174,7 @@ func TestCancelledReservationReturnsTicketsToNextCycle(t *testing.T) {
 	if _, err := runtime.CancelReservation("reservation-cancel-engine", fixtureNow.Add(2*time.Second)); err != nil {
 		t.Fatal(err)
 	}
-	retried, err := runtime.Plan("snapshot-after-cancel", fixtureNow.Add(3*time.Second), policy)
+	retried, err := runtime.Plan("snapshot-after-cancel", fixtureNow.Add(3*time.Second), policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,8 +188,9 @@ func TestRestartDropsProcessLocalStateAndReplayRestoresActiveDemand(t *testing.T
 	tickets := soloTickets(4)
 	submitTickets(t, beforeRestart, tickets)
 	policy := testPolicy(2, 2)
+	registerPolicy(t, beforeRestart, policy)
 
-	expected, err := beforeRestart.Plan("snapshot-restart-replay", fixtureNow, policy)
+	expected, err := beforeRestart.Plan("snapshot-restart-replay", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +202,8 @@ func TestRestartDropsProcessLocalStateAndReplayRestoresActiveDemand(t *testing.T
 	}
 
 	afterRestart := newEngine(t)
-	empty, err := afterRestart.Plan("snapshot-empty-after-restart", fixtureNow, policy)
+	registerPolicy(t, afterRestart, policy)
+	empty, err := afterRestart.Plan("snapshot-empty-after-restart", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +212,7 @@ func TestRestartDropsProcessLocalStateAndReplayRestoresActiveDemand(t *testing.T
 	}
 
 	submitTickets(t, afterRestart, tickets)
-	replayed, err := afterRestart.Plan("snapshot-restart-replay", fixtureNow, policy)
+	replayed, err := afterRestart.Plan("snapshot-restart-replay", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +227,9 @@ func TestRestartDropsProcessLocalStateAndReplayRestoresActiveDemand(t *testing.T
 func TestRestartDropsAssignmentReadModel(t *testing.T) {
 	beforeRestart := newEngine(t)
 	submitSoloTickets(t, beforeRestart, 4)
-	batch, err := beforeRestart.Plan("snapshot-assignment-restart", fixtureNow, testPolicy(2, 2))
+	policy := testPolicy(2, 2)
+	registerPolicy(t, beforeRestart, policy)
+	batch, err := beforeRestart.Plan("snapshot-assignment-restart", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +261,8 @@ func TestReservationExpiryThroughEngineReleasesWholeProposal(t *testing.T) {
 	}
 	submitSoloTickets(t, runtime, 4)
 	policy := testPolicy(2, 2)
-	batch, err := runtime.Plan("snapshot-before-expiry", fixtureNow, policy)
+	registerPolicy(t, runtime, policy)
+	batch, err := runtime.Plan("snapshot-before-expiry", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -227,7 +278,7 @@ func TestReservationExpiryThroughEngineReleasesWholeProposal(t *testing.T) {
 		t.Fatalf("confirm error = %v; want %s", err, domain.FailureReservationExpired)
 	}
 
-	replanned, err := runtime.Plan("snapshot-after-expiry", fixtureNow.Add(time.Second), policy)
+	replanned, err := runtime.Plan("snapshot-after-expiry", fixtureNow.Add(time.Second), policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,7 +290,9 @@ func TestReservationExpiryThroughEngineReleasesWholeProposal(t *testing.T) {
 func TestConcurrentTerminalAcknowledgmentThroughEngineHasOneWinner(t *testing.T) {
 	runtime := newEngine(t)
 	submitSoloTickets(t, runtime, 4)
-	batch, err := runtime.Plan("snapshot-terminal-race", fixtureNow, testPolicy(2, 2))
+	policy := testPolicy(2, 2)
+	registerPolicy(t, runtime, policy)
+	batch, err := runtime.Plan("snapshot-terminal-race", fixtureNow, policy.Version)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,6 +359,19 @@ func newEngine(t *testing.T) *engine.Engine {
 	return runtime
 }
 
+func registerPolicy(
+	t *testing.T,
+	runtime *engine.Engine,
+	policy domain.MatchmakingPolicy,
+) domain.PolicyFingerprint {
+	t.Helper()
+	fingerprint, err := runtime.RegisterPolicy(policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fingerprint
+}
+
 func submitSoloTickets(t *testing.T, runtime *engine.Engine, count int) {
 	t.Helper()
 	submitTickets(t, runtime, soloTickets(count))
@@ -339,7 +405,7 @@ func submitTickets(t *testing.T, runtime *engine.Engine, tickets []domain.MatchT
 
 func testPolicy(teamCount, teamSize int) domain.MatchmakingPolicy {
 	return domain.MatchmakingPolicy{
-		Version:                  "engine-test-v1",
+		Version:                  fmt.Sprintf("engine-test-%dx%d-v1", teamCount, teamSize),
 		TeamCount:                teamCount,
 		TeamSize:                 teamSize,
 		MaxLatencyMillis:         200,

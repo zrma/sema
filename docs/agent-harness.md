@@ -98,4 +98,5 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Demand index: `docs/todo-0007-demand-index/spec.md`.
 - Policy identity: `docs/todo-0008-policy-identity/spec.md`.
 - Policy catalog: `docs/todo-0009-policy-catalog/spec.md`.
+- Policy simulation: `docs/todo-0010-policy-simulation/spec.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

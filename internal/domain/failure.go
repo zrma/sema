@@ -16,6 +16,7 @@ const (
 	FailureReservationExpired  FailureCode = "ReservationExpired"
 	FailureInvalidTransition   FailureCode = "InvalidTransition"
 	FailureIdempotencyConflict FailureCode = "IdempotencyConflict"
+	FailurePolicyConflict      FailureCode = "PolicyConflict"
 )
 
 // Failure carries a stable code while keeping the detail suitable for diagnostics.
@@ -54,7 +55,8 @@ func ValidFailureCode(code FailureCode) bool {
 		FailureReservationConflict,
 		FailureReservationExpired,
 		FailureInvalidTransition,
-		FailureIdempotencyConflict:
+		FailureIdempotencyConflict,
+		FailurePolicyConflict:
 		return true
 	default:
 		return false

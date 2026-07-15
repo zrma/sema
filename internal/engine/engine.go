@@ -7,11 +7,13 @@ import (
 	"sema/internal/coordinator"
 	"sema/internal/domain"
 	"sema/internal/planner"
+	policycatalog "sema/internal/policy"
 )
 
 // Engine is the transport-neutral application boundary for the single-process runtime.
 type Engine struct {
 	coordinator *coordinator.Coordinator
+	policies    *policycatalog.Catalog
 }
 
 func New(reservationTTL time.Duration) (*Engine, error) {
@@ -19,7 +21,23 @@ func New(reservationTTL time.Duration) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{coordinator: owner}, nil
+	return &Engine{coordinator: owner, policies: policycatalog.NewCatalog()}, nil
+}
+
+func (engine *Engine) RegisterPolicy(policy domain.MatchmakingPolicy) (domain.PolicyFingerprint, error) {
+	entry, err := engine.policies.Register(policy)
+	if err != nil {
+		return "", err
+	}
+	return entry.Fingerprint, nil
+}
+
+func (engine *Engine) Policy(version string) (domain.MatchmakingPolicy, domain.PolicyFingerprint, bool) {
+	entry, exists := engine.policies.Get(version)
+	if !exists {
+		return domain.MatchmakingPolicy{}, "", false
+	}
+	return entry.Policy, entry.Fingerprint, true
 }
 
 func (engine *Engine) SubmitMatchTicket(ticket domain.MatchTicket) error {
@@ -46,18 +64,26 @@ func (engine *Engine) CancelBackfillTicket(
 func (engine *Engine) Snapshot(
 	id domain.SnapshotID,
 	now time.Time,
-	policy domain.MatchmakingPolicy,
+	policyVersion string,
 ) (domain.MatchmakingSnapshot, error) {
-	return engine.coordinator.Snapshot(id, now, policy)
+	entry, exists := engine.policies.Get(policyVersion)
+	if !exists {
+		return domain.MatchmakingSnapshot{}, domain.NewFailure(
+			domain.FailureInvalidInput,
+			"policy version %q is not registered",
+			policyVersion,
+		)
+	}
+	return engine.coordinator.Snapshot(id, now, entry.Policy)
 }
 
 // Plan runs a side-effect-free cycle over the current unreserved input.
 func (engine *Engine) Plan(
 	snapshotID domain.SnapshotID,
 	now time.Time,
-	policy domain.MatchmakingPolicy,
+	policyVersion string,
 ) (domain.ProposalBatch, error) {
-	snapshot, err := engine.Snapshot(snapshotID, now, policy)
+	snapshot, err := engine.Snapshot(snapshotID, now, policyVersion)
 	if err != nil {
 		return domain.ProposalBatch{}, err
 	}

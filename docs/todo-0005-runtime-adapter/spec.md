@@ -24,7 +24,7 @@
 
 ## Decision
 
-`internal/engine.Engine`을 첫 same-process Go adapter로 사용한다. 별도의 forwarding wrapper, HTTP/gRPC endpoint, queue consumer, database를 추가하지 않는다. caller가 domain value, time, snapshot/reservation/assignment/operation ID를 명시하고 engine은 typed domain result를 그대로 반환한다.
+`internal/engine.Engine`을 첫 same-process Go adapter로 사용한다. 별도의 forwarding wrapper, HTTP/gRPC endpoint, queue consumer, database를 추가하지 않는다. caller가 policy를 명시적으로 등록하고 time, snapshot/reservation/assignment/operation ID를 제공하며 engine은 typed domain result를 그대로 반환한다.
 
 delivery는 direct call completion을 기준으로 한다. 같은 payload와 idempotency ID의 retry는 process lifetime 안에서 동일 결과를 반환하며 conflicting reuse는 `IdempotencyConflict`다. transport timeout은 없고 caller context나 network retry contract도 아직 public surface가 아니다.
 
