@@ -156,8 +156,8 @@ func ValidateSnapshot(snapshot MatchmakingSnapshot) error {
 }
 
 func ValidateProposal(proposal MatchProposal) error {
-	if proposal.ID == "" || proposal.PolicyVersion == "" {
-		return NewFailure(FailureInvalidInput, "proposal identity and policy version are required")
+	if proposal.ID == "" || proposal.PolicyVersion == "" || proposal.PolicyFingerprint == "" {
+		return NewFailure(FailureInvalidInput, "proposal identity, policy version, and fingerprint are required")
 	}
 	if proposal.Kind != ProposalNewMatch && proposal.Kind != ProposalBackfill {
 		return NewFailure(FailureInvalidInput, "proposal %q has unknown kind", proposal.ID)

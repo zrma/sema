@@ -40,9 +40,10 @@ func TestValidateSnapshotRejectsDuplicatePlayers(t *testing.T) {
 
 func TestValidateProposalRequiresCanonicalFlattening(t *testing.T) {
 	proposal := domain.MatchProposal{
-		ID:            "proposal-1",
-		Kind:          domain.ProposalNewMatch,
-		PolicyVersion: "test-v1",
+		ID:                "proposal-1",
+		Kind:              domain.ProposalNewMatch,
+		PolicyVersion:     "test-v1",
+		PolicyFingerprint: "test-fingerprint",
 		Teams: []domain.TeamAssignment{
 			{Team: 0, Tickets: []domain.TicketRef{{ID: "ticket-a", Revision: 1}}},
 			{Team: 1, Tickets: []domain.TicketRef{{ID: "ticket-b", Revision: 1}}},

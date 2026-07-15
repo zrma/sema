@@ -51,9 +51,10 @@ flowchart LR
 2. 하나의 ticket은 동시에 둘 이상의 active reservation에 속하지 않는다.
 3. hard constraint 위반 proposal은 score와 관계없이 반환하지 않는다.
 4. 같은 snapshot, policy, seed, budget은 같은 ordered proposal batch를 만든다.
-5. proposal은 사용한 policy version, ticket revision, roster version, score evidence를 포함한다.
+5. proposal은 사용한 policy version과 canonical fingerprint, ticket revision, roster version, score evidence를 포함한다.
 6. reservation과 assignment mutation은 idempotency key를 요구한다.
 7. reserve/commit 시 현재 revision이 다르면 전체 mutation을 적용하지 않고 `StaleSnapshot`을 반환한다.
+8. proposal identity는 snapshot, policy fingerprint와 canonical placement가 같을 때만 같다.
 
 ## Initial Consistency Model
 

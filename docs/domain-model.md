@@ -58,6 +58,8 @@ coordinator는 active ticket과 함께 player ownership을 유지한다. higher 
 - `roleRequirements`: team별 hard 또는 soft minimum role count.
 - `relaxationSteps`: oldest ticket wait에 따라 skill/role 허용 범위와 wait 우선순위를 바꾸는 ordered schedule.
 
+validated policy는 모든 field를 포함하는 canonical SHA-256 fingerprint를 가진다. role requirement는 unique role name 순으로 canonicalize하고 relaxation step의 순서는 보존한다. fingerprint는 content identity이며 policy 권한이나 signature를 뜻하지 않는다.
+
 ### `MatchmakingSnapshot`
 
 - `snapshotID`, `now`: replay identity와 wait time 계산 기준.
@@ -71,8 +73,8 @@ coordinator는 active ticket과 함께 player ownership을 유지한다. higher 
 
 ### `MatchProposal`
 
-- `proposalID`, `kind`: deterministic identity와 `new_match` 또는 `backfill` 구분.
-- `policyVersion`: 사용한 policy version.
+- `proposalID`, `kind`: snapshot, policy fingerprint, canonical placement를 반영한 deterministic identity와 `new_match` 또는 `backfill` 구분.
+- `policyVersion`, `policyFingerprint`: caller label과 실제 rule content identity.
 - `teams`: team index와 그 team에 배치할 ordered `TicketRef` 목록.
 - `tickets`: proposal 전체의 ordered `TicketRef` 목록.
 - `backfill`: backfill일 때만 대상 ticket/session/roster version을 기록한다.

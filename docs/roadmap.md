@@ -43,7 +43,7 @@
 
 ## P4: Policy And Ecosystem
 
-- [ ] policy content fingerprint와 replay identity
+- [x] policy content fingerprint와 replay identity
 - [ ] versioned policy contract
 - [ ] rule simulation과 offline evaluation
 - [ ] SDK와 integration examples

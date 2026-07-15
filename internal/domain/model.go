@@ -3,15 +3,16 @@ package domain
 import "time"
 
 type (
-	PlayerID      string
-	TicketID      string
-	SessionID     string
-	SnapshotID    string
-	ProposalID    string
-	ReservationID string
-	AssignmentID  string
-	OperationID   string
-	Revision      uint64
+	PlayerID          string
+	TicketID          string
+	SessionID         string
+	SnapshotID        string
+	ProposalID        string
+	ReservationID     string
+	AssignmentID      string
+	OperationID       string
+	PolicyFingerprint string
+	Revision          uint64
 )
 
 // Player contains the P0 attributes used by constraints and evidence.
@@ -113,13 +114,14 @@ type ScoreEvidence struct {
 
 // MatchProposal is a side-effect-free placement proposal.
 type MatchProposal struct {
-	ID            ProposalID
-	Kind          ProposalKind
-	PolicyVersion string
-	Teams         []TeamAssignment
-	Tickets       []TicketRef
-	Backfill      *BackfillTarget
-	Evidence      ScoreEvidence
+	ID                ProposalID
+	Kind              ProposalKind
+	PolicyVersion     string
+	PolicyFingerprint PolicyFingerprint
+	Teams             []TeamAssignment
+	Tickets           []TicketRef
+	Backfill          *BackfillTarget
+	Evidence          ScoreEvidence
 }
 
 type ProposalBatch struct {

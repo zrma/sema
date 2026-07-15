@@ -3,6 +3,8 @@ package planner
 
 import (
 	"cmp"
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
 	"slices"
 	"sort"
@@ -22,6 +24,10 @@ const (
 // Plan returns a deterministic set of mutually disjoint proposals.
 func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 	if err := domain.ValidateSnapshot(snapshot); err != nil {
+		return domain.ProposalBatch{}, err
+	}
+	policyFingerprint, err := domain.FingerprintPolicy(snapshot.Policy)
+	if err != nil {
 		return domain.ProposalBatch{}, err
 	}
 
@@ -76,10 +82,15 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 		if !lastSearch.found {
 			continue
 		}
-		proposal := buildProposal(snapshot, lastSearch, len(batch.Proposals)+1)
-		proposal.Kind = domain.ProposalBackfill
 		target := domain.BackfillReference(backfill)
-		proposal.Backfill = &target
+		proposal := buildProposal(
+			snapshot,
+			lastSearch,
+			len(batch.Proposals)+1,
+			policyFingerprint,
+			domain.ProposalBackfill,
+			&target,
+		)
 		batch.Proposals = append(batch.Proposals, proposal)
 		available = removePlaced(available, lastSearch.placement)
 	}
@@ -101,7 +112,14 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 		if !lastSearch.found {
 			break
 		}
-		batch.Proposals = append(batch.Proposals, buildProposal(snapshot, lastSearch, len(batch.Proposals)+1))
+		batch.Proposals = append(batch.Proposals, buildProposal(
+			snapshot,
+			lastSearch,
+			len(batch.Proposals)+1,
+			policyFingerprint,
+			domain.ProposalNewMatch,
+			nil,
+		))
 		available = removePlaced(available, lastSearch.placement)
 	}
 
@@ -303,12 +321,16 @@ func buildProposal(
 	snapshot domain.MatchmakingSnapshot,
 	search placementSearch,
 	sequence int,
+	policyFingerprint domain.PolicyFingerprint,
+	kind domain.ProposalKind,
+	backfill *domain.BackfillTarget,
 ) domain.MatchProposal {
 	proposal := domain.MatchProposal{
-		ID:            domain.ProposalID(fmt.Sprintf("%s/p%04d", snapshot.ID, sequence)),
-		Kind:          domain.ProposalNewMatch,
-		PolicyVersion: snapshot.Policy.Version,
-		Teams:         make([]domain.TeamAssignment, len(search.placement)),
+		Kind:              kind,
+		PolicyVersion:     snapshot.Policy.Version,
+		PolicyFingerprint: policyFingerprint,
+		Teams:             make([]domain.TeamAssignment, len(search.placement)),
+		Backfill:          domain.CloneBackfillTarget(backfill),
 	}
 	for team, tickets := range search.placement {
 		assignment := domain.TeamAssignment{Team: team, Tickets: make([]domain.TicketRef, len(tickets))}
@@ -319,7 +341,46 @@ func buildProposal(
 		proposal.Teams[team] = assignment
 	}
 	proposal.Evidence = search.evaluation.Evidence
+	proposal.ID = proposalIdentity(snapshot.ID, sequence, proposal)
 	return proposal
+}
+
+func proposalIdentity(
+	snapshotID domain.SnapshotID,
+	sequence int,
+	proposal domain.MatchProposal,
+) domain.ProposalID {
+	encoded := make([]byte, 0, 256)
+	encoded = appendProposalString(encoded, string(snapshotID))
+	encoded = binary.BigEndian.AppendUint64(encoded, uint64(sequence))
+	encoded = appendProposalString(encoded, proposal.PolicyVersion)
+	encoded = appendProposalString(encoded, string(proposal.PolicyFingerprint))
+	encoded = appendProposalString(encoded, string(proposal.Kind))
+	encoded = binary.BigEndian.AppendUint64(encoded, uint64(len(proposal.Teams)))
+	for _, team := range proposal.Teams {
+		encoded = binary.BigEndian.AppendUint64(encoded, uint64(team.Team))
+		encoded = binary.BigEndian.AppendUint64(encoded, uint64(len(team.Tickets)))
+		for _, ticket := range team.Tickets {
+			encoded = appendProposalString(encoded, string(ticket.ID))
+			encoded = binary.BigEndian.AppendUint64(encoded, uint64(ticket.Revision))
+		}
+	}
+	if proposal.Backfill == nil {
+		encoded = append(encoded, 0)
+	} else {
+		encoded = append(encoded, 1)
+		encoded = appendProposalString(encoded, string(proposal.Backfill.Ticket.ID))
+		encoded = binary.BigEndian.AppendUint64(encoded, uint64(proposal.Backfill.Ticket.Revision))
+		encoded = appendProposalString(encoded, string(proposal.Backfill.SessionID))
+		encoded = binary.BigEndian.AppendUint64(encoded, uint64(proposal.Backfill.RosterVersion))
+	}
+	digest := sha256.Sum256(encoded)
+	return domain.ProposalID(fmt.Sprintf("%s/p%04d/%x", snapshotID, sequence, digest[:16]))
+}
+
+func appendProposalString(encoded []byte, value string) []byte {
+	encoded = binary.BigEndian.AppendUint64(encoded, uint64(len(value)))
+	return append(encoded, value...)
 }
 
 func comparePlacement(left, right [][]domain.MatchTicket) int {

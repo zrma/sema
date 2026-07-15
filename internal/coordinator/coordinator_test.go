@@ -61,6 +61,42 @@ func TestReservationAndAssignmentLifecycleIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestReservationIdempotencyIncludesPolicyContent(t *testing.T) {
+	owner := newCoordinator(t, time.Minute)
+	upsertSoloTickets(t, owner, 4)
+	firstPolicy := testPolicy(2, 2)
+	firstPolicy.Version = "shared-version"
+	secondPolicy := firstPolicy
+	secondPolicy.MaxLatencyMillis++
+
+	firstSnapshot, err := owner.Snapshot("policy-idempotency", fixtureNow, firstPolicy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstBatch, err := planner.Plan(firstSnapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondSnapshot, err := owner.Snapshot("policy-idempotency", fixtureNow, secondPolicy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondBatch, err := planner.Plan(secondSnapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstProposal := firstBatch.Proposals[0]
+	secondProposal := secondBatch.Proposals[0]
+	if firstProposal.ID == secondProposal.ID {
+		t.Fatalf("different policy content reused proposal ID %q", firstProposal.ID)
+	}
+	if _, err := owner.Reserve(firstProposal, "reservation-policy-content", fixtureNow); err != nil {
+		t.Fatal(err)
+	}
+	_, err = owner.Reserve(secondProposal, "reservation-policy-content", fixtureNow)
+	assertFailureCode(t, err, domain.FailureIdempotencyConflict)
+}
+
 func TestConfirmRepeatsCASAndReleasesStaleReservation(t *testing.T) {
 	owner := newCoordinator(t, time.Minute)
 	tickets := upsertSoloTickets(t, owner, 4)
@@ -546,11 +582,12 @@ func testPolicy(teamCount, teamSize int) domain.MatchmakingPolicy {
 
 func proposalFor(id domain.ProposalID, refs ...domain.TicketRef) domain.MatchProposal {
 	return domain.MatchProposal{
-		ID:            id,
-		Kind:          domain.ProposalNewMatch,
-		PolicyVersion: "test-v1",
-		Teams:         []domain.TeamAssignment{{Team: 0, Tickets: append([]domain.TicketRef(nil), refs...)}},
-		Tickets:       append([]domain.TicketRef(nil), refs...),
+		ID:                id,
+		Kind:              domain.ProposalNewMatch,
+		PolicyVersion:     "test-v1",
+		PolicyFingerprint: "test-fingerprint",
+		Teams:             []domain.TeamAssignment{{Team: 0, Tickets: append([]domain.TicketRef(nil), refs...)}},
+		Tickets:           append([]domain.TicketRef(nil), refs...),
 	}
 }
 

@@ -97,4 +97,5 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Completed runtime validation: `docs/todo-0006-runtime-validation/spec.md`, `docs/runtime-validation.md`.
 - Demand index: `docs/todo-0007-demand-index/spec.md`.
 - Policy identity: `docs/todo-0008-policy-identity/spec.md`.
+- Policy catalog: `docs/todo-0009-policy-catalog/spec.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

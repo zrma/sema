@@ -37,6 +37,42 @@ func TestPlanReturnsDeterministicDisjointMatches(t *testing.T) {
 	assertDisjointAndCapacity(t, first, snapshot.MatchTickets, 2, 2)
 }
 
+func TestProposalIdentityIncludesPolicyContent(t *testing.T) {
+	tickets := partyTickets([]int{1, 1, 1, 1})
+	firstPolicy := policy(2, 2)
+	firstPolicy.Version = "shared-version"
+	secondPolicy := firstPolicy
+	secondPolicy.MaxLatencyMillis++
+
+	first, err := planner.Plan(snapshotWith("policy-identity", firstPolicy, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	repeated, err := planner.Plan(snapshotWith("policy-identity", firstPolicy, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := planner.Plan(snapshotWith("policy-identity", secondPolicy, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstProposal := first.Proposals[0]
+	if firstProposal.ID != repeated.Proposals[0].ID ||
+		firstProposal.PolicyFingerprint != repeated.Proposals[0].PolicyFingerprint {
+		t.Fatal("same snapshot and policy did not preserve proposal identity")
+	}
+	secondProposal := second.Proposals[0]
+	if firstProposal.PolicyVersion != secondProposal.PolicyVersion {
+		t.Fatalf("policy versions differ: %q != %q", firstProposal.PolicyVersion, secondProposal.PolicyVersion)
+	}
+	if firstProposal.PolicyFingerprint == secondProposal.PolicyFingerprint || firstProposal.ID == secondProposal.ID {
+		t.Fatalf("different policy content reused identity: first=%#v second=%#v", firstProposal, secondProposal)
+	}
+	if !reflect.DeepEqual(firstProposal.Teams, secondProposal.Teams) {
+		t.Fatalf("fixture changed placement instead of only policy identity: first=%#v second=%#v", firstProposal.Teams, secondProposal.Teams)
+	}
+}
+
 func TestPlanPreservesParties(t *testing.T) {
 	snapshot := snapshotWith("party-preservation", policy(2, 3), partyTickets([]int{2, 2, 1, 1}))
 

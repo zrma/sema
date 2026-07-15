@@ -126,3 +126,7 @@ active reservation이 있는 engine 대신 새 engine을 만들면 demand와 res
 ## S17: Engine Failure Boundaries
 
 fixed TTL에 도달한 reservation의 confirm은 `ReservationExpired`이고 proposal의 모든 ticket은 다음 cycle에 함께 나타난다. 같은 pending assignment에 complete와 cancel acknowledgment가 동시에 도착하면 하나만 terminal 상태를 기록하고 다른 요청은 `InvalidTransition`이다.
+
+## S18: Policy Content Identity
+
+같은 snapshot, policy content와 placement를 반복하면 같은 fingerprint와 proposal ID가 만들어진다. role requirement 입력 순서만 바꾼 policy도 같은 fingerprint다. 같은 version에서 latency cap 등 rule content를 바꾸면 placement가 같아도 fingerprint와 proposal ID가 달라지고, 같은 reservation ID에 두 proposal을 사용하면 `IdempotencyConflict`다.

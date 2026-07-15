@@ -19,6 +19,7 @@ for required_file in \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
   docs/decisions/0002-runtime-adapter-baseline.md \
+  docs/decisions/0003-policy-identity.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -30,6 +31,7 @@ for required_file in \
   docs/todo-0006-runtime-validation/spec.md \
   docs/todo-0007-demand-index/spec.md \
   docs/todo-0008-policy-identity/spec.md \
+  docs/todo-0009-policy-catalog/spec.md \
   go.mod; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2
