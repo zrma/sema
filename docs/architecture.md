@@ -60,6 +60,7 @@ flowchart LR
 - reservation은 opaque `reservationID`를 confirm/cancel token으로 사용하고 fixed TTL을 적용하며 P0에서는 별도 lease owner나 renewal을 지원하지 않는다.
 - 프로세스 내부 상태가 실행 중 source of truth다.
 - 프로세스 재시작은 모든 미확정 reservation을 폐기하며 producer가 active ticket과 session snapshot을 다시 제출한다.
+- 첫 integration은 same-process `internal/engine` direct call이며 idempotency scope와 assignment read model은 process lifetime에 한정된다.
 - durable recovery가 요구되면 persistence milestone에서 reservation/assignment store와 delivery contract를 별도로 설계한다.
 
 ## Failure Model

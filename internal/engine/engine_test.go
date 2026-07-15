@@ -136,6 +136,73 @@ func TestCancelledReservationReturnsTicketsToNextCycle(t *testing.T) {
 	}
 }
 
+func TestRestartDropsProcessLocalStateAndReplayRestoresActiveDemand(t *testing.T) {
+	beforeRestart := newEngine(t)
+	tickets := soloTickets(4)
+	submitTickets(t, beforeRestart, tickets)
+	policy := testPolicy(2, 2)
+
+	expected, err := beforeRestart.Plan("snapshot-restart-replay", fixtureNow, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(expected.Proposals) != 1 {
+		t.Fatalf("proposal count before restart = %d; want 1", len(expected.Proposals))
+	}
+	if _, err := beforeRestart.Reserve(expected.Proposals[0], "reservation-restart-replay", fixtureNow); err != nil {
+		t.Fatal(err)
+	}
+
+	afterRestart := newEngine(t)
+	empty, err := afterRestart.Plan("snapshot-empty-after-restart", fixtureNow, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(empty.Proposals) != 0 || len(empty.Unmatched) != 0 {
+		t.Fatalf("fresh engine retained process-local demand: %#v", empty)
+	}
+
+	submitTickets(t, afterRestart, tickets)
+	replayed, err := afterRestart.Plan("snapshot-restart-replay", fixtureNow, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(expected, replayed) {
+		t.Fatalf("producer replay changed deterministic plan: before=%#v after=%#v", expected, replayed)
+	}
+	if _, err := afterRestart.Reserve(replayed.Proposals[0], "reservation-restart-replay", fixtureNow); err != nil {
+		t.Fatalf("fresh process did not reset idempotency scope: %v", err)
+	}
+}
+
+func TestRestartDropsAssignmentReadModel(t *testing.T) {
+	beforeRestart := newEngine(t)
+	submitSoloTickets(t, beforeRestart, 4)
+	batch, err := beforeRestart.Plan("snapshot-assignment-restart", fixtureNow, testPolicy(2, 2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := beforeRestart.Reserve(batch.Proposals[0], "reservation-assignment-restart", fixtureNow); err != nil {
+		t.Fatal(err)
+	}
+	assignment, err := beforeRestart.Confirm(
+		"reservation-assignment-restart",
+		"assignment-before-restart",
+		fixtureNow.Add(time.Second),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := beforeRestart.Assignment(assignment.ID); !exists {
+		t.Fatal("confirmed assignment is missing before restart")
+	}
+
+	afterRestart := newEngine(t)
+	if _, exists := afterRestart.Assignment(assignment.ID); exists {
+		t.Fatal("fresh engine retained assignment read model")
+	}
+}
+
 func newEngine(t *testing.T) *engine.Engine {
 	t.Helper()
 	runtime, err := engine.New(time.Minute)
@@ -147,8 +214,13 @@ func newEngine(t *testing.T) *engine.Engine {
 
 func submitSoloTickets(t *testing.T, runtime *engine.Engine, count int) {
 	t.Helper()
+	submitTickets(t, runtime, soloTickets(count))
+}
+
+func soloTickets(count int) []domain.MatchTicket {
+	tickets := make([]domain.MatchTicket, 0, count)
 	for index := range count {
-		ticket := domain.MatchTicket{
+		tickets = append(tickets, domain.MatchTicket{
 			ID:         domain.TicketID(string(rune('a' + index))),
 			Revision:   1,
 			EnqueuedAt: fixtureNow.Add(-time.Duration(count-index) * time.Second),
@@ -157,7 +229,14 @@ func submitSoloTickets(t *testing.T, runtime *engine.Engine, count int) {
 				Skill:         1000 + index%2,
 				LatencyMillis: 20,
 			}},
-		}
+		})
+	}
+	return tickets
+}
+
+func submitTickets(t *testing.T, runtime *engine.Engine, tickets []domain.MatchTicket) {
+	t.Helper()
+	for _, ticket := range tickets {
 		if err := runtime.SubmitMatchTicket(ticket); err != nil {
 			t.Fatal(err)
 		}

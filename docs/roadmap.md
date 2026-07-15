@@ -32,6 +32,7 @@
 ## P3: Runtime And Operations
 
 - [x] transport-neutral application engine과 end-to-end lifecycle
+- [x] same-process Go adapter와 producer replay recovery boundary
 - [ ] ticket/session ingestion API
 - [ ] durable persistence와 restart recovery
 - [ ] process 분리 여부와 horizontal worker coordination 재평가

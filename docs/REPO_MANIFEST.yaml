@@ -7,6 +7,8 @@ architecture: docs/architecture.md
 domain_model: docs/domain-model.md
 lifecycle: docs/lifecycle.md
 reference_scenarios: docs/reference-scenarios.md
+implementation_decision: docs/decisions/0001-implementation-baseline.md
+runtime_adapter_decision: docs/decisions/0002-runtime-adapter-baseline.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:

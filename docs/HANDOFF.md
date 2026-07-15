@@ -21,13 +21,14 @@
 - role/skill quality는 versioned wait relaxation에 따라 best-known candidate를 비교하며 unmatched ticket에는 stable reason이 남는다.
 - assignment는 외부 consumer의 complete/cancel/fail acknowledgment와 backfill roster CAS evidence를 idempotent하게 기록한다.
 - `internal/engine`이 ingestion부터 terminal assignment까지 transport-neutral application boundary를 제공한다.
+- 첫 integration은 같은 process의 `internal/engine` direct call이며 producer replay, synchronous acknowledgment, single-replica contract를 사용한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - numeric SLO, skill metric, role schema, production persistence는 아직 결정하지 않았다.
 - 현재 publication class는 원격 visibility가 결정되기 전까지 `internal`이다.
 
 ## Current Work
 
-P0 foundation, P1 objective policy, P2 assignment lifecycle과 application engine은 완료되었다. 현재 작업은 `docs/todo-0005-runtime-adapter/spec.md`의 실제 consumer/delivery/recovery input을 확정하는 일이다. 이 결정 전에는 protocol이나 database를 임의로 선택하지 않는다.
+P0 foundation, P1 objective policy, P2 assignment lifecycle, application engine과 same-process runtime adapter 결정은 완료되었다. 현재 작업은 `docs/todo-0006-runtime-validation/spec.md`의 full application benchmark, failure fixture와 decision-audit vocabulary를 만드는 일이다. 실제 분리 요구가 생기기 전에는 protocol이나 database를 추가하지 않는다.
 
 ## Completion Rule
 
