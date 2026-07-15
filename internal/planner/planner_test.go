@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"sema/internal/domain"
-	"sema/internal/planner"
+	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/planner"
 )
 
 var fixtureNow = time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)

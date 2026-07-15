@@ -5,9 +5,9 @@ import (
 	"sort"
 	"time"
 
-	"sema/internal/domain"
-	"sema/internal/planner"
-	"sema/internal/policy"
+	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/planner"
+	"github.com/zrma/sema/internal/policy"
 )
 
 type Scenario struct {

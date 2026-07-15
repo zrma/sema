@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"sema/internal/domain"
-	"sema/internal/engine"
+	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/engine"
 )
 
 func BenchmarkEngineReferenceWorkloads(b *testing.B) {

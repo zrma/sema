@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog/simulation이 완료되었다. 현재는 첫 production-facing integration input이 필요한 decision gate다.
+P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog/simulation, initial integration/publication baseline이 완료되었다. 실제 consumer 또는 수치 SLO가 생길 때 production-facing boundary를 재평가한다.
 
 ## Established
 
@@ -34,6 +34,8 @@ P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog/simula
 - canonical policy fingerprint와 snapshot/policy/placement-aware proposal identity.
 - explicit registration, defensive read와 version conflict를 제공하는 process-local policy catalog.
 - side-effect-free multi-policy simulation과 canonical coverage/quality summary.
+- public repository identity `github.com/zrma/sema`와 Apache-2.0 source license.
+- public source이지만 Go package는 `internal/`에 유지하고 public API compatibility는 아직 약속하지 않는 경계.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
@@ -44,6 +46,7 @@ P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog/simula
 - global optimum 또는 품질 근사 보장.
 - reservation/assignment persistence와 distributed coordination.
 - API/server entrypoint, observability, deployment.
+- import 가능한 public Go SDK와 compatibility/migration policy.
 
 ## Risks And Decisions Pending
 
@@ -52,8 +55,7 @@ P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog/simula
 - role composition의 hard/soft 경계.
 - mixed-party battle royale과 backfill fixture의 P0 범위.
 - 인메모리 baseline은 process restart recovery를 제공하지 않는다.
-- public repository 전환 여부와 remote identity.
 
 ## Next Slice
 
-`docs/todo-0011-integration-decision/spec.md`의 consumer, durability, acknowledgment, replica, numeric SLO와 compatibility input을 확정한 뒤 production-facing slice를 선택한다.
+same-process, producer replay, synchronous acknowledgment와 single-replica baseline을 유지한다. 실제 consumer 또는 수치 SLO가 생기면 transport, durability와 public API 필요성을 함께 재평가하고, 그 전의 다음 repo-owned 작업은 distribution/release workflow다.

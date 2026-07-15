@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"sema/internal/constraint"
-	"sema/internal/domain"
+	"github.com/zrma/sema/internal/constraint"
+	"github.com/zrma/sema/internal/domain"
 )
 
 func TestTicketAllowedKeepsPartyAndLatencyHard(t *testing.T) {

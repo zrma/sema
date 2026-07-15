@@ -1,4 +1,6 @@
 schema_version: 1
+module: github.com/zrma/sema
+license: LICENSE
 entrypoint: docs/HANDOFF.md
 agent_harness: docs/agent-harness.md
 status: docs/status.md
@@ -13,6 +15,7 @@ implementation_decision: docs/decisions/0001-implementation-baseline.md
 runtime_adapter_decision: docs/decisions/0002-runtime-adapter-baseline.md
 policy_identity_decision: docs/decisions/0003-policy-identity.md
 policy_catalog_decision: docs/decisions/0004-policy-catalog.md
+integration_publication_decision: docs/decisions/0005-integration-publication-baseline.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -32,6 +35,6 @@ vcs:
   push_requires_explicit_permission: true
 
 publication:
-  class: internal
+  class: public
   public_transition_requires_live_visibility_check: true
   public_push_requires_machine_local_inventory_gate: true

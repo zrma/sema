@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"sema/internal/domain"
+	"github.com/zrma/sema/internal/domain"
 )
 
 func TestValidateSnapshotRejectsDuplicatePlayers(t *testing.T) {

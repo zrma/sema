@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"sema/internal/domain"
-	"sema/internal/policy"
+	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/policy"
 )
 
 func TestCatalogRegistrationIsIdempotentAndDefensive(t *testing.T) {

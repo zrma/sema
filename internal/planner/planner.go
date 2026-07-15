@@ -10,9 +10,9 @@ import (
 	"sort"
 	"time"
 
-	"sema/internal/constraint"
-	"sema/internal/domain"
-	"sema/internal/objective"
+	"github.com/zrma/sema/internal/constraint"
+	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/objective"
 )
 
 const (

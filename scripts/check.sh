@@ -5,6 +5,7 @@ repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$repo_root"
 
 for required_file in \
+  LICENSE \
   README.md \
   AGENTS.md \
   docs/agent-harness.md \
@@ -22,6 +23,7 @@ for required_file in \
   docs/decisions/0002-runtime-adapter-baseline.md \
   docs/decisions/0003-policy-identity.md \
   docs/decisions/0004-policy-catalog.md \
+  docs/decisions/0005-integration-publication-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -42,6 +44,21 @@ for required_file in \
     exit 1
   }
 done
+
+grep -Fxq 'module github.com/zrma/sema' go.mod || {
+  printf 'repository check failed: canonical Go module identity is missing\n' >&2
+  exit 1
+}
+
+grep -Fq 'Apache License' LICENSE || {
+  printf 'repository check failed: Apache-2.0 license text is missing\n' >&2
+  exit 1
+}
+
+grep -Fxq '  class: public' docs/REPO_MANIFEST.yaml || {
+  printf 'repository check failed: manifest publication class must be public\n' >&2
+  exit 1
+}
 
 scripts/check-agent-harness-interface.sh
 scripts/check-publication-boundary.py --self-test

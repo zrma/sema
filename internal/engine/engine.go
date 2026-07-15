@@ -4,10 +4,10 @@ package engine
 import (
 	"time"
 
-	"sema/internal/coordinator"
-	"sema/internal/domain"
-	"sema/internal/planner"
-	policycatalog "sema/internal/policy"
+	"github.com/zrma/sema/internal/coordinator"
+	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/planner"
+	policycatalog "github.com/zrma/sema/internal/policy"
 )
 
 // Engine is the transport-neutral application boundary for the single-process runtime.

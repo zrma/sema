@@ -28,12 +28,14 @@
 - process-local policy catalog가 explicit registration 뒤 version-only planning을 제공한다.
 - offline simulation이 policy/scenario 순서와 무관한 canonical comparison report를 만든다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
+- repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
+- Go package는 `internal/`에 유지하며 public API와 compatibility guarantee는 아직 제공하지 않는다.
 - numeric SLO, skill metric, role schema, production persistence는 아직 결정하지 않았다.
-- 현재 publication class는 원격 visibility가 결정되기 전까지 `internal`이다.
+- publication class는 `public`이며 push 전 repository gate와 machine-local inventory gate를 모두 통과한다.
 
 ## Current Work
 
-P0 foundation부터 offline policy simulation까지 완료되었다. 현재는 `docs/todo-0011-integration-decision/spec.md`의 실제 consumer, durability, deployment, SLO와 compatibility input이 필요한 decision gate다. 그 전에는 protocol이나 database를 추가하지 않는다.
+P0 foundation부터 offline policy simulation과 initial integration/publication baseline까지 완료되었다. 실제 consumer 또는 수치 SLO가 생기기 전에는 protocol, database나 public SDK를 추가하지 않으며 다음 repo-owned 작업은 distribution/release workflow다.
 
 ## Completion Rule
 

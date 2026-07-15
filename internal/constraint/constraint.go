@@ -1,7 +1,7 @@
 // Package constraint evaluates matchmaking rules that cannot be relaxed by scoring.
 package constraint
 
-import "sema/internal/domain"
+import "github.com/zrma/sema/internal/domain"
 
 // TicketAllowed checks party capacity and the absolute latency cap.
 func TicketAllowed(ticket domain.MatchTicket, maxPartySize int, maxLatencyMillis int) bool {

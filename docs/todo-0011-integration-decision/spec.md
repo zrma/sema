@@ -1,36 +1,39 @@
-# Next Integration Decision Spec
+# Initial Integration And Publication Spec
 
-- Status: Decision Required
+- Status: Complete
 
 ## Objective
 
-same-process core와 offline policy evaluation 이후 첫 production-facing integration의 reliability, scale와 compatibility contract를 실제 consumer 요구로 선택한다.
+same-process core와 offline policy evaluation 이후 첫 integration, durability, deployment와 publication baseline을 명시적으로 고정한다.
 
-## Required Input
+## Decision
 
-1. 첫 실제 consumer가 같은 deployable process인지 별도 request/response service 또는 asynchronous worker인지.
-2. producer가 restart 뒤 active demand와 policy를 전부 재제출할 수 있는지, durable recovery가 필요한지.
-3. assignment acknowledgment가 synchronous call인지 retry 가능한 message delivery인지.
-4. 첫 deployment가 single replica인지 multi-replica reservation authority가 필요한지.
-5. cycle latency, queue wait, throughput과 audit retention의 최소 수치가 무엇인지.
-6. remote module identity, public repository/API compatibility를 지금 고정해야 하는지.
+1. 첫 consumer는 같은 Go deployable process에서 `internal/engine`을 직접 호출한다.
+2. process restart 뒤 producer가 active ticket, backfill과 policy를 전부 재제출한다.
+3. assignment acknowledgment는 synchronous call로 처리한다.
+4. 첫 deployment는 single replica로 운영한다.
+5. cycle latency, queue wait, throughput과 audit retention의 production SLO는 실제 deployment input이 생길 때 정한다.
+6. repository와 Go module identity는 `github.com/zrma/sema`로 공개하되 모든 package를 `internal/`에 유지하고 public API compatibility는 약속하지 않는다.
+7. source license는 Apache License 2.0이다.
 
-## Recommended Default
+## Consequences
 
-실제 consumer와 수치 SLO가 없으면 현재 same-process engine, producer replay와 internal compatibility를 유지한다. transport, database, telemetry exporter와 public SDK는 추가하지 않고 simulation/benchmark evidence로 policy와 workload만 검증한다.
+- transport, database, telemetry exporter, distributed lock과 public SDK를 미리 추가하지 않는다.
+- restart recovery는 durable state가 아니라 producer replay의 정확성과 idempotency에 의존한다.
+- multi-replica 전환에는 external durable CAS authority와 assignment source of truth가 필요하다.
+- public API를 열 때는 package boundary, schema version, compatibility와 release workflow를 함께 결정한다.
+- numeric SLO가 생기면 candidate index/partition, load/soak gate와 process extraction 여부를 재평가한다.
 
-## Decision Consequences
+## Evidence
 
-- synchronous service는 request timeout, retry/idempotency mapping과 authentication contract가 필요하다.
-- asynchronous worker는 durable inbox/outbox, ordering, duplicate delivery와 delayed acknowledgment가 필요하다.
-- multi-replica는 external durable CAS authority와 assignment source of truth가 필요하다.
-- public API는 module identity, schema version, compatibility와 release workflow를 함께 고정해야 한다.
-- numeric SLO는 candidate index/partition, load/soak gate와 process extraction 판단의 기준이 된다.
+- `internal/engine` lifecycle fixture가 direct call, replay와 synchronous acknowledgment를 검증한다.
+- reference benchmark가 현재 workload의 비교 가능한 local measurement를 제공한다.
+- `scripts/check.sh`가 module, race, benchmark와 publication boundary contract를 검증한다.
 
-## Safe Work Until Decision
+## Revisit Triggers
 
-- existing reference corpus에 game-specific fixture 추가.
-- measured workload에서 재현되는 correctness/performance regression 수정.
-- 현재 local gate와 documentation drift 유지보수.
-
-위 입력 없이 새 protocol, database, distributed lock, public SDK 또는 timing threshold를 선택하지 않는다.
+- consumer가 별도 process 또는 asynchronous worker를 요구한다.
+- producer가 restart 뒤 active demand를 완전하게 replay할 수 없다.
+- multi-replica coordination이나 durable audit retention이 필요하다.
+- 외부 프로젝트가 안정적인 Go API 또는 versioned schema를 요구한다.
+- production SLO가 현재 in-process baseline으로 충족되지 않는다.

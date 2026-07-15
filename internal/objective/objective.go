@@ -6,8 +6,8 @@ import (
 	"math"
 	"time"
 
-	"sema/internal/constraint"
-	"sema/internal/domain"
+	"github.com/zrma/sema/internal/constraint"
+	"github.com/zrma/sema/internal/domain"
 )
 
 // Evaluation contains an admissibility decision and its replayable evidence.

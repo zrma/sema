@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"sema/internal/domain"
+	"github.com/zrma/sema/internal/domain"
 )
 
 type reservationRecord struct {

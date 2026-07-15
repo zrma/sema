@@ -11,6 +11,7 @@
 - [x] canonical entity schema와 lifecycle 정의
 - [x] executable new-match와 backfill reference fixture 정의
 - [x] Go 최소 vertical slice 구현
+- [x] public repository identity와 Apache-2.0 publication baseline
 
 ## P1: Deterministic Match Core
 
@@ -35,6 +36,7 @@
 - [x] same-process Go adapter와 producer replay recovery boundary
 - [x] in-process full-lifecycle benchmark와 failure boundary fixture
 - [x] active-demand player ownership index
+- [x] same-process, producer replay, synchronous acknowledgment와 single-replica integration baseline
 - [ ] ticket/session ingestion API
 - [ ] durable persistence와 restart recovery
 - [ ] process 분리 여부와 horizontal worker coordination 재평가
@@ -46,6 +48,7 @@
 - [x] policy content fingerprint와 replay identity
 - [x] versioned policy contract
 - [x] rule simulation과 offline evaluation
+- [x] remote Go module identity와 internal-only package boundary
 - [ ] SDK와 integration examples
 - [ ] compatibility and migration policy
 - [ ] distribution and release workflow

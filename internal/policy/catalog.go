@@ -4,7 +4,7 @@ package policy
 import (
 	"sync"
 
-	"sema/internal/domain"
+	"github.com/zrma/sema/internal/domain"
 )
 
 type Entry struct {
