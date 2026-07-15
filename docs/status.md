@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-`P0: Architecture Foundation`, `P1: Objective Policy`, `P2: Assignment Lifecycle`, P3의 application engine, same-process adapter와 runtime validation이 완료되었다. 현재는 active demand ingestion의 player ownership index milestone이다.
+P0부터 P3의 application engine, same-process adapter, runtime validation과 demand index가 완료되었다. 현재는 policy content와 replayable proposal identity를 결합하는 P4 policy identity milestone이다.
 
 ## Established
 
@@ -30,6 +30,7 @@
 - process restart 뒤 empty state와 active-demand replay를 실행하는 deterministic engine fixture.
 - ingestion부터 pending assignment까지 실행하는 reference/queue engine benchmark와 decision-audit metric vocabulary.
 - reservation expiry whole-proposal release와 concurrent terminal acknowledgment single-winner fixture.
+- active ticket player ownership index와 atomic higher-revision replacement/cleanup fixture.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
@@ -52,4 +53,4 @@
 
 ## Next Slice
 
-`docs/todo-0007-demand-index/spec.md`에 따라 coordinator player ownership index와 lifecycle cleanup fixture를 구현한다.
+`docs/todo-0008-policy-identity/spec.md`에 따라 canonical policy fingerprint와 content-aware proposal identity를 구현한다.

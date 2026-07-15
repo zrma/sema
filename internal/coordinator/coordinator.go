@@ -24,6 +24,7 @@ type Coordinator struct {
 
 	matchTickets         map[domain.TicketID]domain.MatchTicket
 	backfillTickets      map[domain.TicketID]domain.BackfillTicket
+	playerTickets        map[domain.PlayerID]domain.TicketID
 	ticketReservations   map[domain.TicketID]domain.ReservationID
 	backfillReservations map[domain.TicketID]domain.ReservationID
 	reservations         map[domain.ReservationID]*reservationRecord
@@ -38,6 +39,7 @@ func New(ttl time.Duration) (*Coordinator, error) {
 		ttl:                  ttl,
 		matchTickets:         make(map[domain.TicketID]domain.MatchTicket),
 		backfillTickets:      make(map[domain.TicketID]domain.BackfillTicket),
+		playerTickets:        make(map[domain.PlayerID]domain.TicketID),
 		ticketReservations:   make(map[domain.TicketID]domain.ReservationID),
 		backfillReservations: make(map[domain.TicketID]domain.ReservationID),
 		reservations:         make(map[domain.ReservationID]*reservationRecord),
@@ -69,7 +71,12 @@ func (coordinator *Coordinator) UpsertMatchTicket(ticket domain.MatchTicket) err
 	if duplicatedPlayer := coordinator.duplicatedPlayerLocked(ticket); duplicatedPlayer != "" {
 		return domain.NewFailure(domain.FailureInvalidInput, "player %q already belongs to another active ticket", duplicatedPlayer)
 	}
-	coordinator.matchTickets[ticket.ID] = domain.CloneMatchTicket(ticket)
+	if current, exists := coordinator.matchTickets[ticket.ID]; exists {
+		coordinator.releasePlayerOwnershipLocked(current)
+	}
+	cloned := domain.CloneMatchTicket(ticket)
+	coordinator.matchTickets[ticket.ID] = cloned
+	coordinator.acquirePlayerOwnershipLocked(cloned)
 	return nil
 }
 
@@ -111,6 +118,7 @@ func (coordinator *Coordinator) CancelMatchTicket(id domain.TicketID, revision d
 	if !exists || current.Revision != revision {
 		return domain.NewFailure(domain.FailureStaleSnapshot, "match ticket %q is no longer at revision %d", id, revision)
 	}
+	coordinator.releasePlayerOwnershipLocked(current)
 	delete(coordinator.matchTickets, id)
 	return nil
 }
@@ -287,6 +295,9 @@ func (coordinator *Coordinator) Confirm(
 		Status:        domain.AssignmentPending,
 	}
 	for _, ref := range record.proposal.Tickets {
+		if ticket, exists := coordinator.matchTickets[ref.ID]; exists {
+			coordinator.releasePlayerOwnershipLocked(ticket)
+		}
 		delete(coordinator.matchTickets, ref.ID)
 	}
 	if record.proposal.Backfill != nil {
@@ -429,19 +440,26 @@ func (coordinator *Coordinator) releaseLocked(reservation domain.Reservation) {
 }
 
 func (coordinator *Coordinator) duplicatedPlayerLocked(ticket domain.MatchTicket) domain.PlayerID {
-	for id, active := range coordinator.matchTickets {
-		if id == ticket.ID {
-			continue
-		}
-		for _, existing := range active.Players {
-			for _, candidate := range ticket.Players {
-				if existing.ID == candidate.ID {
-					return candidate.ID
-				}
-			}
+	for _, player := range ticket.Players {
+		if owner, exists := coordinator.playerTickets[player.ID]; exists && owner != ticket.ID {
+			return player.ID
 		}
 	}
 	return ""
+}
+
+func (coordinator *Coordinator) acquirePlayerOwnershipLocked(ticket domain.MatchTicket) {
+	for _, player := range ticket.Players {
+		coordinator.playerTickets[player.ID] = ticket.ID
+	}
+}
+
+func (coordinator *Coordinator) releasePlayerOwnershipLocked(ticket domain.MatchTicket) {
+	for _, player := range ticket.Players {
+		if coordinator.playerTickets[player.ID] == ticket.ID {
+			delete(coordinator.playerTickets, player.ID)
+		}
+	}
 }
 
 func cloneReservation(reservation domain.Reservation) domain.Reservation {

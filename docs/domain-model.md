@@ -36,6 +36,8 @@ producer는 자신이 소유한 aggregate의 revision을 증가시킨다. coordi
 
 `players`는 비어 있을 수 없고 한 ticket의 모든 player는 같은 proposal과 같은 team에 배치된다. 수정은 기존 value의 in-place mutation이 아니라 더 높은 revision의 전체 replacement다.
 
+coordinator는 active ticket과 함께 player ownership을 유지한다. higher revision replacement는 새 player의 중복 검증이 끝난 뒤 old ownership release와 new ownership acquire를 한 mutation으로 적용하며 cancel과 assignment confirm은 ownership을 해제한다.
+
 ### `BackfillTicket`
 
 - `ticketID`, `revision`: backfill 수요 자체의 identity와 freshness.

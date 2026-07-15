@@ -29,6 +29,7 @@ for required_file in \
   docs/todo-0005-runtime-adapter/spec.md \
   docs/todo-0006-runtime-validation/spec.md \
   docs/todo-0007-demand-index/spec.md \
+  docs/todo-0008-policy-identity/spec.md \
   go.mod; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2

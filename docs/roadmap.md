@@ -34,6 +34,7 @@
 - [x] transport-neutral application engine과 end-to-end lifecycle
 - [x] same-process Go adapter와 producer replay recovery boundary
 - [x] in-process full-lifecycle benchmark와 failure boundary fixture
+- [x] active-demand player ownership index
 - [ ] ticket/session ingestion API
 - [ ] durable persistence와 restart recovery
 - [ ] process 분리 여부와 horizontal worker coordination 재평가
@@ -42,6 +43,7 @@
 
 ## P4: Policy And Ecosystem
 
+- [ ] policy content fingerprint와 replay identity
 - [ ] versioned policy contract
 - [ ] rule simulation과 offline evaluation
 - [ ] SDK와 integration examples

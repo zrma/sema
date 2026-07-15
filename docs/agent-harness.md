@@ -96,4 +96,5 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Completed runtime adapter decision: `docs/todo-0005-runtime-adapter/spec.md`, `docs/decisions/0002-runtime-adapter-baseline.md`.
 - Completed runtime validation: `docs/todo-0006-runtime-validation/spec.md`, `docs/runtime-validation.md`.
 - Demand index: `docs/todo-0007-demand-index/spec.md`.
+- Policy identity: `docs/todo-0008-policy-identity/spec.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

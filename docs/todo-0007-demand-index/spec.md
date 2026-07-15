@@ -1,6 +1,6 @@
 # P3 Demand Index Spec
 
-- Status: Planned
+- Status: Complete
 
 ## Objective
 
@@ -27,3 +27,11 @@ active ticket ingestion의 player uniqueness 검사를 queue 전체 scan에서 e
 - player identity service 또는 cross-process uniqueness.
 - persistence, migration과 multi-replica coordination.
 - numeric latency SLO.
+
+## Completion Evidence
+
+- coordinator가 active match ticket과 별도로 `PlayerID -> TicketID` ownership을 유지한다.
+- higher revision은 duplicate 검증을 먼저 끝낸 뒤 old ownership release, ticket replacement와 new ownership acquire를 같은 lock에서 수행한다.
+- cancel과 confirm은 ticket 제거와 함께 player ownership을 해제한다.
+- rejection rollback, successful replacement, cancel/re-submit과 confirm/re-submit fixture가 통과한다.
+- focused test/race, full engine queue benchmark와 전체 repository gate가 통과한다.

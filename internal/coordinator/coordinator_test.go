@@ -236,6 +236,76 @@ func TestUpsertRevisionAndSnapshotCopies(t *testing.T) {
 	}
 }
 
+func TestPlayerOwnershipIndexUpdatesHigherRevisionAtomically(t *testing.T) {
+	owner := newCoordinator(t, time.Minute)
+	original := matchTicket("ticket-owner", 1, "player-old")
+	blocked := matchTicket("ticket-blocked", 1, "player-blocked")
+	if err := owner.UpsertMatchTicket(original); err != nil {
+		t.Fatal(err)
+	}
+	if err := owner.UpsertMatchTicket(blocked); err != nil {
+		t.Fatal(err)
+	}
+
+	rejected := matchTicket("ticket-owner", 2, "player-new", "player-blocked")
+	err := owner.UpsertMatchTicket(rejected)
+	assertFailureCode(t, err, domain.FailureInvalidInput)
+	if err := owner.UpsertMatchTicket(matchTicket("ticket-new-owner", 1, "player-new")); err != nil {
+		t.Fatalf("rejected replacement partially acquired new player: %v", err)
+	}
+	err = owner.UpsertMatchTicket(matchTicket("ticket-old-contender", 1, "player-old"))
+	assertFailureCode(t, err, domain.FailureInvalidInput)
+
+	if err := owner.CancelMatchTicket("ticket-new-owner", 1); err != nil {
+		t.Fatal(err)
+	}
+	updated := matchTicket("ticket-owner", 2, "player-replacement")
+	if err := owner.UpsertMatchTicket(updated); err != nil {
+		t.Fatal(err)
+	}
+	if err := owner.UpsertMatchTicket(matchTicket("ticket-old-reused", 1, "player-old")); err != nil {
+		t.Fatalf("successful replacement did not release removed player: %v", err)
+	}
+	err = owner.UpsertMatchTicket(matchTicket("ticket-replacement-contender", 1, "player-replacement"))
+	assertFailureCode(t, err, domain.FailureInvalidInput)
+}
+
+func TestPlayerOwnershipIndexReleasesOnTerminalTicketTransitions(t *testing.T) {
+	t.Run("cancel", func(t *testing.T) {
+		owner := newCoordinator(t, time.Minute)
+		if err := owner.UpsertMatchTicket(matchTicket("ticket-cancelled", 1, "player-reusable")); err != nil {
+			t.Fatal(err)
+		}
+		if err := owner.CancelMatchTicket("ticket-cancelled", 1); err != nil {
+			t.Fatal(err)
+		}
+		if err := owner.UpsertMatchTicket(matchTicket("ticket-after-cancel", 1, "player-reusable")); err != nil {
+			t.Fatalf("cancel did not release player ownership: %v", err)
+		}
+	})
+
+	t.Run("confirm", func(t *testing.T) {
+		owner := newCoordinator(t, time.Minute)
+		if err := owner.UpsertMatchTicket(matchTicket("ticket-confirmed", 1, "player-reusable")); err != nil {
+			t.Fatal(err)
+		}
+		proposal := firstProposal(t, owner, testPolicy(1, 1))
+		if _, err := owner.Reserve(proposal, "reservation-player-index", fixtureNow); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := owner.Confirm(
+			"reservation-player-index",
+			"assignment-player-index",
+			fixtureNow.Add(time.Second),
+		); err != nil {
+			t.Fatal(err)
+		}
+		if err := owner.UpsertMatchTicket(matchTicket("ticket-after-confirm", 1, "player-reusable")); err != nil {
+			t.Fatalf("confirm did not release player ownership: %v", err)
+		}
+	})
+}
+
 func TestAssignmentCompletionIsIdempotentAndReadable(t *testing.T) {
 	owner := newCoordinator(t, time.Minute)
 	upsertSoloTickets(t, owner, 4)
@@ -429,6 +499,19 @@ func upsertSoloTickets(
 		tickets[id] = ticket
 	}
 	return tickets
+}
+
+func matchTicket(id domain.TicketID, revision domain.Revision, playerIDs ...domain.PlayerID) domain.MatchTicket {
+	players := make([]domain.Player, 0, len(playerIDs))
+	for _, playerID := range playerIDs {
+		players = append(players, domain.Player{ID: playerID, Skill: 1000, LatencyMillis: 20})
+	}
+	return domain.MatchTicket{
+		ID:         id,
+		Revision:   revision,
+		EnqueuedAt: fixtureNow.Add(-time.Minute),
+		Players:    players,
+	}
 }
 
 func firstProposal(
