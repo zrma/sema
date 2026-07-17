@@ -27,11 +27,18 @@ func TestSnapshotRendersUnicodeLifecycleWithinWidth(t *testing.T) {
 	lines := strings.Split(content, "\n")
 	for _, expected := range []string{
 		"SEMA FLOW", "speed 4.5×", "[●─●]", "rating", "team", "won",
-		"AVERAGE QUEUE WAIT", "RATING DENSITY", "1500│█", "COMPLETED MATCHES", "EVENT STREAM",
+		"AVERAGE QUEUE WAIT", "RATING DENSITY", "1500│", "COMPLETED MATCHES", "EVENT STREAM",
 	} {
 		if !strings.Contains(content, expected) {
 			t.Fatalf("snapshot omitted %q:\n%s", expected, content)
 		}
+	}
+	centerDensity := false
+	for _, line := range lines {
+		centerDensity = centerDensity || strings.Contains(line, "1500│") && strings.Contains(line, "█")
+	}
+	if !centerDensity {
+		t.Fatalf("snapshot omitted the populated 1500 density row:\n%s", content)
 	}
 	if strings.Contains(content, "more lifecycle matches") {
 		t.Fatalf("snapshot reported hidden matches when all active matches fit:\n%s", content)

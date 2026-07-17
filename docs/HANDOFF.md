@@ -58,7 +58,7 @@
 - active game 수는 planning eligibility를 제한하지 않는다. Flow는 assignment confirm 이후 game/result/return을 synthetic하게 모사하고 TUI `MATCH LIFECYCLE` 패널에서 계속 보여준다.
 - `cmd/sema-flow-matrix`가 seed 42/73/101과 planning upper bound 2/8/32를 비교하고 throughput, wait, queue와 quality min/median/max를 `sema.flow.capacity-matrix.v0alpha2`로 출력한다.
 - wide Flow TUI는 `WAITING POOL | MATCH LIFECYCLE`, `AVERAGE QUEUE WAIT | RATING DENSITY`, `COMPLETED MATCHES | EVENT STREAM`의 세 행을 사용한다.
-- trend는 player-weighted pre-confirm wait와 1500-centered whole-population rating density를 logical time 기준 최근 512 sample로 보여준다.
+- trend는 player-weighted pre-confirm wait와 1500-centered whole-population rating density를 최근 512개의 10초 logical-time bucket으로 보여준다. 신규 bucket은 기존 열을 재투영하지 않고 값 그대로 왼쪽으로 이동시킨다.
 - selected party row는 match별 marker/color를 공유해 hold와 horizontal departure를 거친 뒤 제거되며, 남은 waiting row는 frame 단위로 위로 접힌다. reduced-motion은 동일 final state를 즉시 적용한다.
 - 새 lifecycle block은 같은 marker/color를 유지한 채 batch 순서대로 panel 상단에서 stagger되어 펼쳐지고, 기존 block은 드러난 row만큼 아래로 이동한다. 이 motion도 presentation-only이며 reduced-motion은 최종 배치를 즉시 표시한다.
 - rating density는 9개 centered histogram bucket을 analytics panel의 가용 높이에 비례해 확장하고 label은 bucket당 한 번만 표시한다. 반복 row는 시각적 cell height이지 추가 rating data가 아니다.

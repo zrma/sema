@@ -24,7 +24,8 @@ const (
 	lifecycleEntryStagger = 1
 	maxHistoryEntries     = 64
 	maxLogEntries         = 128
-	maxTrendSamples       = 512
+	maxTrendBuckets       = 512
+	trendColumnInterval   = 10 * time.Second
 )
 
 type ticketState string
@@ -486,7 +487,7 @@ func (model *Model) apply(event flow.Event) {
 
 func (model *Model) recordTrendSample() {
 	sample := trendSample{
-		at:              model.now,
+		at:              model.now.Truncate(trendColumnInterval),
 		averageWait:     model.averageQueueWait(),
 		ratingHistogram: model.population.CenteredHistogram,
 		population:      model.population.Players,
@@ -496,8 +497,8 @@ func (model *Model) recordTrendSample() {
 		return
 	}
 	model.trends = append(model.trends, sample)
-	if len(model.trends) > maxTrendSamples {
-		model.trends = slices.Clone(model.trends[len(model.trends)-maxTrendSamples:])
+	if len(model.trends) > maxTrendBuckets {
+		model.trends = slices.Clone(model.trends[len(model.trends)-maxTrendBuckets:])
 	}
 }
 

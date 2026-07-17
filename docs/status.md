@@ -74,7 +74,7 @@ P0부터 P28 matcher V0 exit까지 완료되었다. 현재 milestone은 P29 serv
 - profile 순서와 wall-clock parallelism에 영향받지 않는 deterministic matrix, cross-profile demand comparability와 reduced real-Flow smoke.
 - wide TUI의 `AVERAGE QUEUE WAIT | RATING DENSITY` analytics 행과 `COMPLETED MATCHES | EVENT STREAM` recent 행.
 - assignment confirm 전 ticket을 player-weighted한 queue wait history와 1500 exact center symmetric rating-density history.
-- 같은 logical timestamp를 합치고 512 sample로 제한하는 deterministic trend read model과 Unicode/color, ASCII, medium/tall/compact terminal gate.
+- 같은 10초 logical-time bucket을 합치고 512 bucket으로 제한하며 신규 시간대에 기존 열을 값 그대로 이동시키는 deterministic trend read model과 Unicode/color, ASCII, medium/tall/compact terminal gate.
 - selected party를 match별 color/marker로 묶어 hold 뒤 오른쪽으로 이동시키고 남은 waiting row를 frame 단위로 접는 queue departure motion과 reduced-motion final-state fallback.
 - 새 lifecycle block을 batch 순서대로 panel 상단에서 stagger해 펼치고 기존 block을 아래로 이동시키는 presentation-only entry motion.
 - tall analytics panel의 전체 높이에 9개 rating bucket을 비례 확장하되 label과 histogram 의미를 유지하는 density scaling.

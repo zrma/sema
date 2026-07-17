@@ -33,27 +33,65 @@ func TestAverageQueueWaitWeightsPlayersAndStopsAtConfirmation(t *testing.T) {
 	}
 }
 
-func TestTrendSampleReplacesSameTimestampAndUsesCenteredRatingHistogram(t *testing.T) {
+func TestTrendSampleReplacesSameBucketAndUsesCenteredRatingHistogram(t *testing.T) {
 	now := time.Date(2026, time.January, 1, 0, 1, 0, 0, time.UTC)
 	model := &Model{now: now, tickets: make(map[string]*ticketView)}
 	model.population = league.Stats{Players: 10, CenteredHistogram: [9]int{0, 0, 0, 5, 0, 5}}
 	model.recordTrendSample()
 	model.population.CenteredHistogram = [9]int{0, 0, 0, 4, 2, 4}
+	model.now = model.now.Add(5 * time.Second)
 	model.recordTrendSample()
 	if len(model.trends) != 1 || model.trends[0].ratingHistogram != model.population.CenteredHistogram {
-		t.Fatalf("same-timestamp trend sample was not replaced: %#v", model.trends)
+		t.Fatalf("same-bucket trend sample was not replaced: %#v", model.trends)
 	}
-	model.now = model.now.Add(time.Second)
+	model.now = now.Add(trendColumnInterval)
 	model.recordTrendSample()
 	if len(model.trends) != 2 {
-		t.Fatalf("new timestamp was not appended: %#v", model.trends)
+		t.Fatalf("new bucket was not appended: %#v", model.trends)
 	}
-	for range maxTrendSamples {
-		model.now = model.now.Add(time.Second)
+	for range maxTrendBuckets {
+		model.now = model.now.Add(trendColumnInterval)
 		model.recordTrendSample()
 	}
-	if len(model.trends) != maxTrendSamples || !model.trends[0].at.Equal(now.Add(2*time.Second)) {
-		t.Fatalf("trend history was not bounded to the newest %d samples", maxTrendSamples)
+	if len(model.trends) != maxTrendBuckets || !model.trends[0].at.Equal(now.Add(2*trendColumnInterval)) {
+		t.Fatalf("trend history was not bounded to the newest %d buckets", maxTrendBuckets)
+	}
+}
+
+func TestTrendColumnsScrollFixedTimeBucketsWithoutReprojecting(t *testing.T) {
+	base := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	samples := []trendSample{
+		{at: base, averageWait: time.Second},
+		{at: base.Add(10 * time.Second), averageWait: 2 * time.Second},
+		{at: base.Add(20 * time.Second), averageWait: 3 * time.Second},
+	}
+	before := trendColumns(samples, 3)
+	assertTrendWaits(t, before, time.Second, 2*time.Second, 3*time.Second)
+
+	samples = append(samples, trendSample{at: base.Add(30 * time.Second), averageWait: 4 * time.Second})
+	afterScroll := trendColumns(samples, 3)
+	assertTrendWaits(t, afterScroll, 2*time.Second, 3*time.Second, 4*time.Second)
+	if before[1].sample != afterScroll[0].sample || before[2].sample != afterScroll[1].sample {
+		t.Fatalf("existing columns were reprojected instead of shifted: before=%#v after=%#v", before, afterScroll)
+	}
+	if !afterScroll[0].at.Equal(base.Add(10*time.Second)) || !afterScroll[2].at.Equal(base.Add(30*time.Second)) {
+		t.Fatalf("fixed bucket times were not preserved: %#v", afterScroll)
+	}
+
+	samples = append(samples, trendSample{at: base.Add(35 * time.Second), averageWait: 5 * time.Second})
+	sameBucket := trendColumns(samples, 3)
+	assertTrendWaits(t, sameBucket, 2*time.Second, 3*time.Second, 5*time.Second)
+
+	samples = append(samples, trendSample{at: base.Add(50 * time.Second), averageWait: 6 * time.Second})
+	afterGap := trendColumns(samples, 3)
+	assertTrendWaits(t, afterGap, 5*time.Second, 5*time.Second, 6*time.Second)
+}
+
+func TestTrendColumnsRightAlignPartialHistory(t *testing.T) {
+	base := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	columns := trendColumns([]trendSample{{at: base, averageWait: time.Second}}, 3)
+	if columns[0].valid || columns[1].valid || !columns[2].valid {
+		t.Fatalf("partial history was not right aligned: %#v", columns)
 	}
 }
 
@@ -107,5 +145,17 @@ func TestRatingDensityExpandsBandsAcrossAvailableHeight(t *testing.T) {
 	emptyCenter := strings.Join(model.ratingDensityLines(model.glyphs(), 60, 18), "\n")
 	if axisRows := strings.Count(emptyCenter, "─"); axisRows != 1 {
 		t.Fatalf("expanded empty 1500 bucket rendered %d reference axes; want one:\n%s", axisRows, emptyCenter)
+	}
+}
+
+func assertTrendWaits(t *testing.T, columns []trendColumn, waits ...time.Duration) {
+	t.Helper()
+	if len(columns) != len(waits) {
+		t.Fatalf("columns = %d; want %d", len(columns), len(waits))
+	}
+	for index, wait := range waits {
+		if !columns[index].valid || columns[index].sample.averageWait != wait {
+			t.Fatalf("column %d = %#v; want wait %s", index, columns[index], wait)
+		}
 	}
 }

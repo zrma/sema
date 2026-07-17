@@ -91,10 +91,12 @@ func (model *Model) render() string {
 
 	leftWidth := (width - 1) / 2
 	rightWidth := width - leftWidth - 1
+	waitChartWidth := trendChartWidth(leftWidth-4, 7)
+	ratingChartWidth := trendChartWidth(rightWidth-4, 6)
 	analytics := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		model.panel(
-			model.waitTrendTitle(glyphs, leftWidth-12),
+			model.waitTrendTitle(glyphs, leftWidth-12, waitChartWidth),
 			model.waitTrendLines(glyphs, leftWidth-4, analyticsHeight-3),
 			leftWidth,
 			analyticsHeight,
@@ -102,7 +104,7 @@ func (model *Model) render() string {
 		),
 		" ",
 		model.panel(
-			model.trendTitle("RATING DENSITY", glyphs, rightWidth-12),
+			model.trendTitle("RATING DENSITY", glyphs, rightWidth-12, ratingChartWidth),
 			model.ratingDensityLines(glyphs, rightWidth-4, analyticsHeight-3),
 			rightWidth,
 			analyticsHeight,
@@ -586,6 +588,7 @@ func (model *Model) eventLines(glyphs glyphSet, limit int) []string {
 }
 
 type trendColumn struct {
+	at     time.Time
 	sample trendSample
 	valid  bool
 }
@@ -596,7 +599,7 @@ type ratingBand struct {
 	label string
 }
 
-func (model *Model) trendTitle(title string, glyphs glyphSet, width int) string {
+func (model *Model) trendTitle(title string, glyphs glyphSet, width, chartWidth int) string {
 	if len(model.trends) == 0 {
 		return ansi.Truncate(title, width, glyphs.ellipsis)
 	}
@@ -604,17 +607,17 @@ func (model *Model) trendTitle(title string, glyphs glyphSet, width int) string 
 	if !model.options.Unicode {
 		arrow = ">"
 	}
-	first := model.trends[0].at.Format("15:04")
-	last := model.trends[len(model.trends)-1].at.Format("15:04")
+	columns := trendColumns(model.trends, chartWidth)
+	first, last := visibleTrendRange(columns)
 	return ansi.Truncate(fmt.Sprintf("%s  %s%s%s", title, first, arrow, last), width, glyphs.ellipsis)
 }
 
-func (model *Model) waitTrendTitle(glyphs glyphSet, width int) string {
+func (model *Model) waitTrendTitle(glyphs glyphSet, width, chartWidth int) string {
 	title := "AVERAGE QUEUE WAIT"
 	if len(model.trends) > 0 {
 		title += " " + formatAxisDuration(model.trends[len(model.trends)-1].averageWait)
 	}
-	return model.trendTitle(title, glyphs, width)
+	return model.trendTitle(title, glyphs, width, chartWidth)
 }
 
 func (model *Model) waitTrendLines(glyphs glyphSet, width, height int) []string {
@@ -624,7 +627,7 @@ func (model *Model) waitTrendLines(glyphs glyphSet, width, height int) []string 
 	const axisWidth = 7
 	// Leave a small right gutter. Lipgloss preserves long leading-space runs in
 	// sparse chart rows, which can otherwise wrap the last populated cells.
-	chartWidth := max(1, width-axisWidth-12)
+	chartWidth := trendChartWidth(width, axisWidth)
 	columns := trendColumns(model.trends, chartWidth)
 	maximumWait := time.Duration(0)
 	for _, column := range columns {
@@ -686,7 +689,7 @@ func (model *Model) ratingDensityLines(glyphs glyphSet, width, height int) []str
 	bandCount := min(9, height)
 	bands := ratingBands(bandCount)
 	const axisWidth = 6
-	chartWidth := max(1, width-axisWidth-12)
+	chartWidth := trendChartWidth(width, axisWidth)
 	columns := trendColumns(model.trends, chartWidth)
 	axis := "│"
 	if !model.options.Unicode {
@@ -730,32 +733,47 @@ func trendColumns(samples []trendSample, width int) []trendColumn {
 	if len(samples) == 0 {
 		return columns
 	}
-	if len(samples) == 1 || width == 1 {
-		columns[len(columns)-1] = trendColumn{sample: samples[len(samples)-1], valid: true}
-		return columns
+
+	latestBucket := samples[len(samples)-1].at.Truncate(trendColumnInterval)
+	firstBucket := latestBucket.Add(-time.Duration(len(columns)-1) * trendColumnInterval)
+	sampleIndex := 0
+	var current trendColumn
+	for sampleIndex < len(samples) && samples[sampleIndex].at.Before(firstBucket) {
+		current = trendColumn{sample: samples[sampleIndex], valid: true}
+		sampleIndex++
 	}
-	first := samples[0].at
-	span := samples[len(samples)-1].at.Sub(first)
-	if span <= 0 {
-		columns[len(columns)-1] = trendColumn{sample: samples[len(samples)-1], valid: true}
-		return columns
-	}
-	for _, sample := range samples {
-		position := int(float64(sample.at.Sub(first)) / float64(span) * float64(len(columns)-1))
-		position = min(len(columns)-1, max(0, position))
-		columns[position] = trendColumn{sample: sample, valid: true}
-	}
-	var previous trendColumn
-	for index := range columns {
-		if columns[index].valid {
-			previous = columns[index]
-			continue
+	for columnIndex := range columns {
+		bucketStart := firstBucket.Add(time.Duration(columnIndex) * trendColumnInterval)
+		bucketEnd := firstBucket.Add(time.Duration(columnIndex+1) * trendColumnInterval)
+		for sampleIndex < len(samples) && samples[sampleIndex].at.Before(bucketEnd) {
+			current = trendColumn{sample: samples[sampleIndex], valid: true}
+			sampleIndex++
 		}
-		if previous.valid {
-			columns[index] = previous
+		if current.valid {
+			columns[columnIndex] = current
+			columns[columnIndex].at = bucketStart
 		}
 	}
 	return columns
+}
+
+func trendChartWidth(width, axisWidth int) int {
+	return max(1, width-axisWidth-12)
+}
+
+func visibleTrendRange(columns []trendColumn) (string, string) {
+	first := "--:--"
+	last := "--:--"
+	for _, column := range columns {
+		if !column.valid {
+			continue
+		}
+		if first == "--:--" {
+			first = column.at.Format("15:04")
+		}
+		last = column.at.Format("15:04")
+	}
+	return first, last
 }
 
 func ratingBands(count int) []ratingBand {

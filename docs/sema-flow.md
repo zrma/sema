@@ -77,7 +77,7 @@ trio    [●─●─●]
 - average queue wait chart는 assignment confirm 전인 party의 현재 wait를 player 수로 가중한다. Y axis는 wait duration이고 simulated time은 오른쪽으로 흐른다.
 - rating density chart는 전체 population을 1500 exact center와 대칭 rating bucket으로 집계한다. 1500 row의 빈 cell은 낮은 강조도의 `─` 기준축이고 실제 density가 있으면 `·`/`░`/`▒`/`▓`/`█` block ramp가 덮는다. `@`는 사용하지 않는다.
 - tall terminal에서는 같은 9개 rating bucket의 density cell 높이를 analytics panel에 비례해 확장하고 label은 bucket당 한 번만 표시한다. 반복된 row는 시각적 확대이며 새로운 rating sample이나 bucket 보간이 아니다.
-- 같은 logical timestamp의 lifecycle event는 trend 한 시점으로 합치고 최근 512 sample만 유지한다.
+- 같은 10초 simulated logical-time bucket의 lifecycle event는 최신 read model로 교체하고 최근 512 bucket만 유지한다. 화면의 한 열도 같은 고정 bucket을 사용해 새 bucket이 오면 기존 열이 값 그대로 왼쪽으로 이동하며, 전체 history를 화면 폭에 다시 투영하지 않는다.
 - 기본 Unicode mode는 wait chart의 `●`/`░`와 event stream의 `→`/`◉`/`◆`/`▶`/`✓` marker를 사용하며 ASCII symbol은 `-ascii` fallback에서만 사용한다.
 - proposal에 선택된 party row는 즉시 사라지지 않는다. 같은 match에 속한 party는 동일한 color와 numbered marker로 잠시 고정된 뒤 오른쪽으로 함께 이동하고, 완전히 빠져나간 뒤 남은 queue row가 frame마다 한 줄씩 위로 접힌다. 같은 marker와 color는 `MATCH LIFECYCLE`의 header, team과 evidence 전체에 유지되고 lifecycle stage는 glyph와 text로 구분한다. active match가 끝나기 전에는 visual slot을 재사용하지 않는다.
 - 새 `MATCH LIFECYCLE` block은 plan event와 함께 한 번에 나타나지 않는다. selected party의 horizontal departure가 끝난 다음 batch proposal 순서대로 panel 상단에서 한 frame씩 stagger되어 header부터 아래로 펼쳐진다. 새 row가 드러나는 동안 기존 lifecycle block도 아래로 밀려 queue-to-lifecycle 흐름을 이어간다.
