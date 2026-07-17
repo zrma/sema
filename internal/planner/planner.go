@@ -107,6 +107,8 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 	)
 	rankCandidateUtilities(generation.candidates, maxProposals)
 	selection := selectProposalBatch(generation.candidates, maxProposals, maxBatchSearchNodes, smallQueueExpandedSearch)
+	priorityEligible, oldestPriority := priorityDemandEvidence(generation.candidates)
+	prioritySelected, oldestSelectedPriority := priorityDemandEvidence(selection.candidates)
 
 	batch := domain.ProposalBatch{
 		SnapshotID:      snapshot.ID,
@@ -115,6 +117,10 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 			CandidateProposals:           len(generation.candidates),
 			SelectedProposals:            len(selection.candidates),
 			SelectedBackfills:            selection.selectedBackfills,
+			WaitPriorityEligibleDemands:  priorityEligible,
+			WaitPrioritySelectedDemands:  prioritySelected,
+			OldestWaitPriorityMillis:     oldestPriority,
+			OldestSelectedPriorityMillis: oldestSelectedPriority,
 			TotalUtility:                 selection.totalUtility,
 			CandidateGenerationNodes:     generationBudget.used,
 			CandidateGenerationTruncated: generation.truncated,
@@ -204,7 +210,7 @@ func generateProposalCandidates(
 		target := domain.BackfillReference(backfill)
 		collectShapeCandidates(
 			&result, indexes, window.Tickets, backfill.OpenSlotsByTeam, snapshot,
-			domain.ProposalBackfill, &target, window.Truncated,
+			domain.ProposalBackfill, &target, backfill.EnqueuedAt, window.Truncated,
 			!singleSelectFastPath,
 			maxCandidatesPerSearch, shapeAlternatives, maxBatchCandidates, budget,
 		)
@@ -223,7 +229,7 @@ func generateProposalCandidates(
 		window := discovery.SelectWindow(available, newMatchSlots, maxCandidateTickets)
 		collectShapeCandidates(
 			&result, indexes, window.Tickets, newMatchSlots, snapshot,
-			domain.ProposalNewMatch, nil, window.Truncated,
+			domain.ProposalNewMatch, nil, time.Time{}, window.Truncated,
 			true,
 			maxCandidatesPerSearch, shapeAlternatives, maxBatchCandidates, budget,
 		)
@@ -261,7 +267,7 @@ func collectGreedyCoverCandidates(
 			window.Tickets, slots, snapshot, domain.ProposalNewMatch, "", maxCandidatesPerSearch, 1, budget,
 		)
 		prepareSearchEvidence(&search, len(window.Tickets), window.Truncated)
-		recordGeneratedCandidate(result, indexes, search, domain.ProposalNewMatch, nil)
+		recordGeneratedCandidate(result, indexes, search, snapshot, domain.ProposalNewMatch, nil, time.Time{})
 		if !search.found {
 			return
 		}
@@ -280,6 +286,7 @@ func collectShapeCandidates(
 	snapshot domain.MatchmakingSnapshot,
 	kind domain.ProposalKind,
 	backfill *domain.BackfillTarget,
+	backfillEnqueuedAt time.Time,
 	windowTruncated bool,
 	includeAnchors bool,
 	maxCandidatesPerSearch int,
@@ -310,7 +317,7 @@ func collectShapeCandidates(
 		}
 		for _, alternative := range alternatives {
 			prepareSearchEvidence(&alternative, len(tickets), windowTruncated)
-			recordGeneratedCandidate(result, indexes, alternative, kind, backfill)
+			recordGeneratedCandidate(result, indexes, alternative, snapshot, kind, backfill, backfillEnqueuedAt)
 			if len(result.candidates) >= maxBatchCandidates {
 				break
 			}
@@ -344,8 +351,10 @@ func recordGeneratedCandidate(
 	result *candidateGeneration,
 	indexes map[string]int,
 	search placementSearch,
+	snapshot domain.MatchmakingSnapshot,
 	kind domain.ProposalKind,
 	backfill *domain.BackfillTarget,
+	backfillEnqueuedAt time.Time,
 ) {
 	result.truncated = result.truncated || search.truncated || search.candidateWindowTruncated
 	result.sawHardFailure = result.sawHardFailure || search.sawHardFailure
@@ -359,6 +368,21 @@ func recordGeneratedCandidate(
 		kind:       kind,
 		backfill:   domain.CloneBackfillTarget(backfill),
 	}
+	if len(search.evaluation.PriorityWaitMillis) > 0 {
+		candidate.priorityDemands = placementPriorityDemands(snapshot, search.placement)
+	}
+	if backfill != nil {
+		priority, waitMillis := objective.TicketWaitPriority(snapshot.Now, backfillEnqueuedAt, snapshot.Policy)
+		candidate.evaluation.Evidence.OldestWaitMillis = max(candidate.evaluation.Evidence.OldestWaitMillis, waitMillis)
+		candidate.evaluation.Evidence.TotalWaitMillis += waitMillis
+		if priority {
+			candidate.evaluation.Evidence.WaitPriority = true
+			candidate.priorityDemands = append(candidate.priorityDemands, priorityDemand{
+				key: "backfill:" + string(backfill.Ticket.ID), waitMillis: waitMillis,
+			})
+		}
+	}
+	slices.SortFunc(candidate.priorityDemands, comparePriorityDemand)
 	candidate.key = canonicalCandidateKey(candidate)
 	if existingIndex, exists := indexes[candidate.key]; exists {
 		existing := result.candidates[existingIndex]
@@ -371,6 +395,20 @@ func recordGeneratedCandidate(
 	}
 	indexes[candidate.key] = len(result.candidates)
 	result.candidates = append(result.candidates, candidate)
+}
+
+func placementPriorityDemands(snapshot domain.MatchmakingSnapshot, placement [][]domain.MatchTicket) []priorityDemand {
+	demands := make([]priorityDemand, 0)
+	for _, team := range placement {
+		for _, ticket := range team {
+			if priority, waitMillis := objective.TicketWaitPriority(snapshot.Now, ticket.EnqueuedAt, snapshot.Policy); priority {
+				demands = append(demands, priorityDemand{
+					key: "match:" + string(ticket.ID), waitMillis: waitMillis,
+				})
+			}
+		}
+	}
+	return demands
 }
 
 func canonicalCandidateKey(candidate proposalCandidate) string {

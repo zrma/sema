@@ -53,6 +53,8 @@ request JSON은 unknown field를 거부하고 최대 1 MiB다. response는 `appl
 
 request/response DTO는 `internal/api/v0alpha1`이 소유하고 domain struct를 JSON으로 직접 노출하지 않는다. relaxation duration은 `after_wait_millis`로 표현한다.
 
+plan batch evidence에는 bounded candidate graph의 wait-priority eligible/selected demand 수와 oldest eligible/selected wait가 포함된다. 이는 additive diagnostic field이며 service wire marker는 계속 `v0alpha1`이다. public Go `alpha` marker와 독립적이지만 plan selection은 같은 P25 oldest-first semantics를 사용한다.
+
 ## Time And Authority
 
 client는 planning/reservation/assignment time을 보내지 않는다. server clock이 wait relaxation, reservation expiry, confirmation과 acknowledgment time의 authority다.

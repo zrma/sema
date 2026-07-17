@@ -12,11 +12,17 @@ import (
 type proposalCandidate struct {
 	placement        [][]domain.MatchTicket
 	evaluation       objective.Evaluation
+	priorityDemands  []priorityDemand
 	kind             domain.ProposalKind
 	backfill         *domain.BackfillTarget
 	key              string
 	utility          int64
 	effectiveUtility int64
+}
+
+type priorityDemand struct {
+	key        string
+	waitMillis int64
 }
 
 type batchSelection struct {
@@ -66,6 +72,15 @@ func selectProposalBatch(candidates []proposalCandidate, maxProposals, maxNodes 
 		}
 	}
 	slices.SortFunc(ordered, func(left, right proposalCandidate) int {
+		if left.kind != right.kind {
+			if left.kind == domain.ProposalBackfill {
+				return -1
+			}
+			return 1
+		}
+		if result := comparePriorityDemands(left.priorityDemands, right.priorityDemands); result != 0 {
+			return result
+		}
 		if result := cmp.Compare(right.effectiveUtility, left.effectiveUtility); result != 0 {
 			return result
 		}
@@ -82,6 +97,18 @@ func selectProposalBatch(candidates []proposalCandidate, maxProposals, maxNodes 
 	usedBackfills := make(map[domain.TicketID]struct{})
 	nodes := 0
 	truncated := false
+	hasPriorityDemand := slices.ContainsFunc(ordered, func(candidate proposalCandidate) bool {
+		return len(candidate.priorityDemands) > 0
+	})
+	suffixOldestPriority := make([]int64, len(ordered)+1)
+	suffixBackfills := make([]int, len(ordered)+1)
+	for index := len(ordered) - 1; index >= 0; index-- {
+		suffixOldestPriority[index] = max(suffixOldestPriority[index+1], oldestPriorityDemand(ordered[index]))
+		suffixBackfills[index] = suffixBackfills[index+1]
+		if ordered[index].kind == domain.ProposalBackfill {
+			suffixBackfills[index]++
+		}
+	}
 
 	var search func(index int, score int64)
 	search = func(index int, score int64) {
@@ -98,7 +125,21 @@ func selectProposalBatch(candidates []proposalCandidate, maxProposals, maxNodes 
 			}
 			return
 		}
-		if selectionUpperBound(ordered, index, maxProposals-len(selected), score) < bestScore {
+		if hasPriorityDemand {
+			selectedBackfills := selectedBackfillCount(ordered, selected)
+			bestBackfills := selectedBackfillCount(ordered, bestIndexes)
+			possibleBackfills := selectedBackfills + min(maxProposals-len(selected), suffixBackfills[index])
+			if possibleBackfills < bestBackfills {
+				return
+			}
+			if possibleBackfills == bestBackfills {
+				selectedOldest, _ := selectedPriorityQuality(ordered, selected)
+				bestOldest, _ := selectedPriorityQuality(ordered, bestIndexes)
+				if max(selectedOldest, suffixOldestPriority[index]) < bestOldest {
+					return
+				}
+			}
+		} else if selectionUpperBound(ordered, index, maxProposals-len(selected), score) < bestScore {
 			return
 		}
 
@@ -270,12 +311,22 @@ func betterSelection(
 	rightScore int64,
 	preferPareto bool,
 ) bool {
+	leftBackfills := selectedBackfillCount(candidates, left)
+	rightBackfills := selectedBackfillCount(candidates, right)
+	if leftBackfills != rightBackfills {
+		return leftBackfills > rightBackfills
+	}
+	leftOldest, leftPriorityCount := selectedPriorityQuality(candidates, left)
+	rightOldest, rightPriorityCount := selectedPriorityQuality(candidates, right)
+	if leftOldest != rightOldest {
+		return leftOldest > rightOldest
+	}
+	if leftPriorityCount != rightPriorityCount {
+		return leftPriorityCount > rightPriorityCount
+	}
 	if preferPareto {
 		leftQuality := selectedBatchQuality(candidates, left)
 		rightQuality := selectedBatchQuality(candidates, right)
-		if leftQuality.selectedBackfills != rightQuality.selectedBackfills {
-			return leftQuality.selectedBackfills > rightQuality.selectedBackfills
-		}
 		if leftQuality.proposalCount != rightQuality.proposalCount {
 			return leftQuality.proposalCount > rightQuality.proposalCount
 		}
@@ -296,6 +347,67 @@ func betterSelection(
 		return len(left) > len(right)
 	}
 	return selectionKey(candidates, left) < selectionKey(candidates, right)
+}
+
+func selectedBackfillCount(candidates []proposalCandidate, indexes []int) int {
+	count := 0
+	for _, index := range indexes {
+		if candidates[index].kind == domain.ProposalBackfill {
+			count++
+		}
+	}
+	return count
+}
+
+func selectedPriorityQuality(candidates []proposalCandidate, indexes []int) (int64, int) {
+	oldest, count := int64(0), 0
+	for _, index := range indexes {
+		count += len(candidates[index].priorityDemands)
+		oldest = max(oldest, oldestPriorityDemand(candidates[index]))
+	}
+	return oldest, count
+}
+
+// comparePriorityDemands returns a negative value when left serves the oldest
+// priority demand. Equal oldest waits prefer serving more priority demand.
+func comparePriorityDemands(left, right []priorityDemand) int {
+	leftOldest, rightOldest := int64(0), int64(0)
+	if len(left) > 0 {
+		leftOldest = left[0].waitMillis
+	}
+	if len(right) > 0 {
+		rightOldest = right[0].waitMillis
+	}
+	if result := cmp.Compare(rightOldest, leftOldest); result != 0 {
+		return result
+	}
+	return cmp.Compare(len(right), len(left))
+}
+
+func oldestPriorityDemand(candidate proposalCandidate) int64 {
+	if len(candidate.priorityDemands) == 0 {
+		return 0
+	}
+	return candidate.priorityDemands[0].waitMillis
+}
+
+func comparePriorityDemand(left, right priorityDemand) int {
+	if result := cmp.Compare(right.waitMillis, left.waitMillis); result != 0 {
+		return result
+	}
+	return cmp.Compare(left.key, right.key)
+}
+
+func priorityDemandEvidence(candidates []proposalCandidate) (int, int64) {
+	demands := make(map[string]int64)
+	oldest := int64(0)
+	for _, candidate := range candidates {
+		for _, demand := range candidate.priorityDemands {
+			demands[demand.key] = max(demands[demand.key], demand.waitMillis)
+			oldest = max(oldest, demand.waitMillis)
+		}
+	}
+	return len(demands), oldest
 }
 
 type selectedQuality struct {

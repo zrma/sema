@@ -67,6 +67,16 @@ func TestCompareSwitchesFromQualityToWait(t *testing.T) {
 	}
 }
 
+func TestTicketWaitPriorityUsesEachDemandAge(t *testing.T) {
+	policy := referencePolicy(false)
+	if priority, wait := objective.TicketWaitPriority(fixtureNow, fixtureNow.Add(-29*time.Second), policy); priority || wait != 29_000 {
+		t.Fatalf("short demand priority=%t wait=%d; want false, 29000", priority, wait)
+	}
+	if priority, wait := objective.TicketWaitPriority(fixtureNow, fixtureNow.Add(-30*time.Second), policy); !priority || wait != 30_000 {
+		t.Fatalf("aged demand priority=%t wait=%d; want true, 30000", priority, wait)
+	}
+}
+
 func referencePolicy(hardRole bool) domain.MatchmakingPolicy {
 	return domain.MatchmakingPolicy{
 		Version:          "objective-v1",

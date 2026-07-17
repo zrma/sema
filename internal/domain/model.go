@@ -123,6 +123,10 @@ type BatchScoreEvidence struct {
 	CandidateProposals           int
 	SelectedProposals            int
 	SelectedBackfills            int
+	WaitPriorityEligibleDemands  int
+	WaitPrioritySelectedDemands  int
+	OldestWaitPriorityMillis     int64
+	OldestSelectedPriorityMillis int64
 	TotalUtility                 int64
 	CandidateGenerationNodes     int
 	CandidateGenerationTruncated bool

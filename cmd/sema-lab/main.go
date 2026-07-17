@@ -158,10 +158,14 @@ func writeTextReport(writer io.Writer, report lab.Report, details bool) error {
 		}
 		if _, err := fmt.Fprintf(
 			writer,
-			"  batch candidates=%d selected=%d backfills=%d utility=%d generation_nodes=%d selection_nodes=%d generation_truncated=%t selection_truncated=%t\n",
+			"  batch candidates=%d selected=%d backfills=%d priority=%d/%d oldest_priority_ms=%d oldest_selected_ms=%d utility=%d generation_nodes=%d selection_nodes=%d generation_truncated=%t selection_truncated=%t\n",
 			outcome.Batch.CandidateProposals,
 			outcome.Batch.SelectedProposals,
 			outcome.Batch.SelectedBackfills,
+			outcome.Batch.WaitPrioritySelectedDemands,
+			outcome.Batch.WaitPriorityEligibleDemands,
+			outcome.Batch.OldestWaitPriorityMillis,
+			outcome.Batch.OldestSelectedPriorityMillis,
 			outcome.Batch.TotalUtility,
 			outcome.Batch.CandidateGenerationNodes,
 			outcome.Batch.SelectionNodes,

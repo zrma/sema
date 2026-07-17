@@ -4,6 +4,7 @@ package objective
 import (
 	"cmp"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/zrma/sema/internal/constraint"
@@ -12,9 +13,10 @@ import (
 
 // Evaluation contains an admissibility decision and its replayable evidence.
 type Evaluation struct {
-	Admissible    bool
-	HardViolation bool
-	Evidence      domain.ScoreEvidence
+	Admissible         bool
+	HardViolation      bool
+	PriorityWaitMillis []int64
+	Evidence           domain.ScoreEvidence
 }
 
 // Evaluate calculates hard violations, active relaxation, and soft evidence.
@@ -31,6 +33,9 @@ func Evaluate(
 	}
 	minimumAverage, maximumAverage := 0, 0
 	hasAverage := false
+	hasWaitPriority := slices.ContainsFunc(policy.RelaxationSteps, func(step domain.RelaxationStep) bool {
+		return step.PrioritizeWait
+	})
 
 	for team, tickets := range teams {
 		if roleCounts != nil {
@@ -38,7 +43,12 @@ func Evaluate(
 		}
 		teamSkill, teamPlayers := 0, 0
 		for _, ticket := range tickets {
-			waitMillis := now.Sub(ticket.EnqueuedAt).Milliseconds()
+			waitMillis := max(int64(0), now.Sub(ticket.EnqueuedAt).Milliseconds())
+			if hasWaitPriority {
+				if priority, _ := TicketWaitPriority(now, ticket.EnqueuedAt, policy); priority {
+					evaluation.PriorityWaitMillis = append(evaluation.PriorityWaitMillis, waitMillis)
+				}
+			}
 			if waitMillis > evaluation.Evidence.OldestWaitMillis {
 				evaluation.Evidence.OldestWaitMillis = waitMillis
 			}
@@ -82,6 +92,9 @@ func Evaluate(
 			}
 		}
 	}
+	slices.SortFunc(evaluation.PriorityWaitMillis, func(left, right int64) int {
+		return cmp.Compare(right, left)
+	})
 
 	level, step := activeStep(policy.RelaxationSteps, time.Duration(evaluation.Evidence.OldestWaitMillis)*time.Millisecond)
 	evaluation.Evidence.RelaxationLevel = level
@@ -90,6 +103,14 @@ func Evaluate(
 		evaluation.Admissible = false
 	}
 	return evaluation
+}
+
+// TicketWaitPriority reports whether one demand has reached a policy step that
+// gives service age precedence over quality, together with its non-negative wait.
+func TicketWaitPriority(now, enqueuedAt time.Time, policy domain.MatchmakingPolicy) (bool, int64) {
+	waitMillis := max(int64(0), now.Sub(enqueuedAt).Milliseconds())
+	_, step := activeStep(policy.RelaxationSteps, time.Duration(waitMillis)*time.Millisecond)
+	return step.PrioritizeWait, waitMillis
 }
 
 // Compare returns a negative value when left is preferred over right.

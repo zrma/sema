@@ -212,9 +212,9 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 
 ## P25: Queue Fairness And Starvation
 
-- [ ] feasible demand age/service invariant
-- [ ] sustained-arrival starvation diagnostic와 bounded wait evidence
-- [ ] relaxation, candidate window와 batch ordering의 age contract 정렬
+- [x] feasible demand age/service invariant
+- [x] sustained-arrival starvation diagnostic와 bounded wait evidence
+- [x] relaxation, candidate window와 batch ordering의 age contract 정렬
 
 ## P26: Backfill Quality Context
 

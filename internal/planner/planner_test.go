@@ -478,6 +478,91 @@ func TestPlanCandidateWindowPrioritizesOldestTicketsAndExposesQualityGap(t *test
 	}
 }
 
+func TestPlanBoundsWaitPriorityUnderSustainedArrivals(t *testing.T) {
+	configured := policy(2, 1)
+	configured.MaxProposals = 1
+	configured.MaxCandidateTickets = 4
+	configured.MaxCandidatesPerProposal = 64
+	configured.MaxBatchCandidates = 256
+	configured.RelaxationSteps = []domain.RelaxationStep{
+		{AfterWait: 0, MaxTeamSkillGap: 0},
+		{AfterWait: 30 * time.Second, MaxTeamSkillGap: 1_000, PrioritizeWait: true},
+	}
+	startedAt := fixtureNow
+	queue := []domain.MatchTicket{
+		fairnessTicket("old-low", 0, startedAt),
+		fairnessTicket("old-high", 1_000, startedAt),
+	}
+
+	for cycle := 0; cycle <= 3; cycle++ {
+		now := startedAt.Add(time.Duration(cycle) * 10 * time.Second)
+		queue = append(queue,
+			fairnessTicket(domain.TicketID(fmt.Sprintf("fresh-%d-a", cycle)), 500, now),
+			fairnessTicket(domain.TicketID(fmt.Sprintf("fresh-%d-b", cycle)), 500, now),
+		)
+		batch, err := planner.Plan(domain.MatchmakingSnapshot{
+			ID: domain.SnapshotID(fmt.Sprintf("fairness-cycle-%d", cycle)), Now: now,
+			MatchTickets: queue, Policy: configured,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(batch.Proposals) != 1 {
+			t.Fatalf("cycle %d proposals = %#v; want one", cycle, batch.Proposals)
+		}
+		proposal := batch.Proposals[0]
+		if cycle < 3 {
+			if proposalHasTickets(proposal, "old-low") || proposalHasTickets(proposal, "old-high") {
+				t.Fatalf("cycle %d served old demand before its policy threshold: %#v", cycle, proposal)
+			}
+			if batch.Evidence.WaitPriorityEligibleDemands != 0 || batch.Evidence.WaitPrioritySelectedDemands != 0 {
+				t.Fatalf("cycle %d priority evidence = %#v; want no eligible priority demand", cycle, batch.Evidence)
+			}
+		} else {
+			if !proposalHasTickets(proposal, "old-low", "old-high") {
+				t.Fatalf("priority proposal = %#v; sustained fresh arrivals starved the old pair", proposal)
+			}
+			if batch.Evidence.WaitPriorityEligibleDemands != 2 || batch.Evidence.WaitPrioritySelectedDemands != 2 ||
+				batch.Evidence.OldestWaitPriorityMillis != 30_000 || batch.Evidence.OldestSelectedPriorityMillis != 30_000 {
+				t.Fatalf("priority evidence = %#v; want both 30s demands served", batch.Evidence)
+			}
+		}
+		queue = removeProposedTickets(queue, proposal)
+	}
+}
+
+func TestPlanUsesBackfillDemandAgeForPriorityEvidence(t *testing.T) {
+	configured := policy(2, 1)
+	configured.MaxProposals = 1
+	configured.RelaxationSteps = []domain.RelaxationStep{
+		{AfterWait: 0, MaxTeamSkillGap: 0},
+		{AfterWait: 30 * time.Second, MaxTeamSkillGap: 1_000, PrioritizeWait: true},
+	}
+	snapshot := domain.MatchmakingSnapshot{
+		ID: "aged-backfill", Now: fixtureNow, Policy: configured,
+		MatchTickets: []domain.MatchTicket{
+			fairnessTicket("fresh-a", 500, fixtureNow),
+			fairnessTicket("fresh-b", 500, fixtureNow),
+		},
+		BackfillTickets: []domain.BackfillTicket{{
+			ID: "backfill", Revision: 1, SessionID: "session", RosterVersion: 1,
+			OpenSlotsByTeam: []int{1, 1}, EnqueuedAt: fixtureNow.Add(-time.Minute),
+		}},
+	}
+	batch, err := planner.Plan(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 1 || batch.Proposals[0].Kind != domain.ProposalBackfill ||
+		!batch.Proposals[0].Evidence.WaitPriority || batch.Proposals[0].Evidence.OldestWaitMillis != 60_000 {
+		t.Fatalf("backfill proposal = %#v; want aged wait-priority evidence", batch.Proposals)
+	}
+	if batch.Evidence.WaitPriorityEligibleDemands != 1 || batch.Evidence.WaitPrioritySelectedDemands != 1 ||
+		batch.Evidence.OldestWaitPriorityMillis != 60_000 || batch.Evidence.OldestSelectedPriorityMillis != 60_000 {
+		t.Fatalf("backfill priority evidence = %#v", batch.Evidence)
+	}
+}
+
 func TestPlanCandidateWindowSkipsPartiesThatCannotFitBackfill(t *testing.T) {
 	configured := policy(2, 2)
 	configured.MaxProposals = 1
@@ -683,6 +768,29 @@ func proposalHasTickets(proposal domain.MatchProposal, ids ...domain.TicketID) b
 		}
 	}
 	return true
+}
+
+func fairnessTicket(id domain.TicketID, skill int, enqueuedAt time.Time) domain.MatchTicket {
+	return domain.MatchTicket{
+		ID: id, Revision: 1, EnqueuedAt: enqueuedAt,
+		Players: []domain.Player{{
+			ID: "player-" + domain.PlayerID(id), Skill: skill, LatencyMillis: 20,
+		}},
+	}
+}
+
+func removeProposedTickets(tickets []domain.MatchTicket, proposal domain.MatchProposal) []domain.MatchTicket {
+	selected := make(map[domain.TicketID]struct{}, len(proposal.Tickets))
+	for _, ticket := range proposal.Tickets {
+		selected[ticket.ID] = struct{}{}
+	}
+	remaining := make([]domain.MatchTicket, 0, len(tickets)-len(selected))
+	for _, ticket := range tickets {
+		if _, ok := selected[ticket.ID]; !ok {
+			remaining = append(remaining, ticket)
+		}
+	}
+	return remaining
 }
 
 func assertAllUnmatchedReason(t *testing.T, batch domain.ProposalBatch, reason domain.UnmatchedReason) {

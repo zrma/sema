@@ -32,6 +32,7 @@ flowchart LR
 
 - 초기 대기 구간은 skill balance와 role composition 품질을 우선한다.
 - 대기 시간이 늘어나면 wait time의 가중치를 올리고 skill/role 허용 범위를 단계적으로 넓힌다.
+- `PrioritizeWait` 단계에 들어간 feasible demand는 backfill priority tier 안에서 oldest-first service ordering을 적용해 새 demand에 영구히 밀리지 않게 한다.
 - 확장된 후보 안에서는 network latency가 낮은 조합을 우선하며 absolute cap을 넘는 후보는 항상 제외한다.
 - party integrity와 session capacity는 완화하지 않는 hard constraint다.
 
@@ -41,7 +42,7 @@ flowchart LR
 - 초기 discovery는 canonical queue의 oldest fitting ticket prefix를 선택하며 opt-in window truncation을 policy identity와 proposal evidence에 남긴다.
 - `constraints`는 위반 시 후보를 제거하는 boolean contract를 제공한다.
 - `scoring`은 유효 후보를 비교할 objective vector와 explanation을 제공한다.
-- `optimizer`는 admissible candidate graph에서 mutually disjoint proposal set을 선택한다. 일반 bounded path는 backfill 수와 총 rank utility를 최적화하고, candidate budget을 생략한 small-queue path는 같은 coverage tier에서 wait/role/skill/latency Pareto dominance로 dominated rank-sum 결과를 repair한다. `MaxProposals`는 상한이다.
+- `optimizer`는 admissible candidate graph에서 mutually disjoint proposal set을 선택한다. backfill 수, oldest wait-priority service를 먼저 보존한 뒤 일반 bounded path는 총 rank utility를 최적화하고, candidate budget을 생략한 small-queue path는 같은 coverage tier에서 wait/role/skill/latency Pareto dominance로 dominated rank-sum 결과를 repair한다. `MaxProposals`는 상한이다.
 - `policy catalog`는 process lifetime에서 version을 하나의 canonical fingerprint와 defensive rule copy에 묶는다.
 - `simulation`은 immutable scenario corpus에서 여러 registered policy를 planner로만 평가하고 canonical report를 만든다.
 - `coordinator`만 reservation과 assignment 상태를 변경하고 revision을 compare-and-swap으로 검증한다.

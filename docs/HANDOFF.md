@@ -17,7 +17,7 @@
 - 한 cycle은 서로 ticket이 겹치지 않는 여러 match를 `ProposalBatch`로 반환한다.
 - 대표 workload는 2:2부터 50:50까지의 team match와 총원 100명의 duo/squad battle royale이다.
 - `internal/domain`, `internal/planner`, `internal/coordinator`에 P0 Go vertical slice가 구현되어 있다.
-- planner는 greedy cover와 anchored search로 admissible candidate graph를 만들고 backfill-first weighted set-packing으로 deterministic disjoint batch의 total rank utility를 최적화한다. coordinator는 revision CAS와 fixed-TTL reservation/assignment를 소유한다.
+- planner는 greedy cover와 anchored search로 admissible candidate graph를 만들고 backfill-first, oldest wait-priority service, quality ordering으로 deterministic disjoint batch를 선택한다. coordinator는 revision CAS와 fixed-TTL reservation/assignment를 소유한다.
 - role/skill quality는 versioned wait relaxation에 따라 best-known candidate를 비교하며 unmatched ticket에는 stable reason이 남는다.
 - assignment는 외부 consumer의 complete/cancel/fail acknowledgment와 backfill roster CAS evidence를 idempotent하게 기록한다.
 - `internal/engine`이 ingestion부터 terminal assignment까지 transport-neutral application boundary를 제공한다.
@@ -31,6 +31,7 @@
 - P6 evaluation이 seeded synthetic snapshot, coverage basis points, oldest unmatched wait와 12-ticket exhaustive new-match oracle를 제공한다.
 - P23 evaluation이 12 match ticket/2 backfill/2 team 이하의 모든 admissible disjoint batch를 열거해 planner의 coverage/wait/per-match quality Pareto relation과 dominating witness를 제공한다.
 - P24 planner가 candidate budget을 명시하지 않은 같은 small boundary에서 ticket-set alternatives와 Pareto subset repair를 사용하며 128-seed differential corpus가 모두 frontier equivalent임을 검증한다.
+- P25 planner가 각 match/backfill demand의 priority age를 계산하고 backfill tier 안에서 oldest eligible wait를 rank utility보다 먼저 service한다. sustained fresh-arrival fixture는 configured 30초 경계에서 오래된 pair와 priority evidence를 고정한다.
 - P7 discovery가 versioned oldest-fitting ticket window, 10K correctness, 10K/100K manual benchmark와 fuzz invariant를 제공한다.
 - public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
 - `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
@@ -63,13 +64,13 @@
 - selector cardinality가 하나이면 anchored batch alternative를 생략하는 P20 fast path가 50v50, 100K queue와 engine 1,000-ticket을 기존 reference performance budget 안에 유지한다. multi-proposal 또는 backfill 경쟁 경로는 P18 candidate graph를 유지한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
-- `alpha` 외 Go package는 `internal/`에 유지한다. public Go marker는 P24 small-queue objective migration을 반영한 `v0alpha3`이며 stable API와 wire compatibility는 아직 제공하지 않는다.
+- `alpha` 외 Go package는 `internal/`에 유지한다. public Go marker는 P25 queue-fairness objective migration을 반영한 `v0alpha4`이며 stable API와 wire compatibility는 아직 제공하지 않는다.
 - numeric SLO, skill metric, role schema와 multi-replica persistence는 아직 결정하지 않았다.
 - publication class는 `public`이며 push 전 repository gate와 machine-local inventory gate를 모두 통과한다.
 
 ## Current Work
 
-P0 foundation부터 P24 small-queue Pareto planning까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 matcher milestone은 P25 queue fairness/starvation contract이며 P26 roster-aware backfill, P27 indexed discovery, P28 matcher V0 exit가 뒤따른다. 그 다음 기존 journal/HTTP prototype을 persistence/API 제품 경계로 재설계하는 service milestone을 시작한다. traffic calibration 없는 frontier는 production quality 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P25 queue fairness/starvation까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 matcher milestone은 P26 roster-aware backfill이며 P27 indexed discovery, P28 matcher V0 exit가 뒤따른다. 그 다음 기존 journal/HTTP prototype을 persistence/API 제품 경계로 재설계하는 service milestone을 시작한다. traffic calibration 없는 frontier와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

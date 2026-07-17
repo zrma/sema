@@ -11,9 +11,9 @@ import (
 
 var fixtureNow = time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 
-func TestAPIVersionMarksSmallQueueSelectionMigration(t *testing.T) {
-	if alpha.APIVersion != "v0alpha3" {
-		t.Fatalf("APIVersion = %q; want v0alpha3", alpha.APIVersion)
+func TestAPIVersionMarksQueueFairnessMigration(t *testing.T) {
+	if alpha.APIVersion != "v0alpha4" {
+		t.Fatalf("APIVersion = %q; want v0alpha4", alpha.APIVersion)
 	}
 }
 

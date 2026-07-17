@@ -109,6 +109,10 @@ func fromDomainBatchEvidence(evidence domain.BatchScoreEvidence) BatchScoreEvide
 	return BatchScoreEvidence{
 		CandidateProposals: evidence.CandidateProposals, SelectedProposals: evidence.SelectedProposals,
 		SelectedBackfills: evidence.SelectedBackfills, TotalUtility: evidence.TotalUtility,
+		WaitPriorityEligibleDemands:  evidence.WaitPriorityEligibleDemands,
+		WaitPrioritySelectedDemands:  evidence.WaitPrioritySelectedDemands,
+		OldestWaitPriorityMillis:     evidence.OldestWaitPriorityMillis,
+		OldestSelectedPriorityMillis: evidence.OldestSelectedPriorityMillis,
 		CandidateGenerationNodes:     evidence.CandidateGenerationNodes,
 		CandidateGenerationTruncated: evidence.CandidateGenerationTruncated,
 		SelectionNodes:               evidence.SelectionNodes, SelectionTruncated: evidence.SelectionTruncated,

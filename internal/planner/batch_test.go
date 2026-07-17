@@ -102,6 +102,25 @@ func TestParetoSelectionRepairsDominatedRankSum(t *testing.T) {
 	}
 }
 
+func TestSelectionServesOldestPriorityDemandBeforeRankSum(t *testing.T) {
+	aged := candidateFixture("aged", 60, "old", "bridge-left", "bridge-right")
+	aged.priorityDemands = []priorityDemand{{key: "match:old", waitMillis: 60_000}}
+	companion := candidateFixture("companion", 1, "reserve-left", "reserve-right")
+	freshLeft := candidateFixture("fresh-left", 100, "bridge-left", "reserve-left")
+	freshRight := candidateFixture("fresh-right", 100, "bridge-right", "reserve-right")
+
+	selection := selectProposalBatch(
+		[]proposalCandidate{aged, companion, freshLeft, freshRight},
+		2,
+		1_000,
+		false,
+	)
+	if selection.truncated || len(selection.candidates) != 2 || selection.totalUtility != 61 ||
+		selection.candidates[0].key != "aged" || selection.candidates[1].key != "companion" {
+		t.Fatalf("selection = %#v; want aged + companion before higher fresh rank sum", selection)
+	}
+}
+
 func TestSelectProposalBatchMatchesExhaustiveOracle(t *testing.T) {
 	candidates := []proposalCandidate{
 		candidateFixture("a", 9, "a", "b"),

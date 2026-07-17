@@ -190,3 +190,7 @@ pinned Linux builder/runtime image를 2 CPU/2 GiB로 제한한다. planner 50v50
 ## S33: Default Small-Queue Pareto Planning
 
 candidate limit을 명시하지 않은 12-ticket/2-backfill/2-team 이하 queue는 서로 다른 ticket-set alternative를 expanded candidate graph에 보존한다. weighted party/skill/role/latency/wait와 even-seed backfill을 포함하는 seed 1..128 corpus에서 planner는 모든 exhaustive batch frontier와 `frontier_equivalent`이고 generation/selection truncation이 없어야 한다. direct selector fixture는 utility 200의 gap 0/100 batch보다 utility 160의 gap 10/10 batch를 선택해 rank 합만 높은 dominated batch를 repair한다. explicit one-candidate fixture와 large/single-select path는 기존 bounded evidence와 performance를 유지한다.
+
+## S34: Sustained-Arrival Queue Fairness
+
+skill 0/1000의 오래된 1:1 pair를 queue에 유지하고 매 10초마다 skill 500/500 fresh pair를 추가한다. policy는 30초 전까지 gap 0만 허용하고 그 뒤 gap 1000과 `PrioritizeWait`를 활성화한다. cycle 0/10/20초에는 fresh pair가 선택되지만 30초 cycle에는 오래된 pair가 선택되고 batch evidence는 wait-priority eligible/selected demand 2개와 oldest 30000ms를 기록한다. direct selector는 같은 proposal 수에서 더 높은 fresh rank-sum보다 oldest priority demand를 포함한 batch를 선택한다. explicit truncation이 있으면 bounded service 보장이 아니라 search evidence로 분류한다.

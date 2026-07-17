@@ -104,6 +104,10 @@ type BatchScoreEvidence struct {
 	CandidateProposals           int   `json:"candidate_proposals"`
 	SelectedProposals            int   `json:"selected_proposals"`
 	SelectedBackfills            int   `json:"selected_backfills"`
+	WaitPriorityEligibleDemands  int   `json:"wait_priority_eligible_demands"`
+	WaitPrioritySelectedDemands  int   `json:"wait_priority_selected_demands"`
+	OldestWaitPriorityMillis     int64 `json:"oldest_wait_priority_millis"`
+	OldestSelectedPriorityMillis int64 `json:"oldest_selected_priority_millis"`
 	TotalUtility                 int64 `json:"total_utility"`
 	CandidateGenerationNodes     int   `json:"candidate_generation_nodes"`
 	CandidateGenerationTruncated bool  `json:"candidate_generation_truncated"`
