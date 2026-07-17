@@ -53,3 +53,4 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - Flow measurement는 `docs/sema-flow-measurement.md`의 player-weighted wait, time-weighted saturation과 fixed-point throughput 계약을 따르며 제품 SLA로 해석하지 않는다.
 - Flow simulation event frame은 logical time을 소유하지 않는다. `docs/todo-0025-discrete-event-scheduler/spec.md`의 due ingress, stable timestamp ordering과 horizon backlog 계약을 유지한다.
 - Flow capacity 비교는 `docs/sema-flow-capacity-matrix.md`의 동일-demand gate와 min/median/max contract를 지키며 product target 없이 profile 권장이나 production capacity를 선언하지 않는다.
+- Sema의 Flow 책임은 assignment confirm까지다. active game 수는 planning eligibility를 제한하지 않으며 frontend-owned game/result/return 흐름을 보여주는 TUI `MATCH LIFECYCLE` 패널은 관찰 surface로 유지한다.

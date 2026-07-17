@@ -48,8 +48,9 @@
 - completed party는 분산 cooldown 뒤 증가한 revision과 새 rating을 가진 동일 ticket으로 실제 HTTP 복귀하고 TUI는 lifecycle population, rating 분포와 최근 result를 표시한다.
 - `cmd/sema-flow-report`가 같은 closed loop를 headless로 실행하고 player-weighted wait, assignment yield, match throughput, time-weighted queue saturation과 proposal quality를 versioned aggregate로 출력한다.
 - Flow scheduler는 presentation frame과 logical clock을 분리하고 due ingress, batch reservation/confirmation, completion과 planning을 deterministic timestamp 순서로 처리한다.
-- `sema.flow.measurement.v0alpha2`가 ingress arrival lag와 horizon backlog를 노출하며 8/16/32 concurrent 10분 fixture는 모두 initial party 600개, lag 0ms, final backlog 0을 유지한다.
-- `cmd/sema-flow-matrix`가 seed 42/73/101과 concurrent/batch 8/2, 16/4, 32/8을 비교하고 throughput, wait, queue와 quality min/median/max를 `sema.flow.capacity-matrix.v0alpha1`로 출력한다.
+- `sema.flow.measurement.v0alpha3`가 ingress arrival lag와 horizon backlog를 노출하며 frontend-owned game-capacity field를 포함하지 않는다.
+- active game 수는 planning eligibility를 제한하지 않는다. Flow는 assignment confirm 이후 game/result/return을 synthetic하게 모사하고 TUI `MATCH LIFECYCLE` 패널에서 계속 보여준다.
+- `cmd/sema-flow-matrix`가 seed 42/73/101과 planning batch 2/4/8을 비교하고 throughput, wait, queue와 quality min/median/max를 `sema.flow.capacity-matrix.v0alpha2`로 출력한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
 - `alpha` 외 Go package는 `internal/`에 유지하며 stable API와 wire compatibility는 아직 제공하지 않는다.
@@ -58,7 +59,7 @@
 
 ## Current Work
 
-P0 foundation부터 P15 multi-seed Flow capacity matrix까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix model은 synthetic reference workload로만 둔다. 다음 simulation milestone은 wait/quality/cost target이나 traffic calibration hypothesis가 생길 때 열며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P16 matchmaker/game-runtime ownership correction까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 simulation milestone은 wait/quality target이나 traffic calibration hypothesis가 생길 때 열며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

@@ -22,7 +22,6 @@ type config struct {
 	interval         time.Duration
 	population       int
 	matchesPerCycle  int
-	concurrent       int
 	gameDuration     time.Duration
 	arrivalInterval  time.Duration
 	planningInterval time.Duration
@@ -54,7 +53,6 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 	flowConfiguration.Seed = configuration.seed
 	flowConfiguration.PopulationSize = configuration.population
 	flowConfiguration.MatchesPerCycle = configuration.matchesPerCycle
-	flowConfiguration.MaxConcurrentMatches = configuration.concurrent
 	flowConfiguration.GameDuration = configuration.gameDuration
 	flowConfiguration.ArrivalInterval = configuration.arrivalInterval
 	flowConfiguration.PlanningInterval = configuration.planningInterval
@@ -116,7 +114,6 @@ func parseConfig(args []string, stderr io.Writer) (config, bool, error) {
 	flags.DurationVar(&configuration.interval, "interval", 220*time.Millisecond, "lifecycle step interval")
 	flags.IntVar(&configuration.population, "population", 1000, "closed player population")
 	flags.IntVar(&configuration.matchesPerCycle, "matches-per-cycle", 2, "5v5 proposals targeted per planning cycle")
-	flags.IntVar(&configuration.concurrent, "concurrent-matches", 8, "maximum reserved or running matches")
 	flags.DurationVar(&configuration.gameDuration, "game-duration", 45*time.Second, "simulated duration of every match")
 	flags.DurationVar(&configuration.arrivalInterval, "arrival-interval", time.Second, "interval between initial party arrivals")
 	flags.DurationVar(&configuration.planningInterval, "planning-interval", 5*time.Second, "minimum interval between planning cycles")
@@ -142,7 +139,6 @@ func parseConfig(args []string, stderr io.Writer) (config, bool, error) {
 	}
 	if configuration.seed < 0 || configuration.interval < 50*time.Millisecond || configuration.interval > 2*time.Second ||
 		configuration.population < 10 || configuration.matchesPerCycle <= 0 || configuration.matchesPerCycle > 8 ||
-		configuration.concurrent < configuration.matchesPerCycle || configuration.concurrent > configuration.population/10 ||
 		configuration.gameDuration <= 0 || configuration.arrivalInterval <= 0 || configuration.planningInterval <= 0 ||
 		configuration.maxReturnDelay < time.Second || configuration.steps <= 0 ||
 		configuration.width < 40 || configuration.height < 18 {

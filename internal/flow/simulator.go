@@ -26,17 +26,16 @@ import (
 )
 
 const (
-	defaultTeamCount            = 2
-	defaultTeamSize             = 5
-	defaultMatchesPerCycle      = 2
-	defaultMaxConcurrentMatches = 8
-	defaultReservationTTL       = 30 * time.Second
-	defaultGameDuration         = 45 * time.Second
-	defaultArrivalInterval      = time.Second
-	defaultPlanningInterval     = 5 * time.Second
-	defaultMaxReturnDelay       = 30 * time.Second
-	defaultTickDuration         = time.Second
-	operationDuration           = time.Second
+	defaultTeamCount        = 2
+	defaultTeamSize         = 5
+	defaultMatchesPerCycle  = 2
+	defaultReservationTTL   = 30 * time.Second
+	defaultGameDuration     = 45 * time.Second
+	defaultArrivalInterval  = time.Second
+	defaultPlanningInterval = 5 * time.Second
+	defaultMaxReturnDelay   = 30 * time.Second
+	defaultTickDuration     = time.Second
+	operationDuration       = time.Second
 )
 
 // EventKind identifies a lifecycle transition rendered by the TUI.
@@ -54,33 +53,31 @@ const (
 
 // Config controls the deterministic embedded workload.
 type Config struct {
-	Seed                 int64
-	Start                time.Time
-	PopulationSize       int
-	MatchesPerCycle      int
-	MaxConcurrentMatches int
-	ReservationTTL       time.Duration
-	GameDuration         time.Duration
-	ArrivalInterval      time.Duration
-	PlanningInterval     time.Duration
-	MaxReturnDelay       time.Duration
-	TickDuration         time.Duration
+	Seed             int64
+	Start            time.Time
+	PopulationSize   int
+	MatchesPerCycle  int
+	ReservationTTL   time.Duration
+	GameDuration     time.Duration
+	ArrivalInterval  time.Duration
+	PlanningInterval time.Duration
+	MaxReturnDelay   time.Duration
+	TickDuration     time.Duration
 }
 
 // DefaultConfig returns the reference 1,000-player 5v5 league configuration.
 func DefaultConfig() Config {
 	return Config{
-		Seed:                 42,
-		Start:                time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
-		PopulationSize:       1000,
-		MatchesPerCycle:      defaultMatchesPerCycle,
-		MaxConcurrentMatches: defaultMaxConcurrentMatches,
-		ReservationTTL:       defaultReservationTTL,
-		GameDuration:         defaultGameDuration,
-		ArrivalInterval:      defaultArrivalInterval,
-		PlanningInterval:     defaultPlanningInterval,
-		MaxReturnDelay:       defaultMaxReturnDelay,
-		TickDuration:         defaultTickDuration,
+		Seed:             42,
+		Start:            time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		PopulationSize:   1000,
+		MatchesPerCycle:  defaultMatchesPerCycle,
+		ReservationTTL:   defaultReservationTTL,
+		GameDuration:     defaultGameDuration,
+		ArrivalInterval:  defaultArrivalInterval,
+		PlanningInterval: defaultPlanningInterval,
+		MaxReturnDelay:   defaultMaxReturnDelay,
+		TickDuration:     defaultTickDuration,
 	}
 }
 
@@ -280,9 +277,6 @@ func normalizeConfig(configuration Config) (Config, error) {
 	if configuration.MatchesPerCycle == 0 {
 		configuration.MatchesPerCycle = defaults.MatchesPerCycle
 	}
-	if configuration.MaxConcurrentMatches == 0 {
-		configuration.MaxConcurrentMatches = defaults.MaxConcurrentMatches
-	}
 	if configuration.ReservationTTL == 0 {
 		configuration.ReservationTTL = defaults.ReservationTTL
 	}
@@ -303,11 +297,10 @@ func normalizeConfig(configuration Config) (Config, error) {
 	}
 	maximumMatches := configuration.PopulationSize / (defaultTeamCount * defaultTeamSize)
 	if configuration.Seed < 0 || configuration.PopulationSize < 10 || configuration.MatchesPerCycle <= 0 ||
-		configuration.MatchesPerCycle > 8 || configuration.MaxConcurrentMatches < configuration.MatchesPerCycle ||
-		configuration.MaxConcurrentMatches > maximumMatches || configuration.ReservationTTL <= 0 ||
+		configuration.MatchesPerCycle > 8 || configuration.MatchesPerCycle > maximumMatches || configuration.ReservationTTL <= 0 ||
 		configuration.GameDuration <= 0 || configuration.ArrivalInterval <= 0 || configuration.PlanningInterval <= 0 ||
 		configuration.MaxReturnDelay < time.Second || configuration.TickDuration <= 0 {
-		return Config{}, fmt.Errorf("flow population, concurrency, timing, or seed configuration is invalid")
+		return Config{}, fmt.Errorf("flow population, batch, timing, or seed configuration is invalid")
 	}
 	return configuration, nil
 }
@@ -620,8 +613,7 @@ func (simulator *Simulator) advanceTime() Event {
 }
 
 func (simulator *Simulator) planningDemandReady() bool {
-	return simulator.configuration.MaxConcurrentMatches-len(simulator.active) >= simulator.configuration.MatchesPerCycle &&
-		simulator.queuedPlayers >= defaultTeamCount*defaultTeamSize*simulator.configuration.MatchesPerCycle
+	return simulator.queuedPlayers >= defaultTeamCount*defaultTeamSize*simulator.configuration.MatchesPerCycle
 }
 
 func (simulator *Simulator) canPlan(now time.Time) bool {

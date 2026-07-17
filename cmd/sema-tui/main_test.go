@@ -22,7 +22,7 @@ func TestRunRendersDeterministicASCIISnapshot(t *testing.T) {
 	code := run(
 		context.Background(),
 		[]string{
-			"-snapshot", "-ascii", "-population", "40", "-concurrent-matches", "4",
+			"-snapshot", "-ascii", "-population", "40",
 			"-game-duration", "20s", "-arrival-interval", "1s", "-planning-interval", "2s",
 			"-max-return-delay", "10s", "-steps", "80", "-width", "110", "-height", "36",
 		},
@@ -46,6 +46,14 @@ func TestRunRejectsUnsafeSnapshotSize(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run(context.Background(), []string{"-snapshot", "-width", "20"}, strings.NewReader(""), &stdout, &stderr)
 	if code != 2 || !strings.Contains(stderr.String(), "outside the supported range") {
+		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
+	}
+}
+
+func TestRunRejectsRemovedConcurrentMatchesFlag(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run(context.Background(), []string{"-snapshot", "-concurrent-matches", "8"}, strings.NewReader(""), &stdout, &stderr)
+	if code != 2 || !strings.Contains(stderr.String(), "flag provided but not defined") {
 		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
 	}
 }

@@ -103,6 +103,7 @@ for required_file in \
   docs/todo-0024-flow-measurement/spec.md \
   docs/todo-0025-discrete-event-scheduler/spec.md \
   docs/todo-0026-capacity-matrix/spec.md \
+  docs/todo-0027-unbounded-game-simulation/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \
@@ -186,10 +187,10 @@ go run ./cmd/sema-healthcheck -version >/dev/null
 go run ./cmd/sema-benchmark-gate -version >/dev/null
 go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null
 go run ./cmd/sema-tui -version >/dev/null
-go run ./cmd/sema-tui -snapshot -population 40 -concurrent-matches 4 -game-duration 20s -steps 80 -width 100 -height 32 >/dev/null
+go run ./cmd/sema-tui -snapshot -population 40 -game-duration 20s -steps 80 -width 100 -height 32 >/dev/null
 go run ./cmd/sema-flow-report -version >/dev/null
-go run ./cmd/sema-flow-report -duration 60s -population 40 -concurrent-matches 4 -game-duration 20s -max-return-delay 10s -format json >/dev/null
-go run ./cmd/sema-flow-matrix -duration 3s -population 40 -seeds 42,43 -profiles 2:2,4:2 -parallel 2 -game-duration 20s -arrival-interval 100ms -planning-interval 1s -max-return-delay 10s -format json >/dev/null
+go run ./cmd/sema-flow-report -duration 60s -population 40 -game-duration 20s -max-return-delay 10s -format json >/dev/null
+go run ./cmd/sema-flow-matrix -duration 3s -population 40 -seeds 42,43 -batches 1,2 -parallel 2 -game-duration 20s -arrival-interval 100ms -planning-interval 1s -max-return-delay 10s -format json >/dev/null
 scripts/check-release-build.sh
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x
 go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x

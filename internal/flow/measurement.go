@@ -10,7 +10,7 @@ import (
 	"github.com/zrma/sema/internal/league"
 )
 
-const MeasurementSchemaVersion = "sema.flow.measurement.v0alpha2"
+const MeasurementSchemaVersion = "sema.flow.measurement.v0alpha3"
 
 // MeasurementReport is a deterministic aggregate of one bounded Flow run.
 type MeasurementReport struct {
@@ -35,7 +35,6 @@ type MeasurementReport struct {
 
 type MeasurementConfiguration struct {
 	MatchesPerCycle        int   `json:"matches_per_cycle"`
-	MaxConcurrentMatches   int   `json:"max_concurrent_matches"`
 	ReservationTTLMillis   int64 `json:"reservation_ttl_millis"`
 	GameDurationMillis     int64 `json:"game_duration_millis"`
 	ArrivalIntervalMillis  int64 `json:"arrival_interval_millis"`
@@ -322,7 +321,6 @@ func (recorder *measurementRecorder) report() MeasurementReport {
 		PopulationPlayers: recorder.configuration.PopulationSize,
 		Configuration: MeasurementConfiguration{
 			MatchesPerCycle:        recorder.configuration.MatchesPerCycle,
-			MaxConcurrentMatches:   recorder.configuration.MaxConcurrentMatches,
 			ReservationTTLMillis:   recorder.configuration.ReservationTTL.Milliseconds(),
 			GameDurationMillis:     recorder.configuration.GameDuration.Milliseconds(),
 			ArrivalIntervalMillis:  recorder.configuration.ArrivalInterval.Milliseconds(),

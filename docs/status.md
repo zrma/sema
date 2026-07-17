@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P15 multi-seed Flow capacity matrix까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P16 matchmaker/game-runtime ownership correction까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -64,9 +64,10 @@ P0부터 P15 multi-seed Flow capacity matrix까지 완료되었다. source/servi
 - versioned deterministic text/JSON aggregate, proposal skill-gap/latency distribution과 final visible-rating summary.
 - due arrival을 presentation step과 분리해 예약된 server-clock 시각에 처리하는 measurement-safe Flow clock.
 - arrival, reservation/confirmation stage, game completion과 planning eligibility 중 가장 이른 logical timestamp로만 전진하는 deterministic Flow scheduler.
-- future cooldown과 due ingress backlog를 분리하고 arrival lag와 horizon backlog를 노출하는 `sema.flow.measurement.v0alpha2`.
-- 같은 10분 horizon의 8/16/32 concurrent fixture에서 initial party 600개, maximum arrival lag 0ms와 final ingress backlog 0을 확인한 demand-comparability gate.
-- seed 42/73/101과 8/2, 16/4, 32/8 concurrent/batch profile을 독립 실행하고 min/median/max를 집계하는 `sema.flow.capacity-matrix.v0alpha1`.
+- future cooldown과 due ingress backlog를 분리하고 arrival lag와 horizon backlog를 노출하며 game-capacity field를 제거한 `sema.flow.measurement.v0alpha3`.
+- active game 수와 game duration을 planning eligibility에서 분리하고 assignment confirm 이후 game/result/return simulation을 frontend-owned read model로 둔 Flow ownership contract.
+- active game이 과거 8-game cap을 넘겨도 planning이 계속되는 regression과 lifecycle/result/return 연출을 유지하는 TUI `MATCH LIFECYCLE` 패널.
+- seed 42/73/101과 batch 2/4/8 profile을 독립 실행하고 min/median/max를 집계하는 `sema.flow.capacity-matrix.v0alpha2`.
 - profile 순서와 wall-clock parallelism에 영향받지 않는 deterministic matrix, cross-profile demand comparability와 reduced real-Flow smoke.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
@@ -88,7 +89,7 @@ P0부터 P15 multi-seed Flow capacity matrix까지 완료되었다. source/servi
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 - stable release 자체; 현재 `stable_admitted: false`다.
 - production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
-- target wait/quality/cost에 기반한 automatic capacity profile admission.
+- target wait/quality에 기반한 automatic planning-batch admission.
 
 ## Risks And Decisions Pending
 
@@ -100,4 +101,4 @@ P0부터 P15 multi-seed Flow capacity matrix까지 완료되었다. source/servi
 
 ## Next Slice
 
-P15 repository-owned 목표는 완료되었다. 다음 simulation slice는 wait/quality/cost target 중 최소 하나가 생기면 profile admission rule과 frontier를 정의하고, 실제 접속률 calibration/영구 churn, uncertainty 또는 party 재편은 비교할 hypothesis가 생길 때 연다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow matrix를 production capacity나 wait SLA로, Flow demo를 production scheduler나 production MMR로 승격하지 않는다.
+P16 repository-owned 목표는 완료되었다. 다음 simulation slice는 wait/quality target 중 최소 하나가 생기면 planning-batch admission rule과 frontier를 정의하고, 실제 접속률 calibration/영구 churn, uncertainty 또는 party 재편은 비교할 hypothesis가 생길 때 연다. frontend game-runtime capacity와 allocation backpressure는 Sema planning profile에 다시 섞지 않는다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow matrix를 production capacity나 wait SLA로, Flow demo를 production scheduler나 production MMR로 승격하지 않는다.

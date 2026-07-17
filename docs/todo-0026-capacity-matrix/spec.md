@@ -1,6 +1,8 @@
 # P15 Multi-Seed Capacity Matrix Spec
 
-- Status: Completed
+- Status: Superseded by P16
+
+이 milestone은 실행 framework와 동일-demand comparability를 확립했지만 frontend가 소유하는 concurrent game capacity와 Sema가 소유하는 planning batch를 같은 profile에 섞었다. historical completion evidence는 보존하되 현재 profile 계약과 reference result는 `docs/todo-0027-unbounded-game-simulation/spec.md`가 대체한다.
 
 ## Objective
 

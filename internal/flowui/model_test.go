@@ -146,7 +146,6 @@ func openSimulator(t *testing.T) *flow.Simulator {
 	t.Helper()
 	configuration := flow.DefaultConfig()
 	configuration.PopulationSize = 40
-	configuration.MaxConcurrentMatches = 2
 	configuration.GameDuration = 20 * time.Second
 	configuration.ArrivalInterval = time.Second
 	configuration.PlanningInterval = 2 * time.Second

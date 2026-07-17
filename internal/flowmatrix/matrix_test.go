@@ -15,7 +15,7 @@ import (
 func TestRunIsDeterministicAcrossWorkerParallelism(t *testing.T) {
 	configuration := DefaultConfig()
 	configuration.Seeds = []int64{3, 1, 2}
-	configuration.Profiles = []Profile{{MaxConcurrentMatches: 4, MatchesPerCycle: 2}, {MaxConcurrentMatches: 2, MatchesPerCycle: 1}}
+	configuration.Profiles = []Profile{{MatchesPerCycle: 2}, {MatchesPerCycle: 1}}
 	configuration.Duration = time.Minute
 	configuration.Parallelism = 1
 	first, err := run(context.Background(), configuration, deterministicMeasurement)
@@ -41,10 +41,10 @@ func TestRunIsDeterministicAcrossWorkerParallelism(t *testing.T) {
 	if string(firstJSON) != string(secondJSON) {
 		t.Fatalf("parallel JSON differs:\nfirst=%s\nsecond=%s", firstJSON, secondJSON)
 	}
-	if !reflect.DeepEqual(first.Seeds, []int64{1, 2, 3}) || first.Profiles[0].Name != "c2-b1" || first.Profiles[1].Name != "c4-b2" {
+	if !reflect.DeepEqual(first.Seeds, []int64{1, 2, 3}) || first.Profiles[0].Name != "b1" || first.Profiles[1].Name != "b2" {
 		t.Fatalf("canonical order = %#v", first)
 	}
-	if first.Profiles[0].AssignmentYieldBasisPoints != (Summary{Minimum: 102, Median: 202, Maximum: 302}) {
+	if first.Profiles[0].AssignmentYieldBasisPoints != (Summary{Minimum: 101, Median: 201, Maximum: 301}) {
 		t.Fatalf("aggregate = %#v", first.Profiles[0])
 	}
 	if !first.DemandComparable {
@@ -55,11 +55,11 @@ func TestRunIsDeterministicAcrossWorkerParallelism(t *testing.T) {
 func TestRunPreservesDemandMismatch(t *testing.T) {
 	configuration := DefaultConfig()
 	configuration.Seeds = []int64{42}
-	configuration.Profiles = []Profile{{MaxConcurrentMatches: 2, MatchesPerCycle: 1}, {MaxConcurrentMatches: 4, MatchesPerCycle: 2}}
+	configuration.Profiles = []Profile{{MatchesPerCycle: 1}, {MatchesPerCycle: 4}}
 	configuration.Parallelism = 2
 	report, err := run(context.Background(), configuration, func(ctx context.Context, configuration flow.Config, duration time.Duration) (flow.MeasurementReport, error) {
 		report, err := deterministicMeasurement(ctx, configuration, duration)
-		if configuration.MaxConcurrentMatches == 4 {
+		if configuration.MatchesPerCycle == 4 {
 			report.QueueEntries.InitialTickets--
 			report.Ingress.MaxArrivalLagMillis = 1
 			report.Ingress.FinalBacklogPlayers = 2
@@ -77,12 +77,12 @@ func TestRunPreservesDemandMismatch(t *testing.T) {
 func TestRunWrapsMeasurementFailure(t *testing.T) {
 	configuration := DefaultConfig()
 	configuration.Seeds = []int64{42}
-	configuration.Profiles = []Profile{{MaxConcurrentMatches: 2, MatchesPerCycle: 1}}
+	configuration.Profiles = []Profile{{MatchesPerCycle: 1}}
 	configuration.Parallelism = 1
 	_, err := run(context.Background(), configuration, func(context.Context, flow.Config, time.Duration) (flow.MeasurementReport, error) {
 		return flow.MeasurementReport{}, errors.New("boom")
 	})
-	if err == nil || !strings.Contains(err.Error(), "seed 42 profile c2-b1: boom") {
+	if err == nil || !strings.Contains(err.Error(), "seed 42 profile b1: boom") {
 		t.Fatalf("error = %v", err)
 	}
 }
@@ -95,8 +95,10 @@ func TestNormalizeRejectsInvalidMatrix(t *testing.T) {
 		{name: "short duration", mutate: func(configuration *Config) { configuration.Duration = time.Millisecond }},
 		{name: "duplicate seed", mutate: func(configuration *Config) { configuration.Seeds = []int64{1, 1} }},
 		{name: "negative seed", mutate: func(configuration *Config) { configuration.Seeds = []int64{-1} }},
-		{name: "duplicate profile", mutate: func(configuration *Config) { configuration.Profiles = []Profile{{2, 1}, {2, 1}} }},
-		{name: "invalid profile", mutate: func(configuration *Config) { configuration.Profiles = []Profile{{2, 3}} }},
+		{name: "duplicate profile", mutate: func(configuration *Config) {
+			configuration.Profiles = []Profile{{MatchesPerCycle: 1}, {MatchesPerCycle: 1}}
+		}},
+		{name: "invalid profile", mutate: func(configuration *Config) { configuration.Profiles = []Profile{{MatchesPerCycle: 9}} }},
 		{name: "zero parallelism", mutate: func(configuration *Config) { configuration.Parallelism = 0 }},
 	}
 	for _, test := range tests {
@@ -120,7 +122,7 @@ func TestSummarizeUsesIntegerMidpoint(t *testing.T) {
 }
 
 func deterministicMeasurement(_ context.Context, configuration flow.Config, duration time.Duration) (flow.MeasurementReport, error) {
-	base := int(configuration.Seed)*100 + configuration.MaxConcurrentMatches
+	base := int(configuration.Seed)*100 + configuration.MatchesPerCycle
 	return flow.MeasurementReport{
 		DurationMillis:             duration.Milliseconds(),
 		QueueEntries:               flow.EntryCounts{InitialTickets: 60},

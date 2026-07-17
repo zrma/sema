@@ -25,7 +25,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags.SetOutput(stderr)
 	format := flags.String("format", "text", "output format: text or json")
 	seeds := flags.String("seeds", "42,73,101", "comma-separated deterministic seeds")
-	profiles := flags.String("profiles", "8:2,16:4,32:8", "comma-separated concurrent:batch profiles")
+	batches := flags.String("batches", "2,4,8", "comma-separated matches-per-cycle profiles")
 	showVersion := flags.Bool("version", false, "print version")
 	flags.DurationVar(&configuration.Duration, "duration", configuration.Duration, "simulated duration per run")
 	flags.IntVar(&configuration.Parallelism, "parallel", configuration.Parallelism, "maximum independent runs executed in parallel")
@@ -60,7 +60,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "sema-flow-matrix: %v\n", err)
 		return 2
 	}
-	parsedProfiles, err := parseProfiles(*profiles)
+	parsedProfiles, err := parseBatches(*batches)
 	if err != nil {
 		fmt.Fprintf(stderr, "sema-flow-matrix: %v\n", err)
 		return 2
@@ -107,23 +107,18 @@ func parseSeeds(value string) ([]int64, error) {
 	return seeds, nil
 }
 
-func parseProfiles(value string) ([]flowmatrix.Profile, error) {
+func parseBatches(value string) ([]flowmatrix.Profile, error) {
 	parts := strings.Split(value, ",")
 	profiles := make([]flowmatrix.Profile, 0, len(parts))
 	seen := make(map[flowmatrix.Profile]struct{}, len(parts))
 	for _, part := range parts {
-		fields := strings.Split(strings.TrimSpace(part), ":")
-		if len(fields) != 2 {
-			return nil, fmt.Errorf("invalid profile list %q", value)
+		batch, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil || batch <= 0 || batch > 8 {
+			return nil, fmt.Errorf("invalid batch list %q", value)
 		}
-		concurrent, concurrentErr := strconv.Atoi(fields[0])
-		batch, batchErr := strconv.Atoi(fields[1])
-		if concurrentErr != nil || batchErr != nil || batch <= 0 || batch > 8 || concurrent < batch {
-			return nil, fmt.Errorf("invalid profile list %q", value)
-		}
-		profile := flowmatrix.Profile{MaxConcurrentMatches: concurrent, MatchesPerCycle: batch}
+		profile := flowmatrix.Profile{MatchesPerCycle: batch}
 		if _, exists := seen[profile]; exists {
-			return nil, fmt.Errorf("profile list contains duplicate %q", strings.TrimSpace(part))
+			return nil, fmt.Errorf("batch list contains duplicate %d", batch)
 		}
 		seen[profile] = struct{}{}
 		profiles = append(profiles, profile)
@@ -142,7 +137,7 @@ func writeTextReport(writer io.Writer, report flowmatrix.Report) error {
 	}
 	for _, profile := range report.Profiles {
 		lines = append(lines,
-			fmt.Sprintf("profile name=%s concurrent_matches=%d matches_per_cycle=%d runs=%d initial_tickets=%s arrival_lag_ms=%s final_ingress_players=%s", profile.Name, profile.MaxConcurrentMatches, profile.MatchesPerCycle, profile.Runs, rangeText(profile.InitialTickets), rangeText(profile.MaxArrivalLagMillis), rangeText(profile.FinalIngressBacklogPlayers)),
+			fmt.Sprintf("profile name=%s matches_per_cycle=%d runs=%d initial_tickets=%s arrival_lag_ms=%s final_ingress_players=%s", profile.Name, profile.MatchesPerCycle, profile.Runs, rangeText(profile.InitialTickets), rangeText(profile.MaxArrivalLagMillis), rangeText(profile.FinalIngressBacklogPlayers)),
 			fmt.Sprintf("capacity name=%s assignment_yield_bps=%s confirmed_mpm_milli=%s completed_mpm_milli=%s", profile.Name, rangeText(profile.AssignmentYieldBasisPoints), rangeText(profile.ConfirmedMatchesPerMinuteMilli), rangeText(profile.CompletedMatchesPerMinuteMilli)),
 			fmt.Sprintf("wait name=%s p50_ms=%s p90_ms=%s", profile.Name, rangeText(profile.WaitP50Millis), rangeText(profile.WaitP90Millis)),
 			fmt.Sprintf("queue name=%s mean_players=%s p95_players=%s", profile.Name, rangeText(profile.QueueMeanPlayers), rangeText(profile.QueueP95Players)),

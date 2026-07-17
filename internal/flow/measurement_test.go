@@ -15,7 +15,6 @@ func TestMeasureIsDeterministicAndConservesPopulation(t *testing.T) {
 	configuration := DefaultConfig()
 	configuration.PopulationSize = 40
 	configuration.MatchesPerCycle = 2
-	configuration.MaxConcurrentMatches = 4
 	configuration.GameDuration = 20 * time.Second
 	configuration.PlanningInterval = 2 * time.Second
 	configuration.MaxReturnDelay = 10 * time.Second
@@ -108,7 +107,6 @@ func TestMeasureDrainsScheduledIngressAtHorizon(t *testing.T) {
 	configuration := DefaultConfig()
 	configuration.PopulationSize = 100
 	configuration.MatchesPerCycle = 8
-	configuration.MaxConcurrentMatches = 8
 	configuration.ArrivalInterval = 100 * time.Millisecond
 	configuration.PlanningInterval = time.Second
 

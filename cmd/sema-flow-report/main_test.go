@@ -23,7 +23,7 @@ func TestRunPrintsVersion(t *testing.T) {
 func TestRunWritesDeterministicJSONReport(t *testing.T) {
 	args := []string{
 		"-format", "json", "-duration", "90s", "-population", "40", "-matches-per-cycle", "2",
-		"-concurrent-matches", "4", "-game-duration", "20s", "-planning-interval", "2s", "-max-return-delay", "10s",
+		"-game-duration", "20s", "-planning-interval", "2s", "-max-return-delay", "10s",
 	}
 	var stdout, stderr bytes.Buffer
 	if code := run(context.Background(), args, &stdout, &stderr); code != 0 {
@@ -40,7 +40,7 @@ func TestRunWritesDeterministicJSONReport(t *testing.T) {
 
 func TestRunWritesTextMetricVocabulary(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	args := []string{"-duration", "60s", "-population", "40", "-concurrent-matches", "4", "-game-duration", "20s", "-max-return-delay", "10s"}
+	args := []string{"-duration", "60s", "-population", "40", "-game-duration", "20s", "-max-return-delay", "10s"}
 	if code := run(context.Background(), args, &stdout, &stderr); code != 0 {
 		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
 	}
@@ -54,6 +54,13 @@ func TestRunWritesTextMetricVocabulary(t *testing.T) {
 func TestRunRejectsUnsupportedFormat(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	if code := run(context.Background(), []string{"-format", "csv"}, &stdout, &stderr); code != 2 || !strings.Contains(stderr.String(), "unsupported output format") {
+		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
+	}
+}
+
+func TestRunRejectsRemovedConcurrentMatchesFlag(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := run(context.Background(), []string{"-concurrent-matches", "8"}, &stdout, &stderr); code != 2 || !strings.Contains(stderr.String(), "flag provided but not defined") {
 		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
 	}
 }

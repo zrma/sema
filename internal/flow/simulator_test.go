@@ -137,6 +137,42 @@ func TestSimulatorRejectsInvalidConfiguration(t *testing.T) {
 	}
 }
 
+func TestSimulatorPlanningContinuesAboveEightActiveGames(t *testing.T) {
+	configuration := flow.DefaultConfig()
+	configuration.PopulationSize = 100
+	configuration.MatchesPerCycle = 2
+	configuration.GameDuration = 30 * time.Second
+	configuration.ArrivalInterval = 100 * time.Millisecond
+	configuration.PlanningInterval = time.Second
+	configuration.MaxReturnDelay = 10 * time.Second
+	simulator, err := flow.Open(configuration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := simulator.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+
+	maximumActive := 0
+	plannedAboveEight := false
+	for range 600 {
+		event, err := simulator.Step(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		maximumActive = max(maximumActive, event.ActiveMatches)
+		plannedAboveEight = plannedAboveEight || event.Kind == flow.EventPlanCompleted && event.ActiveMatches >= 8
+		if maximumActive > 8 && plannedAboveEight {
+			break
+		}
+	}
+	if maximumActive <= 8 || !plannedAboveEight {
+		t.Fatalf("game execution still gated planning: max active=%d planned above eight=%v", maximumActive, plannedAboveEight)
+	}
+}
+
 func TestSimulatorOrdersBatchStagesStablyAtOneTimestamp(t *testing.T) {
 	simulator := openSimulator(t, 101)
 	groups := make(map[time.Time][]flow.Event)
@@ -192,7 +228,6 @@ func openSimulator(t *testing.T, seed int64) *flow.Simulator {
 	configuration.Seed = seed
 	configuration.PopulationSize = 40
 	configuration.MatchesPerCycle = 2
-	configuration.MaxConcurrentMatches = 4
 	configuration.GameDuration = 20 * time.Second
 	configuration.ArrivalInterval = time.Second
 	configuration.PlanningInterval = 2 * time.Second

@@ -1,4 +1,4 @@
-// Package flowmatrix compares deterministic Flow capacity profiles across seeds.
+// Package flowmatrix compares deterministic Flow planning-batch profiles across seeds.
 package flowmatrix
 
 import (
@@ -11,15 +11,14 @@ import (
 	"github.com/zrma/sema/internal/flow"
 )
 
-const SchemaVersion = "sema.flow.capacity-matrix.v0alpha1"
+const SchemaVersion = "sema.flow.capacity-matrix.v0alpha2"
 
 type Profile struct {
-	MaxConcurrentMatches int `json:"max_concurrent_matches"`
-	MatchesPerCycle      int `json:"matches_per_cycle"`
+	MatchesPerCycle int `json:"matches_per_cycle"`
 }
 
 func (profile Profile) Label() string {
-	return fmt.Sprintf("c%d-b%d", profile.MaxConcurrentMatches, profile.MatchesPerCycle)
+	return fmt.Sprintf("b%d", profile.MatchesPerCycle)
 }
 
 type Config struct {
@@ -35,7 +34,7 @@ func DefaultConfig() Config {
 		Base:        flow.DefaultConfig(),
 		Duration:    10 * time.Minute,
 		Seeds:       []int64{42, 73, 101},
-		Profiles:    []Profile{{MaxConcurrentMatches: 8, MatchesPerCycle: 2}, {MaxConcurrentMatches: 16, MatchesPerCycle: 4}, {MaxConcurrentMatches: 32, MatchesPerCycle: 8}},
+		Profiles:    []Profile{{MatchesPerCycle: 2}, {MatchesPerCycle: 4}, {MatchesPerCycle: 8}},
 		Parallelism: 3,
 	}
 }
@@ -57,7 +56,6 @@ type WorkloadConfiguration struct {
 
 type ProfileReport struct {
 	Name                           string  `json:"name"`
-	MaxConcurrentMatches           int     `json:"max_concurrent_matches"`
 	MatchesPerCycle                int     `json:"matches_per_cycle"`
 	Runs                           int     `json:"runs"`
 	InitialTickets                 Summary `json:"initial_tickets"`
@@ -115,7 +113,6 @@ func run(ctx context.Context, configuration Config, measure measurer) (Report, e
 				seed := normalized.Seeds[seedIndex]
 				flowConfiguration := normalized.Base
 				flowConfiguration.Seed = seed
-				flowConfiguration.MaxConcurrentMatches = profile.MaxConcurrentMatches
 				flowConfiguration.MatchesPerCycle = profile.MatchesPerCycle
 				report, measureErr := measure(workerContext, flowConfiguration, normalized.Duration)
 				if measureErr != nil {
@@ -200,13 +197,10 @@ func normalize(configuration Config) (Config, error) {
 	}
 	normalized.Profiles = slices.Clone(configuration.Profiles)
 	slices.SortFunc(normalized.Profiles, func(left, right Profile) int {
-		if left.MaxConcurrentMatches != right.MaxConcurrentMatches {
-			return left.MaxConcurrentMatches - right.MaxConcurrentMatches
-		}
 		return left.MatchesPerCycle - right.MatchesPerCycle
 	})
 	for index, profile := range normalized.Profiles {
-		if profile.MatchesPerCycle <= 0 || profile.MatchesPerCycle > 8 || profile.MaxConcurrentMatches < profile.MatchesPerCycle {
+		if profile.MatchesPerCycle <= 0 || profile.MatchesPerCycle > 8 {
 			return Config{}, fmt.Errorf("matrix profile %q is invalid", profile.Label())
 		}
 		if index > 0 && profile == normalized.Profiles[index-1] {
@@ -226,7 +220,6 @@ func aggregate(profile Profile, reports []flow.MeasurementReport) ProfileReport 
 	}
 	return ProfileReport{
 		Name:                           profile.Label(),
-		MaxConcurrentMatches:           profile.MaxConcurrentMatches,
 		MatchesPerCycle:                profile.MatchesPerCycle,
 		Runs:                           len(reports),
 		InitialTickets:                 values(func(report flow.MeasurementReport) int64 { return int64(report.QueueEntries.InitialTickets) }),

@@ -28,7 +28,6 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags.Int64Var(&configuration.Seed, "seed", configuration.Seed, "deterministic population seed")
 	flags.IntVar(&configuration.PopulationSize, "population", configuration.PopulationSize, "closed population player count")
 	flags.IntVar(&configuration.MatchesPerCycle, "matches-per-cycle", configuration.MatchesPerCycle, "maximum proposals per planning cycle")
-	flags.IntVar(&configuration.MaxConcurrentMatches, "concurrent-matches", configuration.MaxConcurrentMatches, "maximum concurrent matches")
 	flags.DurationVar(&configuration.GameDuration, "game-duration", configuration.GameDuration, "simulated game duration")
 	flags.DurationVar(&configuration.ArrivalInterval, "arrival-interval", configuration.ArrivalInterval, "initial party arrival interval")
 	flags.DurationVar(&configuration.PlanningInterval, "planning-interval", configuration.PlanningInterval, "minimum planning interval")
@@ -77,7 +76,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 func writeTextReport(writer io.Writer, report flow.MeasurementReport) error {
 	lines := []string{
 		fmt.Sprintf("sema-flow-report schema=%s seed=%d duration_ms=%d population=%d", report.SchemaVersion, report.Seed, report.DurationMillis, report.PopulationPlayers),
-		fmt.Sprintf("config matches_per_cycle=%d concurrent_matches=%d reservation_ttl_ms=%d game_duration_ms=%d arrival_interval_ms=%d planning_interval_ms=%d max_return_delay_ms=%d tick_duration_ms=%d", report.Configuration.MatchesPerCycle, report.Configuration.MaxConcurrentMatches, report.Configuration.ReservationTTLMillis, report.Configuration.GameDurationMillis, report.Configuration.ArrivalIntervalMillis, report.Configuration.PlanningIntervalMillis, report.Configuration.MaxReturnDelayMillis, report.Configuration.TickDurationMillis),
+		fmt.Sprintf("config matches_per_cycle=%d reservation_ttl_ms=%d game_duration_ms=%d arrival_interval_ms=%d planning_interval_ms=%d max_return_delay_ms=%d tick_duration_ms=%d", report.Configuration.MatchesPerCycle, report.Configuration.ReservationTTLMillis, report.Configuration.GameDurationMillis, report.Configuration.ArrivalIntervalMillis, report.Configuration.PlanningIntervalMillis, report.Configuration.MaxReturnDelayMillis, report.Configuration.TickDurationMillis),
 		fmt.Sprintf("flow steps=%d cycles=%d arrivals_tickets=%d arrivals_players=%d initial_tickets=%d returned_tickets=%d assignments=%d assigned_tickets=%d assigned_players=%d completions=%d completed_players=%d assignment_yield_bps=%d", report.Steps, report.Cycles, report.QueueEntries.Tickets, report.QueueEntries.Players, report.QueueEntries.InitialTickets, report.QueueEntries.ReturnedTickets, report.Assignments.Matches, report.Assignments.Tickets, report.Assignments.Players, report.Completions.Matches, report.Completions.Players, report.AssignmentYieldBasisPoints),
 		fmt.Sprintf("wait samples_players=%d p50_ms=%d p90_ms=%d p99_ms=%d max_ms=%d", report.Wait.SamplesPlayers, report.Wait.P50Millis, report.Wait.P90Millis, report.Wait.P99Millis, report.Wait.MaxMillis),
 		fmt.Sprintf("throughput confirmed_matches_per_minute_milli=%d completed_matches_per_minute_milli=%d", report.Throughput.ConfirmedMatchesPerMinuteMilli, report.Throughput.CompletedMatchesPerMinuteMilli),

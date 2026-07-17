@@ -16,25 +16,24 @@ go run ./cmd/sema-tui
 
 - seed `42`로 생성한 player 1,000명과 stable mixed-party 600개. 시작 시 matchmaking queue는 비어 있다.
 - 모든 player의 초기 visible rating 1500과 서로 다른 hidden true skill.
-- 2x5 team, cycle당 proposal 2개와 최대 동시 match 8개.
+- 2x5 team과 cycle당 proposal 2개. 진행 중인 game 수는 planning을 제한하지 않는다.
 - party의 최초 queue 유입 간격 1초, planning 간격 5초.
 - simulated game duration 45초, 완료 뒤 최대 복귀 지연 30초, Elo K-factor 32.
 - solo/duo/trio party pattern `[2, 1, 1, 1, 3, 2]`의 반복.
 
-빠르게 여러 rating cycle을 보려면 step interval과 동시 match 수를 높인다.
+빠르게 여러 rating cycle을 보려면 step interval을 줄이고 cycle당 match 수를 높인다.
 
 ```sh
 go run ./cmd/sema-tui \
   -interval 50ms \
   -matches-per-cycle 8 \
-  -concurrent-matches 32 \
   -arrival-interval 500ms
 ```
 
 축소 population을 확인할 수도 있다.
 
 ```sh
-go run ./cmd/sema-tui -population 100 -concurrent-matches 8 -game-duration 30s
+go run ./cmd/sema-tui -population 100 -game-duration 30s
 ```
 
 `-arrival-interval`, `-planning-interval`, `-game-duration`, `-max-return-delay`로 각각 최초 유입, planning cadence, 경기 시간과 복귀 대기를 조정한다. `-interval`은 simulated time이 아니라 화면에서 lifecycle step을 진행하는 속도다.
@@ -45,7 +44,7 @@ go run ./cmd/sema-tui -population 100 -concurrent-matches 8 -game-duration 30s
 
 승패 확률은 양 팀의 평균 true skill 차이에 logistic curve를 적용해 계산하고 seeded draw로 승자를 정한다. 승패가 확정되면 양 팀의 평균 visible rating으로 Elo expectation을 계산하고 각 player에게 같은 team delta를 적용한다. 동일 인원의 5v5에서는 두 팀 delta가 zero-sum이며 rating은 100부터 3000 사이로 제한한다.
 
-confirm된 assignment는 즉시 완료되지 않고 fixed game duration 동안 in-game 상태에 머문다. 시간이 끝나면 completed acknowledgment를 실제 HTTP endpoint에 기록하고, 참가 party는 새 rating과 증가한 revision을 가진 동일 ticket identity로 다시 대기한다.
+confirm된 assignment는 즉시 완료되지 않고 fixed game duration 동안 in-game 상태에 머문다. 시간이 끝나면 completed acknowledgment를 실제 HTTP endpoint에 기록하고, 참가 party는 새 rating과 증가한 revision을 가진 동일 ticket identity로 다시 대기한다. 이 game timer는 synthetic result와 return 시각을 만들 뿐 planning eligibility나 Sema capacity를 제한하지 않는다.
 
 population 1,000명은 identity와 rating을 소유하는 registry 크기이며 queue 크기가 아니다. 시작 상태는 전원 `idle`이고 stable party가 `arrival-interval`마다 하나씩 실제 HTTP ticket으로 queue에 들어온다. planner, reservation과 confirm이 진행되는 동안에도 due arrival을 lifecycle operation과 번갈아 처리하므로 여러 game이 동시에 진행되는 사이 queue가 계속 변한다.
 
@@ -69,6 +68,8 @@ trio    [●─●─●]
 - block bar: plan이 끝난 뒤 반환된 candidate/search evidence. 실행 중 진행률로 사용하지 않는다.
 - terminal 높이가 커지면 waiting/lifecycle, completed match와 event stream panel이 남은 세로 공간을 비례 배분해 전체 화면을 사용한다.
 
+`MATCH LIFECYCLE` 패널은 Sema가 confirm한 assignment 이후 frontend가 game을 진행하고 결과를 돌려주는 흐름을 보여주는 관찰 surface다. 진행 중인 match가 많으면 화면 높이에 맞는 최근 항목과 나머지 개수를 요약하며, 패널의 game 수가 새 proposal 생성을 막지는 않는다.
+
 ## Controls
 
 - `space`: pause/resume.
@@ -88,7 +89,7 @@ interactive renderer 없이 같은 fixture를 확인하려면 deterministic snap
 ```sh
 go run ./cmd/sema-tui -snapshot -steps 100 -width 120 -height 38
 go run ./cmd/sema-tui -snapshot -ascii -population 40 \
-  -concurrent-matches 4 -game-duration 20s -max-return-delay 10s \
+  -game-duration 20s -max-return-delay 10s \
   -steps 80 -width 100 -height 32
 ```
 
@@ -112,8 +113,9 @@ due arrival은 이미 예약된 server-clock 시각의 event이므로 처리 fra
 - 영구 이탈/신규 가입 churn, party 재편, 실제 접속률 분포, rating uncertainty, placement match와 season은 모델링하지 않는다.
 - planner 내부 candidate 방문을 실시간 stream하지 않는다. operation activity 뒤 완료된 proposal evidence만 표시한다.
 - embedded demo는 production scheduler, game server, push delivery, authentication 또는 external allocation server가 아니다.
+- Sema의 책임은 ticket ingestion부터 assignment confirm까지다. confirm 이후 game 실행, 결과 생성과 result submission은 frontend/game runtime 책임이며 Flow는 시각화를 위해 이를 synthetic하게 모사한다.
 - raw durable payload와 실제 player identity는 화면이나 tracked fixture에 사용하지 않는다.
 - interactive timing은 presentation control이며 match wait와 game duration은 deterministic server clock이 소유한다.
-- headless aggregate는 synthetic Flow capacity evidence이며 production throughput, queue wait SLA나 traffic calibration이 아니다.
+- headless aggregate는 synthetic Flow workload evidence이며 production throughput, queue wait SLA나 traffic calibration이 아니다.
 
 실제 shared server와 game result를 연결하려면 authenticated redacted event stream, external assignment consumer와 versioned result-ingestion contract를 별도로 설계해야 한다.

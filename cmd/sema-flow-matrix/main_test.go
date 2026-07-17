@@ -23,7 +23,7 @@ func TestRunPrintsVersion(t *testing.T) {
 func TestRunWritesComparableReducedMatrix(t *testing.T) {
 	args := []string{
 		"-format", "json", "-duration", "3s", "-population", "40", "-seeds", "42,43",
-		"-profiles", "2:2,4:2", "-parallel", "2", "-game-duration", "20s",
+		"-batches", "1,2", "-parallel", "2", "-game-duration", "20s",
 		"-arrival-interval", "100ms", "-planning-interval", "1s", "-max-return-delay", "10s",
 	}
 	var stdout, stderr bytes.Buffer
@@ -50,14 +50,14 @@ func TestWriteTextReportUsesRangeVocabulary(t *testing.T) {
 		SchemaVersion: flowmatrix.SchemaVersion,
 		Seeds:         []int64{1, 2, 3},
 		Profiles: []flowmatrix.ProfileReport{{
-			Name: "c8-b2", Runs: 3, InitialTickets: flowmatrix.Summary{Minimum: 598, Median: 600, Maximum: 600},
+			Name: "b2", Runs: 3, InitialTickets: flowmatrix.Summary{Minimum: 598, Median: 600, Maximum: 600},
 		}},
 	}
 	var output bytes.Buffer
 	if err := writeTextReport(&output, report); err != nil {
 		t.Fatal(err)
 	}
-	for _, expected := range []string{"demand_comparable=false", "profile name=c8-b2", "initial_tickets=598/600/600", "capacity name=c8-b2", "wait name=c8-b2", "queue name=c8-b2", "quality name=c8-b2"} {
+	for _, expected := range []string{"demand_comparable=false", "profile name=b2", "initial_tickets=598/600/600", "capacity name=b2", "wait name=b2", "queue name=b2", "quality name=b2"} {
 		if !strings.Contains(output.String(), expected) {
 			t.Fatalf("text report omitted %q:\n%s", expected, output.String())
 		}
@@ -65,10 +65,17 @@ func TestWriteTextReportUsesRangeVocabulary(t *testing.T) {
 }
 
 func TestRunRejectsInvalidLists(t *testing.T) {
-	for _, args := range [][]string{{"-seeds", "42,x"}, {"-seeds", "42,42"}, {"-seeds", "-1"}, {"-profiles", "8/2"}, {"-profiles", "2:3"}, {"-profiles", "8:2,8:2"}, {"-format", "csv"}} {
+	for _, args := range [][]string{{"-seeds", "42,x"}, {"-seeds", "42,42"}, {"-seeds", "-1"}, {"-batches", "2:x"}, {"-batches", "9"}, {"-batches", "2,2"}, {"-format", "csv"}} {
 		var stdout, stderr bytes.Buffer
 		if code := run(context.Background(), args, &stdout, &stderr); code != 2 {
 			t.Fatalf("args=%v exit code=%d stderr=%q", args, code, stderr.String())
 		}
+	}
+}
+
+func TestRunRejectsRemovedConcurrentProfilesFlag(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := run(context.Background(), []string{"-profiles", "8:2"}, &stdout, &stderr); code != 2 || !strings.Contains(stderr.String(), "flag provided but not defined") {
+		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
 	}
 }

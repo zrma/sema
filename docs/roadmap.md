@@ -124,10 +124,20 @@
 - [x] ingress backlog, arrival lag와 horizon drain measurement contract
 - [x] 동일 10분 demand horizon의 8/16/32 concurrent comparison gate
 
-## P15: Multi-Seed Flow Capacity Matrix
+## P15: Multi-Seed Flow Capacity Matrix (Superseded)
 
-- [x] canonical seed와 concurrent/batch profile matrix
+- [x] canonical seed와 historical concurrent/batch profile matrix
 - [x] 독립 run의 bounded wall-clock parallel execution
 - [x] min/median/max throughput, wait, queue와 quality aggregate
 - [x] cross-profile demand comparability gate
 - [x] versioned deterministic text/JSON matrix command와 reference result
+
+P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다. 실행 framework와 comparability contract는 유지하고 profile/result 해석은 P16이 대체한다.
+
+## P16: Matchmaker And Game Runtime Ownership Correction
+
+- [x] assignment confirm 이후 game 실행을 frontend/game-runtime 책임으로 명시
+- [x] active game 수를 planning eligibility와 Flow configuration에서 제거
+- [x] `MATCH LIFECYCLE` 관찰 패널과 synthetic result/return 연출 유지
+- [x] measurement `v0alpha3`와 batch-only capacity matrix `v0alpha2`
+- [x] active game 8개 초과 planning regression과 1,000-player TUI smoke
