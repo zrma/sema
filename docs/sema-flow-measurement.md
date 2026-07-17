@@ -38,18 +38,18 @@ JSON schema는 `sema.flow.measurement.v0alpha3`다. report는 seed, simulated du
 
 ## Reference Baseline
 
-P16의 기본 30분 run은 다음 aggregate를 만든다. 이 값은 regression 비교를 위한 synthetic reference이며 capacity나 제품 SLA가 아니다.
+P18의 admission-baseline batch utility를 적용한 기본 30분 run은 다음 aggregate를 만든다. 이 값은 regression 비교를 위한 synthetic reference이며 capacity나 제품 SLA가 아니다.
 
 | Metric | Value |
 | --- | ---: |
-| assignment yield | 9,039 bps |
-| wait p50 / p90 / p99 | 186,000 / 191,000 / 195,000 ms |
+| assignment yield | 9,041 bps |
+| wait p50 / p90 / p99 | 186,000 / 191,000 / 194,000 ms |
 | confirmed / completed throughput | 23,300 / 22,700 milli-match/min |
 | queue mean / p95 / peak | 599 / 766 / 786 players |
 | ingress samples / max lag / final backlog | 4,652 tickets / 0 ms / 0 players |
-| skill gap p50 / p90 / p99 / max | 13 / 42 / 72 / 95 |
+| skill gap p50 / p90 / p99 / max | 12 / 44 / 78 / 103 |
 
-초기 party는 첫 10분에 걸쳐 유입된다. 이후 queue pressure는 cycle당 match 수, planning cadence와 closed population의 재진입 수요 사이에서 생긴다. 진행 중인 game 수와 `game_duration`은 새 planning을 막지 않으며, game 실행 capacity는 frontend 소유이므로 report configuration에도 포함하지 않는다.
+초기 party는 첫 10분에 걸쳐 유입된다. 이후 queue pressure는 cycle당 match 수, planning cadence와 closed population의 재진입 수요 사이에서 생긴다. P18은 admissible match admission baseline으로 기존 23.3 match/min 처리량을 보존하고 같은 cardinality의 candidate batch 안에서 relative quality rank를 최적화한다. 진행 중인 game 수와 `game_duration`은 새 planning을 막지 않으며, game 실행 capacity는 frontend 소유이므로 report configuration에도 포함하지 않는다.
 
 여러 seed의 변동 범위와 자동화된 profile comparison은 `docs/sema-flow-capacity-matrix.md`와 `cmd/sema-flow-matrix`를 사용한다.
 

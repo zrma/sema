@@ -74,6 +74,7 @@ for required_file in \
   docs/decisions/0013-operational-validation-baseline.md \
   docs/decisions/0014-container-deployment-baseline.md \
   docs/decisions/0015-performance-release-gate.md \
+  docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -105,6 +106,7 @@ for required_file in \
   docs/todo-0026-capacity-matrix/spec.md \
   docs/todo-0027-unbounded-game-simulation/spec.md \
   docs/todo-0028-flow-trend-panels/spec.md \
+  docs/todo-0029-global-proposal-batch-optimization/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \

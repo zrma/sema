@@ -12,7 +12,7 @@ import (
 	"github.com/zrma/sema/internal/simulation"
 )
 
-const SchemaVersion = "v0alpha3"
+const SchemaVersion = "v0alpha4"
 
 var fixtureNow = time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 
@@ -60,7 +60,19 @@ type OutcomeSummary struct {
 	OldestUnmatchedWaitMillis int64            `json:"oldest_unmatched_wait_millis"`
 	UnmatchedReasons          []UnmatchedCount `json:"unmatched_reasons"`
 	BudgetExhausted           bool             `json:"budget_exhausted"`
+	Batch                     BatchSummary     `json:"batch"`
 	Search                    SearchSummary    `json:"search"`
+}
+
+type BatchSummary struct {
+	CandidateProposals           int   `json:"candidate_proposals"`
+	SelectedProposals            int   `json:"selected_proposals"`
+	SelectedBackfills            int   `json:"selected_backfills"`
+	TotalUtility                 int64 `json:"total_utility"`
+	CandidateGenerationNodes     int   `json:"candidate_generation_nodes"`
+	CandidateGenerationTruncated bool  `json:"candidate_generation_truncated"`
+	SelectionNodes               int   `json:"selection_nodes"`
+	SelectionTruncated           bool  `json:"selection_truncated"`
 }
 
 type OracleSummary struct {
@@ -135,6 +147,7 @@ type EvidenceSummary struct {
 	SearchNodes              int   `json:"search_nodes"`
 	CandidateWindowTruncated bool  `json:"candidate_window_truncated"`
 	SearchTruncated          bool  `json:"search_truncated"`
+	SelectionUtility         int64 `json:"selection_utility"`
 }
 
 // Workloads returns defensive copies of the canonical built-in corpus.
@@ -236,6 +249,16 @@ func summarizeWorkload(
 			OldestUnmatchedWaitMillis: metrics.OldestUnmatchedWaitMillis,
 			UnmatchedReasons:          unmatchedReasons,
 			BudgetExhausted:           result.Summary.BudgetExhausted,
+			Batch: BatchSummary{
+				CandidateProposals:           result.Batch.Evidence.CandidateProposals,
+				SelectedProposals:            result.Batch.Evidence.SelectedProposals,
+				SelectedBackfills:            result.Batch.Evidence.SelectedBackfills,
+				TotalUtility:                 result.Batch.Evidence.TotalUtility,
+				CandidateGenerationNodes:     result.Batch.Evidence.CandidateGenerationNodes,
+				CandidateGenerationTruncated: result.Batch.Evidence.CandidateGenerationTruncated,
+				SelectionNodes:               result.Batch.Evidence.SelectionNodes,
+				SelectionTruncated:           result.Batch.Evidence.SelectionTruncated,
+			},
 			Search: SearchSummary{
 				CandidateTickets:      scores.CandidateTickets,
 				TruncatedWindows:      scores.TruncatedCandidateWindows,
@@ -334,6 +357,7 @@ func summarizeProposals(proposals []domain.MatchProposal) []ProposalSummary {
 				SearchNodes:              evidence.SearchNodes,
 				CandidateWindowTruncated: evidence.CandidateWindowTruncated,
 				SearchTruncated:          evidence.SearchTruncated,
+				SelectionUtility:         evidence.SelectionUtility,
 			},
 		}
 	}

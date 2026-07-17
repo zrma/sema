@@ -150,3 +150,12 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] density glyph/color intensity와 bounded logical-time sampling
 - [x] match별 selection marker, queue departure와 incremental row compaction motion
 - [x] Unicode/color, ASCII, medium/tall/compact terminal regression gate
+
+## P18: Global Proposal Batch Optimization
+
+- [x] greedy cover와 anchored search를 결합한 diverse candidate graph
+- [x] 개별 admissibility를 통과한 후보만 batch selection에 전달
+- [x] ticket/backfill conflict를 제한하는 weighted set-packing selector
+- [x] backfill-first, total rank utility와 `MaxProposals` 상한 계약
+- [x] generation/selection budget과 replayable batch evidence
+- [x] greedy-failure fixture, exhaustive small oracle와 Flow regression gate

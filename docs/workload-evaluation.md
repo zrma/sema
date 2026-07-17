@@ -61,7 +61,7 @@ go run ./cmd/sema-lab synthetic-5v5-seeded-queue
 go run ./cmd/sema-lab -format json diagnostic-bounded-quality-gap
 ```
 
-JSON envelope은 P7 discovery evidence가 추가된 `v0alpha3`이며 stable compatibility를 아직 약속하지 않는다.
+JSON envelope은 P18 batch-selection evidence가 추가된 `v0alpha4`이며 stable compatibility를 아직 약속하지 않는다. 기존 exhaustive oracle은 single-proposal quality를 비교하고 P18의 global selector exact fixture는 별도 planner test가 소유한다.
 
 ## Verification
 

@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P17 Flow trend panels까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P18 global proposal batch optimization까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -15,7 +15,9 @@ P0부터 P17 Flow trend panels까지 완료되었다. source/service는 계속 e
 - implementation baseline: Go, 하나의 deployable process, in-memory core와 durable service journal.
 - canonical entity schema, lifecycle, typed failure contract.
 - immutable snapshot과 party-preserving bounded enumeration.
-- deterministic multi-match와 backfill-first `ProposalBatch`.
+- greedy cover와 anchored search로 다양한 admissible proposal candidate를 만드는 deterministic multi-match planner.
+- ticket/backfill conflict graph에서 backfill 수와 total rank utility를 최적화하는 bounded weighted set-packing `ProposalBatch`.
+- `MaxProposals` 상한, candidate/selection 독립 budget, best-feasible truncation과 replayable batch evidence.
 - in-memory coordinator의 revision/roster CAS, atomic fixed-TTL reservation, idempotent assignment.
 - 2:2부터 50:50, 100인 duo/squad, stale/conflict/expiry/concurrency reference test.
 - Go format, module hygiene, vet, test, race detector, planner benchmark가 포함된 local/CI gate.
@@ -36,6 +38,7 @@ P0부터 P17 Flow trend panels까지 완료되었다. source/service는 계속 e
 - side-effect-free multi-policy simulation과 canonical coverage/quality summary.
 - public repository identity `github.com/zrma/sema`와 Apache-2.0 source license.
 - `github.com/zrma/sema/alpha`의 side-effect-free `Compose`와 explicit public/internal conversion boundary.
+- global batch objective와 evidence를 반영한 public Go alpha `v0alpha2` 및 `v0alpha1` migration contract.
 - `internal/`을 직접 import하지 않는 repository-owned `examples/compose` reference consumer.
 - `v0alpha1` compatibility/migration policy와 stable API 진입 gate.
 - versioned `sema-lab` cross-build/checksum script와 verified-tag GitHub Release workflow.
@@ -77,7 +80,7 @@ P0부터 P17 Flow trend panels까지 완료되었다. source/service는 계속 e
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
 - seeded party/skill/role/latency/wait snapshot generator와 player coverage/oldest-unmatched-wait metric.
-- 12 ticket 이하 new-match의 exhaustive single-proposal oracle와 bounded quality-gap evidence를 제공하는 experimental `v0alpha2` JSON report.
+- 12 ticket 이하 new-match의 exhaustive single-proposal oracle와 P18 batch-selection evidence를 제공하는 experimental `v0alpha4` JSON report.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -87,7 +90,7 @@ P0부터 P17 Flow trend panels까지 완료되었다. source/service는 계속 e
 ## Not Implemented
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
-- region/skill/role-specific candidate index와 full unmatched output pagination.
+- region/skill/role-specific candidate index, full feasible candidate enumeration과 full unmatched output pagination.
 - external database, journal compaction와 multi-replica coordination.
 - authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
@@ -105,4 +108,4 @@ P0부터 P17 Flow trend panels까지 완료되었다. source/service는 계속 e
 
 ## Next Slice
 
-P17 repository-owned 목표는 완료되었다. 다음 simulation slice는 wait/quality target 중 최소 하나가 생기면 planning-batch admission rule과 frontier를 정의하고, 실제 접속률 calibration/영구 churn, uncertainty 또는 party 재편은 비교할 hypothesis가 생길 때 연다. frontend game-runtime capacity와 allocation backpressure는 Sema planning profile에 다시 섞지 않는다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow trend를 product SLA나 calibrated MMR evidence로, Flow matrix를 production capacity로 승격하지 않는다.
+P18 repository-owned 목표는 완료되었다. 다음 matcher slice는 실제 wait/quality target이나 traffic corpus가 생기면 rank utility를 calibrated utility/frontier로 교체하고 region/skill/role candidate index를 비교한다. frontend game-runtime capacity와 allocation backpressure는 Sema planning profile에 다시 섞지 않는다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow trend를 product SLA나 calibrated MMR evidence로, Flow matrix를 production capacity로 승격하지 않는다.

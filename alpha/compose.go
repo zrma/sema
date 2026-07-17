@@ -58,7 +58,8 @@ func toDomainSnapshot(snapshot Snapshot) domain.MatchmakingSnapshot {
 			MaxLatencyMillis: policy.MaxLatencyMillis, MaxProposals: policy.MaxProposals,
 			MaxSearchNodes: policy.MaxSearchNodes, MaxCandidateTickets: policy.MaxCandidateTickets,
 			MaxCandidatesPerProposal: policy.MaxCandidatesPerProposal,
-			RoleRequirements:         roleRequirements, RelaxationSteps: relaxationSteps,
+			MaxBatchCandidates:       policy.MaxBatchCandidates, MaxBatchSearchNodes: policy.MaxBatchSearchNodes,
+			RoleRequirements: roleRequirements, RelaxationSteps: relaxationSteps,
 		},
 	}
 }
@@ -89,6 +90,7 @@ func fromDomainBatch(batch domain.ProposalBatch) ProposalBatch {
 				MaxLatencyMillis: evidence.MaxLatencyMillis, CandidateTickets: evidence.CandidateTickets,
 				CandidatesEvaluated: evidence.CandidatesEvaluated, SearchNodes: evidence.SearchNodes,
 				CandidateWindowTruncated: evidence.CandidateWindowTruncated, SearchTruncated: evidence.SearchTruncated,
+				SelectionUtility: evidence.SelectionUtility,
 			},
 		}
 	}
@@ -101,6 +103,16 @@ func fromDomainBatch(batch domain.ProposalBatch) ProposalBatch {
 	return ProposalBatch{
 		APIVersion: APIVersion, SnapshotID: SnapshotID(batch.SnapshotID),
 		Proposals: proposals, Unmatched: unmatched, BudgetExhausted: batch.BudgetExhausted,
+		Evidence: BatchScoreEvidence{
+			CandidateProposals:           batch.Evidence.CandidateProposals,
+			SelectedProposals:            batch.Evidence.SelectedProposals,
+			SelectedBackfills:            batch.Evidence.SelectedBackfills,
+			TotalUtility:                 batch.Evidence.TotalUtility,
+			CandidateGenerationNodes:     batch.Evidence.CandidateGenerationNodes,
+			CandidateGenerationTruncated: batch.Evidence.CandidateGenerationTruncated,
+			SelectionNodes:               batch.Evidence.SelectionNodes,
+			SelectionTruncated:           batch.Evidence.SelectionTruncated,
+		},
 	}
 }
 

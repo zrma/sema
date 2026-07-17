@@ -15,15 +15,17 @@ planner는 hard constraint로 ticket을 거른 뒤 enqueue time과 ticket ID로 
 
 초기 구현은 already-sorted queue prefix이며 skill/role/region index가 아니다. 이 package boundary는 실제 workload evidence가 생겼을 때 bucket/index 구현을 바꿀 seam이고, 현재는 oldest-demand fairness를 명시적으로 우선한다.
 
-## Two Independent Budgets
+## Discovery And Batch Budgets
 
 | Policy field | Bounded unit | Purpose |
 |---|---|---|
 | `MaxCandidateTickets` | enumeration에 들어가는 match ticket | queue partition/window |
 | `MaxCandidatesPerProposal` | exact-capacity placement evaluation 수 | quality comparison |
-| `MaxSearchNodes` | recursive search node | cycle computation |
+| `MaxSearchNodes` | recursive search node | candidate generation 전체 computation |
+| `MaxBatchCandidates` | deduplicated proposal candidate | global selection graph |
+| `MaxBatchSearchNodes` | branch-and-bound node | global batch selection |
 
-세 값은 canonical policy fingerprint에 모두 포함된다. 같은 policy version에서 window만 바꿔도 fingerprint와 proposal identity가 달라진다.
+다섯 값은 canonical policy fingerprint에 모두 포함된다. 같은 policy version에서 budget 하나만 바꿔도 fingerprint와 proposal identity가 달라진다.
 
 ## Evidence And Failure Semantics
 
@@ -33,7 +35,7 @@ proposal `ScoreEvidence`는 다음 discovery evidence를 추가한다.
 - `CandidateWindowTruncated`: fitting supply가 window limit 뒤에도 있었는지 여부.
 - `SearchTruncated`: candidate ticket, exact candidate 또는 node budget 중 하나라도 잘렸는지 여부.
 
-window truncation은 batch `BudgetExhausted`를 true로 만든다. window 안에서 match를 찾지 못했고 fitting supply가 더 있었다면 unmatched 대표 reason은 `search_budget`이다. proposal limit에 도달한 뒤 남은 demand는 기존처럼 `proposal_limit`이다.
+window 또는 candidate-generation truncation과 global-selection truncation은 batch `BudgetExhausted`를 true로 만든다. window 안에서 match를 찾지 못했고 fitting supply가 더 있었다면 unmatched 대표 reason은 `search_budget`이다. proposal limit에 도달한 뒤 남은 demand는 `proposal_limit`, admissible 대안이 있었지만 더 높은 total batch utility에 포함되지 않은 경우는 `batch_objective`다.
 
 ## Quality And Fairness Tradeoff
 

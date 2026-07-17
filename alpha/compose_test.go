@@ -36,6 +36,9 @@ func TestComposeProvidesDeterministicExternalSurface(t *testing.T) {
 	if first.APIVersion != alpha.APIVersion || len(first.Proposals) != 2 || len(first.Unmatched) != 0 {
 		t.Fatalf("public batch = %#v", first)
 	}
+	if first.Evidence.SelectedProposals != 2 || first.Evidence.CandidateProposals < 2 || first.Evidence.TotalUtility <= 0 {
+		t.Fatalf("public batch selection evidence = %#v", first.Evidence)
+	}
 	seen := make(map[alpha.TicketID]struct{})
 	for _, proposal := range first.Proposals {
 		for _, ticket := range proposal.Tickets {

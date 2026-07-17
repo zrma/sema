@@ -122,6 +122,20 @@ func writeTextReport(writer io.Writer, report lab.Report, details bool) error {
 		}
 		if _, err := fmt.Fprintf(
 			writer,
+			"  batch candidates=%d selected=%d backfills=%d utility=%d generation_nodes=%d selection_nodes=%d generation_truncated=%t selection_truncated=%t\n",
+			outcome.Batch.CandidateProposals,
+			outcome.Batch.SelectedProposals,
+			outcome.Batch.SelectedBackfills,
+			outcome.Batch.TotalUtility,
+			outcome.Batch.CandidateGenerationNodes,
+			outcome.Batch.SelectionNodes,
+			outcome.Batch.CandidateGenerationTruncated,
+			outcome.Batch.SelectionTruncated,
+		); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(
+			writer,
 			"  search candidate_tickets=%d truncated_windows=%d candidates=%d nodes=%d truncated_proposals=%d relaxation_level=%d role_penalty=%d skill_gap=%d max_latency_ms=%d unmatched=%s\n",
 			outcome.Search.CandidateTickets,
 			outcome.Search.TruncatedWindows,

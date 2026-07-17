@@ -10,7 +10,7 @@
 |---|---:|---:|---|
 | team/battle-royale reference corpus | exactly 10000 bp | configured bounded search 안 | all demand matched |
 | `synthetic-5v5-seeded-queue` | at least 6000 bp | at most 1000 nodes | stable unmatched wait와 score evidence |
-| `diagnostic-bounded-quality-gap` | exactly 5000 bp | at most 5 nodes | `oracle_preferred`, planner gap 1000, oracle gap 0 |
+| `diagnostic-bounded-quality-gap` | exactly 5000 bp | selected search at most 5 nodes, generation at most 30 nodes | `oracle_preferred`, planner gap 500, oracle gap 0 |
 | `diagnostic-candidate-window-gap` | exactly 5000 bp | 2-ticket truncated window | `oracle_preferred`, planner gap 1000, oracle gap 0 |
 
 V1 값은 production SLO가 아니다. 현재 deterministic algorithm의 구조적 regression budget이며 policy, generator 또는 objective를 의도적으로 바꾸면 diff에서 metric tradeoff를 설명하고 이 문서와 test를 같은 change에서 갱신한다.

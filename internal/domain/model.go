@@ -64,6 +64,8 @@ type MatchmakingPolicy struct {
 	MaxSearchNodes           int
 	MaxCandidateTickets      int
 	MaxCandidatesPerProposal int
+	MaxBatchCandidates       int
+	MaxBatchSearchNodes      int
 	RoleRequirements         []RoleRequirement
 	RelaxationSteps          []RelaxationStep
 }
@@ -113,6 +115,19 @@ type ScoreEvidence struct {
 	SearchNodes              int
 	CandidateWindowTruncated bool
 	SearchTruncated          bool
+	SelectionUtility         int64
+}
+
+// BatchScoreEvidence explains the bounded global proposal selection.
+type BatchScoreEvidence struct {
+	CandidateProposals           int
+	SelectedProposals            int
+	SelectedBackfills            int
+	TotalUtility                 int64
+	CandidateGenerationNodes     int
+	CandidateGenerationTruncated bool
+	SelectionNodes               int
+	SelectionTruncated           bool
 }
 
 // MatchProposal is a side-effect-free placement proposal.
@@ -132,6 +147,7 @@ type ProposalBatch struct {
 	Proposals       []MatchProposal
 	Unmatched       []UnmatchedTicket
 	BudgetExhausted bool
+	Evidence        BatchScoreEvidence
 }
 
 type UnmatchedReason string
@@ -142,6 +158,7 @@ const (
 	UnmatchedQualityThreshold     UnmatchedReason = "quality_threshold"
 	UnmatchedSearchBudget         UnmatchedReason = "search_budget"
 	UnmatchedProposalLimit        UnmatchedReason = "proposal_limit"
+	UnmatchedBatchObjective       UnmatchedReason = "batch_objective"
 )
 
 type UnmatchedTicket struct {

@@ -495,6 +495,7 @@ func fromDomainPolicy(policy domain.MatchmakingPolicy) (api.MatchmakingPolicy, e
 		MaxLatencyMillis: policy.MaxLatencyMillis, MaxProposals: policy.MaxProposals,
 		MaxSearchNodes: policy.MaxSearchNodes, MaxCandidateTickets: policy.MaxCandidateTickets,
 		MaxCandidatesPerProposal: policy.MaxCandidatesPerProposal,
-		RoleRequirements:         requirements, RelaxationSteps: steps,
+		MaxBatchCandidates:       policy.MaxBatchCandidates, MaxBatchSearchNodes: policy.MaxBatchSearchNodes,
+		RoleRequirements: requirements, RelaxationSteps: steps,
 	}, nil
 }

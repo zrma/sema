@@ -88,7 +88,7 @@ func TestOracleDetectsBoundedPlannerQualityGap(t *testing.T) {
 	if comparison.Relation != evaluation.QualityOraclePreferred {
 		t.Fatalf("comparison = %#v; want oracle preferred", comparison)
 	}
-	if comparison.PlannerEvidence.TeamSkillGap != 1000 || comparison.Oracle.BestEvidence.TeamSkillGap != 0 {
+	if comparison.PlannerEvidence.TeamSkillGap != 500 || comparison.Oracle.BestEvidence.TeamSkillGap != 0 {
 		t.Fatalf("quality evidence = %#v", comparison)
 	}
 	if comparison.Oracle.AdmissibleCandidates == 0 {
@@ -160,7 +160,7 @@ func TestMeasureSeparatesPlayerCoverageAndWait(t *testing.T) {
 	if metrics.DemandPlayers != 4 || metrics.MatchedPlayers != 2 || metrics.UnmatchedPlayers != 2 {
 		t.Fatalf("coverage metrics = %#v", metrics)
 	}
-	if metrics.CoverageBasisPoints != 5_000 || metrics.OldestMatchedWaitMillis != 60_000 || metrics.OldestUnmatchedWaitMillis != 10_000 {
+	if metrics.CoverageBasisPoints != 5_000 || metrics.OldestMatchedWaitMillis != 60_000 || metrics.OldestUnmatchedWaitMillis != 60_000 {
 		t.Fatalf("quality metrics = %#v", metrics)
 	}
 }

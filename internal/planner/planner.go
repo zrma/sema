@@ -20,6 +20,8 @@ const (
 	defaultMaxProposals             = 64
 	defaultMaxSearchNodes           = 100_000
 	defaultMaxCandidatesPerProposal = 64
+	defaultMaxBatchCandidates       = 256
+	defaultMaxBatchSearchNodes      = 100_000
 )
 
 // Plan returns a deterministic set of mutually disjoint proposals.
@@ -63,97 +65,272 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 	if maxCandidates == 0 {
 		maxCandidates = defaultMaxCandidatesPerProposal
 	}
-	maxCandidateTickets := snapshot.Policy.MaxCandidateTickets
-	budget := searchBudget{max: maxSearchNodes}
-	batch := domain.ProposalBatch{SnapshotID: snapshot.ID}
-	lastSearch := placementSearch{}
+	maxBatchCandidates := snapshot.Policy.MaxBatchCandidates
+	if maxBatchCandidates == 0 {
+		maxBatchCandidates = defaultMaxBatchCandidates
+	}
+	maxBatchSearchNodes := snapshot.Policy.MaxBatchSearchNodes
+	if maxBatchSearchNodes == 0 {
+		maxBatchSearchNodes = defaultMaxBatchSearchNodes
+	}
 
+	generationBudget := searchBudget{max: maxSearchNodes}
+	generation := generateProposalCandidates(
+		available,
+		backfills,
+		snapshot,
+		maxCandidates,
+		maxBatchCandidates,
+		maxProposals,
+		snapshot.Policy.MaxCandidateTickets,
+		&generationBudget,
+	)
+	rankCandidateUtilities(generation.candidates, maxProposals)
+	selection := selectProposalBatch(generation.candidates, maxProposals, maxBatchSearchNodes)
+
+	batch := domain.ProposalBatch{
+		SnapshotID:      snapshot.ID,
+		BudgetExhausted: generation.truncated || selection.truncated,
+		Evidence: domain.BatchScoreEvidence{
+			CandidateProposals:           len(generation.candidates),
+			SelectedProposals:            len(selection.candidates),
+			SelectedBackfills:            selection.selectedBackfills,
+			TotalUtility:                 selection.totalUtility,
+			CandidateGenerationNodes:     generationBudget.used,
+			CandidateGenerationTruncated: generation.truncated,
+			SelectionNodes:               selection.nodes,
+			SelectionTruncated:           selection.truncated,
+		},
+	}
+	selectedTickets := make(map[domain.TicketID]struct{})
+	for index, candidate := range selection.candidates {
+		candidate.evaluation.Evidence.SelectionUtility = candidate.utility
+		search := placementSearch{
+			placement: candidate.placement, evaluation: candidate.evaluation, found: true,
+		}
+		batch.Proposals = append(batch.Proposals, buildProposal(
+			snapshot,
+			search,
+			index+1,
+			policyFingerprint,
+			candidate.kind,
+			candidate.backfill,
+		))
+		for _, team := range candidate.placement {
+			for _, ticket := range team {
+				selectedTickets[ticket.ID] = struct{}{}
+			}
+		}
+	}
+
+	remaining := make([]domain.MatchTicket, 0, len(available))
+	for _, ticket := range available {
+		if _, selected := selectedTickets[ticket.ID]; !selected {
+			remaining = append(remaining, ticket)
+		}
+	}
+	reason := batchUnmatchedReason(len(batch.Proposals), maxProposals, generation, selection)
+	reasons := make(map[domain.TicketID]domain.UnmatchedReason, len(remaining)+len(hardRejected))
+	for _, ticket := range remaining {
+		reasons[ticket.ID] = reason
+	}
+	for _, ticket := range hardRejected {
+		reasons[ticket.ID] = domain.UnmatchedHardConstraint
+	}
+	remaining = append(remaining, hardRejected...)
+	sortTickets(remaining)
+	batch.Unmatched = make([]domain.UnmatchedTicket, len(remaining))
+	for index, ticket := range remaining {
+		batch.Unmatched[index] = domain.UnmatchedTicket{
+			Ticket: domain.TicketReference(ticket),
+			Reason: reasons[ticket.ID],
+		}
+	}
+	return batch, nil
+}
+
+type candidateGeneration struct {
+	candidates        []proposalCandidate
+	truncated         bool
+	sawHardFailure    bool
+	sawQualityFailure bool
+}
+
+func generateProposalCandidates(
+	available []domain.MatchTicket,
+	backfills []domain.BackfillTicket,
+	snapshot domain.MatchmakingSnapshot,
+	maxCandidatesPerSearch int,
+	maxBatchCandidates int,
+	maxSeedProposals int,
+	maxCandidateTickets int,
+	budget *searchBudget,
+) candidateGeneration {
+	result := candidateGeneration{}
+	indexes := make(map[string]int)
 	for _, backfill := range backfills {
-		if len(batch.Proposals) >= maxProposals || budget.exhausted {
+		if budget.exhausted || len(result.candidates) >= maxBatchCandidates {
+			result.truncated = true
 			break
 		}
 		window := discovery.SelectWindow(available, backfill.OpenSlotsByTeam, maxCandidateTickets)
-		lastSearch = findBestPlacement(
-			window.Tickets,
-			backfill.OpenSlotsByTeam,
-			snapshot,
-			domain.ProposalBackfill,
-			maxCandidates,
-			&budget,
-		)
-		lastSearch.candidateWindowTruncated = window.Truncated
-		lastSearch.evaluation.Evidence.CandidateTickets = len(window.Tickets)
-		lastSearch.evaluation.Evidence.CandidateWindowTruncated = window.Truncated
-		lastSearch.evaluation.Evidence.SearchTruncated = lastSearch.evaluation.Evidence.SearchTruncated || window.Truncated
-		batch.BudgetExhausted = batch.BudgetExhausted || lastSearch.truncated || window.Truncated
-		if !lastSearch.found {
-			continue
-		}
 		target := domain.BackfillReference(backfill)
-		proposal := buildProposal(
-			snapshot,
-			lastSearch,
-			len(batch.Proposals)+1,
-			policyFingerprint,
-			domain.ProposalBackfill,
-			&target,
+		collectShapeCandidates(
+			&result, indexes, window.Tickets, backfill.OpenSlotsByTeam, snapshot,
+			domain.ProposalBackfill, &target, window.Truncated,
+			maxCandidatesPerSearch, maxBatchCandidates, budget,
 		)
-		batch.Proposals = append(batch.Proposals, proposal)
-		available = removePlaced(available, lastSearch.placement)
 	}
 
 	newMatchSlots := make([]int, snapshot.Policy.TeamCount)
 	for index := range newMatchSlots {
 		newMatchSlots[index] = snapshot.Policy.TeamSize
 	}
-	for len(batch.Proposals) < maxProposals && !budget.exhausted {
-		window := discovery.SelectWindow(available, newMatchSlots, maxCandidateTickets)
-		lastSearch = findBestPlacement(
-			window.Tickets,
-			newMatchSlots,
-			snapshot,
-			domain.ProposalNewMatch,
-			maxCandidates,
-			&budget,
+	if !budget.exhausted && len(result.candidates) < maxBatchCandidates {
+		collectGreedyCoverCandidates(
+			&result, indexes, available, newMatchSlots, snapshot,
+			maxCandidatesPerSearch, maxBatchCandidates, maxSeedProposals,
+			maxCandidateTickets, budget,
 		)
-		lastSearch.candidateWindowTruncated = window.Truncated
-		lastSearch.evaluation.Evidence.CandidateTickets = len(window.Tickets)
-		lastSearch.evaluation.Evidence.CandidateWindowTruncated = window.Truncated
-		lastSearch.evaluation.Evidence.SearchTruncated = lastSearch.evaluation.Evidence.SearchTruncated || window.Truncated
-		batch.BudgetExhausted = batch.BudgetExhausted || lastSearch.truncated || window.Truncated
-		if !lastSearch.found {
-			break
-		}
-		batch.Proposals = append(batch.Proposals, buildProposal(
-			snapshot,
-			lastSearch,
-			len(batch.Proposals)+1,
-			policyFingerprint,
-			domain.ProposalNewMatch,
-			nil,
-		))
-		available = removePlaced(available, lastSearch.placement)
 	}
+	if !budget.exhausted && len(result.candidates) < maxBatchCandidates {
+		window := discovery.SelectWindow(available, newMatchSlots, maxCandidateTickets)
+		collectShapeCandidates(
+			&result, indexes, window.Tickets, newMatchSlots, snapshot,
+			domain.ProposalNewMatch, nil, window.Truncated,
+			maxCandidatesPerSearch, maxBatchCandidates, budget,
+		)
+	} else if len(available) > 0 {
+		result.truncated = true
+	}
+	result.truncated = result.truncated || budget.exhausted
+	return result
+}
 
-	reason := unmatchedReason(len(batch.Proposals), maxProposals, budget, lastSearch)
-	reasons := make(map[domain.TicketID]domain.UnmatchedReason, len(available)+len(hardRejected))
-	for _, ticket := range available {
-		reasons[ticket.ID] = reason
+func collectGreedyCoverCandidates(
+	result *candidateGeneration,
+	indexes map[string]int,
+	available []domain.MatchTicket,
+	slots []int,
+	snapshot domain.MatchmakingSnapshot,
+	maxCandidatesPerSearch int,
+	maxBatchCandidates int,
+	maxSeedProposals int,
+	maxCandidateTickets int,
+	budget *searchBudget,
+) {
+	remaining := slices.Clone(available)
+	for seed := 0; seed < maxSeedProposals && len(result.candidates) < maxBatchCandidates && !budget.exhausted; seed++ {
+		window := discovery.SelectWindow(remaining, slots, maxCandidateTickets)
+		search := findBestPlacement(
+			window.Tickets, slots, snapshot, domain.ProposalNewMatch, "", maxCandidatesPerSearch, budget,
+		)
+		prepareSearchEvidence(&search, len(window.Tickets), window.Truncated)
+		recordGeneratedCandidate(result, indexes, search, domain.ProposalNewMatch, nil)
+		if !search.found {
+			return
+		}
+		remaining = removePlaced(remaining, search.placement)
 	}
-	for _, ticket := range hardRejected {
-		reasons[ticket.ID] = domain.UnmatchedHardConstraint
+	if budget.exhausted || len(result.candidates) >= maxBatchCandidates {
+		result.truncated = true
 	}
-	available = append(available, hardRejected...)
-	sortTickets(available)
-	batch.Unmatched = make([]domain.UnmatchedTicket, len(available))
-	for index, ticket := range available {
-		batch.Unmatched[index] = domain.UnmatchedTicket{
-			Ticket: domain.TicketReference(ticket),
-			Reason: reasons[ticket.ID],
+}
+
+func collectShapeCandidates(
+	result *candidateGeneration,
+	indexes map[string]int,
+	tickets []domain.MatchTicket,
+	slots []int,
+	snapshot domain.MatchmakingSnapshot,
+	kind domain.ProposalKind,
+	backfill *domain.BackfillTarget,
+	windowTruncated bool,
+	maxCandidatesPerSearch int,
+	maxBatchCandidates int,
+	budget *searchBudget,
+) {
+	anchors := make([]domain.TicketID, 1, len(tickets)+1)
+	for _, ticket := range tickets {
+		anchors = append(anchors, ticket.ID)
+	}
+	for anchorIndex, anchor := range anchors {
+		if budget.exhausted || len(result.candidates) >= maxBatchCandidates {
+			if anchorIndex < len(anchors) {
+				result.truncated = true
+			}
+			return
+		}
+		search := findBestPlacement(
+			tickets, slots, snapshot, kind, anchor, maxCandidatesPerSearch, budget,
+		)
+		prepareSearchEvidence(&search, len(tickets), windowTruncated)
+		recordGeneratedCandidate(result, indexes, search, kind, backfill)
+	}
+}
+
+func prepareSearchEvidence(search *placementSearch, candidateTickets int, windowTruncated bool) {
+	search.candidateWindowTruncated = windowTruncated
+	search.evaluation.Evidence.CandidateTickets = candidateTickets
+	search.evaluation.Evidence.CandidateWindowTruncated = windowTruncated
+	search.evaluation.Evidence.SearchTruncated = search.evaluation.Evidence.SearchTruncated || windowTruncated
+}
+
+func recordGeneratedCandidate(
+	result *candidateGeneration,
+	indexes map[string]int,
+	search placementSearch,
+	kind domain.ProposalKind,
+	backfill *domain.BackfillTarget,
+) {
+	result.truncated = result.truncated || search.truncated || search.candidateWindowTruncated
+	result.sawHardFailure = result.sawHardFailure || search.sawHardFailure
+	result.sawQualityFailure = result.sawQualityFailure || search.sawQualityFailure
+	if !search.found {
+		return
+	}
+	candidate := proposalCandidate{
+		placement:  search.placement,
+		evaluation: search.evaluation,
+		kind:       kind,
+		backfill:   domain.CloneBackfillTarget(backfill),
+	}
+	candidate.key = canonicalCandidateKey(candidate)
+	if existingIndex, exists := indexes[candidate.key]; exists {
+		existing := result.candidates[existingIndex]
+		if objective.Compare(candidate.evaluation, existing.evaluation) < 0 ||
+			(objective.Compare(candidate.evaluation, existing.evaluation) == 0 &&
+				comparePlacement(candidate.placement, existing.placement) < 0) {
+			result.candidates[existingIndex] = candidate
+		}
+		return
+	}
+	indexes[candidate.key] = len(result.candidates)
+	result.candidates = append(result.candidates, candidate)
+}
+
+func canonicalCandidateKey(candidate proposalCandidate) string {
+	references := make([]domain.TicketRef, 0)
+	for _, team := range candidate.placement {
+		for _, ticket := range team {
+			references = append(references, domain.TicketReference(ticket))
 		}
 	}
-	batch.BudgetExhausted = batch.BudgetExhausted || budget.exhausted
-	return batch, nil
+	slices.SortFunc(references, func(left, right domain.TicketRef) int {
+		if result := cmp.Compare(left.ID, right.ID); result != 0 {
+			return result
+		}
+		return cmp.Compare(left.Revision, right.Revision)
+	})
+	key := string(candidate.kind)
+	if candidate.backfill != nil {
+		key += fmt.Sprintf("|%s@%d|%s@%d", candidate.backfill.Ticket.ID, candidate.backfill.Ticket.Revision,
+			candidate.backfill.SessionID, candidate.backfill.RosterVersion)
+	}
+	for _, reference := range references {
+		key += fmt.Sprintf("|%s@%d", reference.ID, reference.Revision)
+	}
+	return key
 }
 
 type searchBudget struct {
@@ -188,6 +365,7 @@ func findBestPlacement(
 	slots []int,
 	snapshot domain.MatchmakingSnapshot,
 	kind domain.ProposalKind,
+	requiredTicket domain.TicketID,
 	maxCandidates int,
 	budget *searchBudget,
 ) placementSearch {
@@ -209,6 +387,18 @@ func findBestPlacement(
 	if suffixPlayers[0] < totalNeeded {
 		return result
 	}
+	requiredIndex := -1
+	if requiredTicket != "" {
+		for index, ticket := range tickets {
+			if ticket.ID == requiredTicket {
+				requiredIndex = index
+				break
+			}
+		}
+		if requiredIndex < 0 {
+			return result
+		}
+	}
 
 	assigned := make([][]int, len(slots))
 	teamSkills := make([]int, len(slots))
@@ -218,6 +408,9 @@ func findBestPlacement(
 			return true
 		}
 		if needed == 0 {
+			if requiredIndex >= 0 && !placementIncludesIndex(assigned, requiredIndex) {
+				return false
+			}
 			placement := materializePlacement(tickets, assigned)
 			evaluation := objective.Evaluate(snapshot.Now, placement, snapshot.Policy, kind)
 			result.exactCandidates++
@@ -267,6 +460,9 @@ func findBestPlacement(
 			}
 		}
 
+		if index == requiredIndex {
+			return false
+		}
 		return search(index+1, needed)
 	}
 
@@ -276,6 +472,15 @@ func findBestPlacement(
 	result.evaluation.Evidence.SearchNodes = result.searchNodes
 	result.evaluation.Evidence.SearchTruncated = result.truncated || budget.exhausted
 	return result
+}
+
+func placementIncludesIndex(assigned [][]int, required int) bool {
+	for _, team := range assigned {
+		if slices.Contains(team, required) {
+			return true
+		}
+	}
+	return false
 }
 
 type teamCandidate struct {
@@ -413,20 +618,22 @@ func comparePlacement(left, right [][]domain.MatchTicket) int {
 	return cmp.Compare(len(left), len(right))
 }
 
-func unmatchedReason(
+func batchUnmatchedReason(
 	proposalCount int,
 	maxProposals int,
-	budget searchBudget,
-	search placementSearch,
+	generation candidateGeneration,
+	selection batchSelection,
 ) domain.UnmatchedReason {
 	switch {
+	case generation.truncated || selection.truncated:
+		return domain.UnmatchedSearchBudget
 	case proposalCount >= maxProposals:
 		return domain.UnmatchedProposalLimit
-	case budget.exhausted || search.truncated || search.candidateWindowTruncated:
-		return domain.UnmatchedSearchBudget
-	case search.sawQualityFailure:
+	case len(generation.candidates) > len(selection.candidates):
+		return domain.UnmatchedBatchObjective
+	case generation.sawQualityFailure:
 		return domain.UnmatchedQualityThreshold
-	case search.sawHardFailure:
+	case generation.sawHardFailure:
 		return domain.UnmatchedHardConstraint
 	default:
 		return domain.UnmatchedInsufficientCapacity

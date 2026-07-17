@@ -27,12 +27,14 @@ go run ./examples/compose
 ## Contract
 
 - input은 `Snapshot`, `MatchTicket`, optional `BackfillTicket`과 `MatchmakingPolicy`의 independent public copy다.
-- output은 `APIVersion: v0alpha1`, proposal/team placement, policy fingerprint, score/search evidence와 unmatched records다.
+- output은 `APIVersion: v0alpha2`, proposal/team placement, policy fingerprint, score/search/batch-selection evidence와 unmatched records다.
 - input slice와 player data를 internal planner에 직접 alias하지 않고 conversion boundary에서 복사한다.
 - 같은 snapshot/policy는 internal deterministic contract와 같은 ordered batch를 만든다.
 - invalid input은 public `*alpha.Error`이며 `alpha.ErrorCodeOf`로 stable alpha error code를 읽는다.
 
-`MaxCandidateTickets`, `MaxCandidatesPerProposal`, `MaxSearchNodes`는 각각 discovery input, exact placement comparison과 recursive node budget이다. truncation은 output evidence와 `BudgetExhausted`에 남는다.
+`MaxCandidateTickets`, `MaxCandidatesPerProposal`, `MaxSearchNodes`는 각각 discovery input, anchored placement comparison과 candidate-generation node budget이다. `MaxBatchCandidates`, `MaxBatchSearchNodes`는 global selector의 graph 크기와 branch-and-bound node budget이다. truncation은 proposal/batch evidence와 `BudgetExhausted`에 남는다.
+
+`MaxProposals`는 exact count가 아니라 상한이다. 개별 admissibility를 통과한 후보 중 서로 ticket/backfill target이 겹치지 않는 집합의 total rank utility를 최대화하므로, 반환 수는 `0..MaxProposals`다. utility의 admission baseline은 가능한 유효 match 수를 먼저 보존하고 같은 수 안에서 quality rank를 비교한다. 이 값은 해당 candidate graph 내부의 상대값이며 실행 간 절대 quality metric이 아니다.
 
 ## Non-Goals
 

@@ -29,6 +29,7 @@ func TestHTTPAPIFullLifecycleSurvivesRestart(t *testing.T) {
 	policy := api.MatchmakingPolicy{
 		Version: "http-v1", TeamCount: 2, TeamSize: 2, MaxLatencyMillis: 200,
 		MaxSearchNodes: 100_000, MaxCandidatesPerProposal: 64,
+		MaxBatchCandidates: 32, MaxBatchSearchNodes: 1_000,
 		RelaxationSteps: []api.RelaxationStep{{AfterWaitMillis: 0, MaxTeamSkillGap: 100}},
 	}
 	registration := requestData[api.PolicyRegistration](t, handler, http.MethodPut, "/v0alpha1/policies/http-v1", policy, http.StatusOK)
@@ -36,7 +37,8 @@ func TestHTTPAPIFullLifecycleSurvivesRestart(t *testing.T) {
 		t.Fatalf("policy registration = %#v", registration)
 	}
 	stored := requestData[api.PolicyRegistration](t, handler, http.MethodGet, "/v0alpha1/policies/http-v1", nil, http.StatusOK)
-	if stored.Fingerprint != registration.Fingerprint || stored.Policy.RelaxationSteps[0].AfterWaitMillis != 0 {
+	if stored.Fingerprint != registration.Fingerprint || stored.Policy.RelaxationSteps[0].AfterWaitMillis != 0 ||
+		stored.Policy.MaxBatchCandidates != 32 || stored.Policy.MaxBatchSearchNodes != 1_000 {
 		t.Fatalf("stored policy = %#v", stored)
 	}
 	for index := range 4 {
@@ -59,6 +61,10 @@ func TestHTTPAPIFullLifecycleSurvivesRestart(t *testing.T) {
 	}, http.StatusOK)
 	if len(batch.Proposals) != 1 || len(batch.Unmatched) != 0 {
 		t.Fatalf("plan batch = %#v", batch)
+	}
+	if batch.Evidence.CandidateProposals != 1 || batch.Evidence.SelectedProposals != 1 ||
+		batch.Evidence.TotalUtility <= 0 || batch.Proposals[0].Evidence.SelectionUtility <= 0 {
+		t.Fatalf("plan selection evidence = %#v, proposal=%#v", batch.Evidence, batch.Proposals[0].Evidence)
 	}
 	if err := runtime.Close(); err != nil {
 		t.Fatal(err)

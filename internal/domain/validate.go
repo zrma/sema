@@ -15,7 +15,8 @@ func ValidatePolicy(policy MatchmakingPolicy) error {
 	if policy.MaxLatencyMillis <= 0 {
 		return NewFailure(FailureInvalidInput, "maximum latency must be positive")
 	}
-	if policy.MaxProposals < 0 || policy.MaxSearchNodes < 0 || policy.MaxCandidateTickets < 0 || policy.MaxCandidatesPerProposal < 0 {
+	if policy.MaxProposals < 0 || policy.MaxSearchNodes < 0 || policy.MaxCandidateTickets < 0 ||
+		policy.MaxCandidatesPerProposal < 0 || policy.MaxBatchCandidates < 0 || policy.MaxBatchSearchNodes < 0 {
 		return NewFailure(FailureInvalidInput, "planning limits cannot be negative")
 	}
 	roles := make(map[string]struct{}, len(policy.RoleRequirements))

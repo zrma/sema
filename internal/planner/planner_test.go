@@ -37,6 +37,51 @@ func TestPlanReturnsDeterministicDisjointMatches(t *testing.T) {
 	assertDisjointAndCapacity(t, first, snapshot.MatchTickets, 2, 2)
 }
 
+func TestPlanExposesGlobalBatchSelectionEvidence(t *testing.T) {
+	configured := policy(2, 1)
+	configured.MaxProposals = 2
+	tickets := namedSoloTickets([]ticketAttributes{
+		{id: "a", skill: 1000, wait: 10 * time.Second, latency: 20},
+		{id: "b", skill: 1000, wait: 10 * time.Second, latency: 20},
+		{id: "c", skill: 1000, wait: 10 * time.Second, latency: 20},
+		{id: "d", skill: 1000, wait: 10 * time.Second, latency: 20},
+	})
+
+	batch, err := planner.Plan(snapshotWith("global-batch-evidence", configured, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 2 || batch.Evidence.SelectedProposals != 2 ||
+		batch.Evidence.CandidateProposals <= batch.Evidence.SelectedProposals {
+		t.Fatalf("batch evidence = %#v, proposals=%d; want a selected subset of a larger candidate graph", batch.Evidence, len(batch.Proposals))
+	}
+	var utility int64
+	for _, proposal := range batch.Proposals {
+		if proposal.Evidence.SelectionUtility <= 0 {
+			t.Fatalf("proposal evidence = %#v; want positive selection utility", proposal.Evidence)
+		}
+		utility += proposal.Evidence.SelectionUtility
+	}
+	if utility != batch.Evidence.TotalUtility || batch.Evidence.SelectionNodes == 0 {
+		t.Fatalf("batch evidence = %#v, proposal utility=%d", batch.Evidence, utility)
+	}
+	assertDisjointAndCapacity(t, batch, tickets, 2, 1)
+}
+
+func TestPlanReturnsFeasibleBatchWhenGlobalSelectionBudgetEnds(t *testing.T) {
+	configured := policy(2, 1)
+	configured.MaxProposals = 2
+	configured.MaxBatchSearchNodes = 1
+
+	batch, err := planner.Plan(snapshotWith("bounded-global-selection", configured, partyTickets([]int{1, 1, 1, 1})))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !batch.BudgetExhausted || !batch.Evidence.SelectionTruncated || len(batch.Proposals) == 0 {
+		t.Fatalf("batch = %#v; want a best feasible batch with explicit selection truncation", batch)
+	}
+}
+
 func TestProposalIdentityIncludesPolicyContent(t *testing.T) {
 	tickets := partyTickets([]int{1, 1, 1, 1})
 	firstPolicy := policy(2, 2)

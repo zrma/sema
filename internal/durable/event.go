@@ -57,14 +57,15 @@ type backfillCancelledEvent struct {
 }
 
 type planCompletedEvent struct {
-	SnapshotID       domain.SnapshotID        `json:"snapshot_id"`
-	Now              time.Time                `json:"now"`
-	PolicyVersion    string                   `json:"policy_version"`
-	Proposals        []domain.MatchProposal   `json:"proposals"`
-	Unmatched        []domain.UnmatchedTicket `json:"unmatched"`
-	UnmatchedTickets int                      `json:"unmatched_tickets"`
-	UnmatchedDigest  string                   `json:"unmatched_digest"`
-	BudgetExhausted  bool                     `json:"budget_exhausted"`
+	SnapshotID       domain.SnapshotID         `json:"snapshot_id"`
+	Now              time.Time                 `json:"now"`
+	PolicyVersion    string                    `json:"policy_version"`
+	Proposals        []domain.MatchProposal    `json:"proposals"`
+	Unmatched        []domain.UnmatchedTicket  `json:"unmatched"`
+	UnmatchedTickets int                       `json:"unmatched_tickets"`
+	UnmatchedDigest  string                    `json:"unmatched_digest"`
+	BudgetExhausted  bool                      `json:"budget_exhausted"`
+	Evidence         domain.BatchScoreEvidence `json:"evidence"`
 }
 
 type proposalReservedEvent struct {
@@ -142,6 +143,7 @@ func newPlanCompletedEvent(
 		Proposals: proposals, Unmatched: slices.Clone(batch.Unmatched),
 		UnmatchedTickets: len(batch.Unmatched),
 		UnmatchedDigest:  unmatchedDigest, BudgetExhausted: batch.BudgetExhausted,
+		Evidence: batch.Evidence,
 	}, nil
 }
 
@@ -210,6 +212,7 @@ func batchFromPlanEvent(event planCompletedEvent) domain.ProposalBatch {
 	return domain.ProposalBatch{
 		SnapshotID: cloned.SnapshotID, Proposals: cloned.Proposals,
 		Unmatched: cloned.Unmatched, BudgetExhausted: cloned.BudgetExhausted,
+		Evidence: cloned.Evidence,
 	}
 }
 

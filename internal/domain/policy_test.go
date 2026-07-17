@@ -64,6 +64,34 @@ func TestFingerprintPolicyIncludesCandidateTicketWindow(t *testing.T) {
 	}
 }
 
+func TestFingerprintPolicyIncludesGlobalBatchLimits(t *testing.T) {
+	first := fingerprintPolicy()
+	second := first
+	second.MaxBatchCandidates++
+
+	firstFingerprint, err := domain.FingerprintPolicy(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondFingerprint, err := domain.FingerprintPolicy(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstFingerprint == secondFingerprint {
+		t.Fatalf("batch candidate limit reused fingerprint %q", firstFingerprint)
+	}
+
+	third := first
+	third.MaxBatchSearchNodes++
+	thirdFingerprint, err := domain.FingerprintPolicy(third)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstFingerprint == thirdFingerprint {
+		t.Fatalf("batch search limit reused fingerprint %q", firstFingerprint)
+	}
+}
+
 func fingerprintPolicy() domain.MatchmakingPolicy {
 	return domain.MatchmakingPolicy{
 		Version:                  "policy-content-v1",
@@ -73,6 +101,8 @@ func fingerprintPolicy() domain.MatchmakingPolicy {
 		MaxProposals:             8,
 		MaxSearchNodes:           100_000,
 		MaxCandidatesPerProposal: 64,
+		MaxBatchCandidates:       256,
+		MaxBatchSearchNodes:      100_000,
 		RoleRequirements: []domain.RoleRequirement{
 			{Role: "tank", MinPerTeam: 1, Hard: true},
 			{Role: "healer", MinPerTeam: 1},

@@ -5,7 +5,7 @@ package alpha
 
 import "time"
 
-const APIVersion = "v0alpha1"
+const APIVersion = "v0alpha2"
 
 type (
 	PlayerID          string
@@ -62,6 +62,8 @@ type MatchmakingPolicy struct {
 	MaxSearchNodes           int               `json:"max_search_nodes,omitempty"`
 	MaxCandidateTickets      int               `json:"max_candidate_tickets,omitempty"`
 	MaxCandidatesPerProposal int               `json:"max_candidates_per_proposal,omitempty"`
+	MaxBatchCandidates       int               `json:"max_batch_candidates,omitempty"`
+	MaxBatchSearchNodes      int               `json:"max_batch_search_nodes,omitempty"`
 	RoleRequirements         []RoleRequirement `json:"role_requirements,omitempty"`
 	RelaxationSteps          []RelaxationStep  `json:"relaxation_steps,omitempty"`
 }
@@ -110,6 +112,18 @@ type ScoreEvidence struct {
 	SearchNodes              int   `json:"search_nodes"`
 	CandidateWindowTruncated bool  `json:"candidate_window_truncated"`
 	SearchTruncated          bool  `json:"search_truncated"`
+	SelectionUtility         int64 `json:"selection_utility"`
+}
+
+type BatchScoreEvidence struct {
+	CandidateProposals           int   `json:"candidate_proposals"`
+	SelectedProposals            int   `json:"selected_proposals"`
+	SelectedBackfills            int   `json:"selected_backfills"`
+	TotalUtility                 int64 `json:"total_utility"`
+	CandidateGenerationNodes     int   `json:"candidate_generation_nodes"`
+	CandidateGenerationTruncated bool  `json:"candidate_generation_truncated"`
+	SelectionNodes               int   `json:"selection_nodes"`
+	SelectionTruncated           bool  `json:"selection_truncated"`
 }
 
 type MatchProposal struct {
@@ -139,9 +153,10 @@ type UnmatchedTicket struct {
 }
 
 type ProposalBatch struct {
-	APIVersion      string            `json:"api_version"`
-	SnapshotID      SnapshotID        `json:"snapshot_id"`
-	Proposals       []MatchProposal   `json:"proposals"`
-	Unmatched       []UnmatchedTicket `json:"unmatched"`
-	BudgetExhausted bool              `json:"budget_exhausted"`
+	APIVersion      string             `json:"api_version"`
+	SnapshotID      SnapshotID         `json:"snapshot_id"`
+	Proposals       []MatchProposal    `json:"proposals"`
+	Unmatched       []UnmatchedTicket  `json:"unmatched"`
+	BudgetExhausted bool               `json:"budget_exhausted"`
+	Evidence        BatchScoreEvidence `json:"evidence"`
 }

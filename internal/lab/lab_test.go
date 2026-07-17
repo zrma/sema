@@ -140,10 +140,11 @@ func TestRunReportsSyntheticMetricsAndOracleGap(t *testing.T) {
 	if diagnostic.Oracle == nil || diagnostic.Oracle.Relation != evaluation.QualityOraclePreferred {
 		t.Fatalf("diagnostic oracle = %#v", diagnostic.Oracle)
 	}
-	if diagnostic.Oracle.PlannerQuality.TeamSkillGap != 1000 || diagnostic.Oracle.OracleQuality.TeamSkillGap != 0 {
+	if diagnostic.Oracle.PlannerQuality.TeamSkillGap != 500 || diagnostic.Oracle.OracleQuality.TeamSkillGap != 0 {
 		t.Fatalf("diagnostic quality vectors = %#v", diagnostic.Oracle)
 	}
-	if diagnostic.Outcome.CoverageBasisPoints != 5000 || diagnostic.Outcome.Search.Nodes > 5 {
+	if diagnostic.Outcome.CoverageBasisPoints != 5000 || diagnostic.Outcome.Search.Nodes > 5 ||
+		diagnostic.Outcome.Batch.CandidateGenerationNodes > 30 {
 		t.Fatalf("diagnostic regression budget = %#v", diagnostic.Outcome)
 	}
 	window := byID["diagnostic-candidate-window-gap"]

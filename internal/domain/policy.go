@@ -22,6 +22,8 @@ func FingerprintPolicy(policy MatchmakingPolicy) (PolicyFingerprint, error) {
 	encoded = appendCanonicalInt(encoded, policy.MaxSearchNodes)
 	encoded = appendCanonicalInt(encoded, policy.MaxCandidateTickets)
 	encoded = appendCanonicalInt(encoded, policy.MaxCandidatesPerProposal)
+	encoded = appendCanonicalInt(encoded, policy.MaxBatchCandidates)
+	encoded = appendCanonicalInt(encoded, policy.MaxBatchSearchNodes)
 
 	requirements := slices.Clone(policy.RoleRequirements)
 	slices.SortFunc(requirements, func(left, right RoleRequirement) int {
