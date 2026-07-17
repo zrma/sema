@@ -69,6 +69,8 @@ P25 sustained-arrival diagnostic은 quality-first 구간에 오래된 불균형 
 
 P26 roster-aware backfill fixture는 기존 team skill total 1000/1500과 healer/dps role count에 두 incoming player를 배치한다. planner와 exhaustive frontier는 high-dps를 낮은 team에, low-healer를 높은 team에 넣어 resulting skill gap 0, role penalty 0과 max latency 60을 만드는 point에서 equivalent여야 한다. context가 없는 기존 frontier corpus는 vacancy-only baseline을 계속 검증한다.
 
+P27 index evaluation은 quality score를 새로 만들지 않고 linear oldest-prefix와 indexed result의 exact equivalence를 검사한다. small shape/limit matrix와 10K deterministic mixed-party queue에서 ticket order와 truncation이 같아야 하며 100K benchmark는 repeated lookup과 one-time build cost를 분리한다. index build를 매 snapshot latency에 포함시키지 않고 stateful reuse가 가능한 service boundary까지 default planner 연결을 보류한다.
+
 ## Reference Evidence
 
 - `synthetic-5v5-seeded-queue`: weighted party/skill/role/latency/wait distribution의 multi-proposal coverage와 queue evidence.

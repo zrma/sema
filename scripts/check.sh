@@ -119,6 +119,7 @@ for required_file in \
   docs/todo-0035-small-queue-pareto-planning/spec.md \
   docs/todo-0036-queue-fairness-starvation/spec.md \
   docs/todo-0037-backfill-quality-context/spec.md \
+  docs/todo-0038-indexed-candidate-discovery/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \
@@ -208,6 +209,7 @@ go run ./cmd/sema-flow-report -version >/dev/null
 go run ./cmd/sema-flow-report -duration 60s -population 40 -game-duration 20s -max-return-delay 10s -format json >/dev/null
 go run ./cmd/sema-flow-matrix -duration 3s -population 40 -seeds 42,43 -batches 1,2 -parallel 2 -game-duration 20s -arrival-interval 100ms -planning-interval 1s -max-return-delay 10s -format json >/dev/null
 scripts/check-release-build.sh
+go test ./internal/discovery -run '^$' -bench '^Benchmark(BuildIndex|WindowSelectionReuse)$' -benchtime=1x
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x
 go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x
 go test ./internal/durable -run '^$' -bench '^BenchmarkOpenReplay$' -benchtime=1x

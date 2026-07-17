@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P26 roster-aware backfill quality까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P27 indexed candidate discovery까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -94,6 +94,8 @@ P0부터 P26 roster-aware backfill quality까지 완료되었다. source/service
 - candidate graph의 wait-priority eligible/selected demand 수와 oldest eligible/selected wait evidence.
 - backfill ticket revision/roster version에 묶인 optional existing-team player/skill/role/latency aggregate.
 - incoming placement 뒤 resulting roster quality를 planner와 exhaustive frontier가 함께 비교하는 regression.
+- party/skill/role/latency reusable partition index와 linear oldest-prefix exact-equivalence matrix.
+- 100K repeated lookup과 one-time build cost를 분리한 discovery benchmark 및 stateful ownership boundary.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -121,4 +123,4 @@ P0부터 P26 roster-aware backfill quality까지 완료되었다. source/service
 
 ## Next Slice
 
-P26은 optional roster-versioned aggregate로 backfill resulting skill/role/latency를 평가하고 stale freshness를 거부한다. 다음 matcher slice는 oldest-prefix contract를 보존하면서 large queue candidate cost를 줄이는 P27 indexed discovery다. 이후 matcher V0 exit gate를 진행하고 `docs/matcher-v0-exit.md`의 service productization entry에서 기존 journal/HTTP prototype을 persistence/API 제품 경계로 재설계한다. 현재 aggregate와 synthetic fixture를 production MMR schema나 SLA로 승격하지 않는다.
+P27은 reusable partition index가 linear oldest-prefix와 정확히 같은 window를 반환하도록 고정하고 per-plan rebuild가 이득이 아님을 benchmark로 분리했다. 다음 matcher slice는 P28 conformance matrix와 V0 exit gate다. 통과 뒤 `docs/matcher-v0-exit.md`의 service productization entry에서 stateful index lifetime, journal과 experimental HTTP를 persistence/API 제품 경계로 재설계한다. 현재 aggregate와 synthetic fixture를 production MMR schema나 SLA로 승격하지 않는다.

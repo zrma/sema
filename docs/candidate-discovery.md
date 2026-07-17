@@ -73,3 +73,21 @@ go test ./internal/planner -run '^$' -fuzz '^FuzzPlanInvariants$' -fuzztime=10s
 ```
 
 elapsed time과 allocation은 target hardware SLO가 아니며 P10 calibration 전에는 관찰 evidence로만 사용한다.
+
+## Reusable Partition Index
+
+P27의 `internal/discovery.Index`는 canonical queue를 다음 key로 partition한다.
+
+- party size.
+- party average skill의 100-point band.
+- role multiset의 stable numeric profile.
+- party maximum latency의 25ms band.
+
+partition은 candidate preference를 바꾸지 않는다. typical party-size envelope은 `partySize <= max slot`인 canonical position list를 미리 만들고, size 종류가 16개를 넘는 경우 partition head heap merge로 fallback한다. 두 경로 모두 `SelectWindow`의 oldest fitting prefix와 `Truncated`를 byte-for-value equivalent하게 반환한다. role profile collision은 partition을 합칠 수만 있고 canonical merge 결과는 바꾸지 않는다.
+
+96-ticket shape/limit matrix와 10K mixed-party queue가 linear/indexed `Window` 전체를 `DeepEqual`로 비교한다. 100K queue의 four-shape reuse benchmark는 indexed lookup이 linear scan과 같은 microsecond-scale임을 확인하지만 shape와 단일 실행 noise에 따라 어느 쪽도 더 빠를 수 있고, index build cost는 lookup 차이보다 훨씬 크다. 따라서 current stateless planner는 즉석 rebuild를 하지 않는다. queue mutation에 따라 index를 incremental하게 유지하고 여러 plan에 재사용하는 ownership은 P28 이후 persistence/API productization entry에서 stateful demand repository와 함께 연결한다. 이 결정은 algorithm gap이 아니라 lifecycle placement다.
+
+```sh
+go test ./internal/discovery -run 'TestIndexedWindowMatchesLinear'
+go test ./internal/discovery -run '^$' -bench 'Benchmark(BuildIndex|WindowSelectionReuse)' -benchmem
+```

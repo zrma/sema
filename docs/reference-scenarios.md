@@ -198,3 +198,7 @@ skill 0/1000의 오래된 1:1 pair를 queue에 유지하고 매 10초마다 skil
 ## S35: Roster-Aware Backfill Quality
 
 team size 2의 existing roster는 team A skill total 1000/healer 1, team B skill total 1500/dps 1이고 각 team에 한 slot이 비어 있다. incoming high-dps 1500과 low-healer 1000을 반대 skill team에 배치하면 resulting average gap 0, role penalty 0, max latency 60이 된다. mid 1250 대안보다 이 조합을 planner와 exhaustive frontier가 함께 선택하고 proposal target은 context와 같은 `rosterVersion=7`을 보존한다. higher ticket revision/roster version/context가 ingest된 뒤 이전 proposal reserve는 `StaleSnapshot`이다. empty context는 legacy vacancy-only behavior를 유지한다.
+
+## S36: Indexed Oldest-Prefix Equivalence
+
+party size 1..4, skill 1200..1899, empty/dps/healer role과 latency 20..99ms가 섞인 canonical queue를 party/skill/role/latency partition index로 만든다. 96-ticket queue의 slot shape 1/2/5와 limit 0/1/7/32/128 matrix, 10K queue의 limit 256에서 indexed window는 linear oldest-fitting window의 ticket order와 truncation을 정확히 재현한다. 100K reuse benchmark는 four-shape lookup과 one-time build를 분리해 측정하며 stateless planner가 per-call build를 하지 않는 결정을 검증한다.

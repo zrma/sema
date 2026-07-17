@@ -224,9 +224,9 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 
 ## P27: Indexed Candidate Discovery
 
-- [ ] skill/role/latency partition prototype
-- [ ] oldest-prefix fairness와 approximation evidence 보존
-- [ ] small exhaustive와 large deterministic comparison
+- [x] skill/role/latency partition prototype
+- [x] oldest-prefix fairness와 approximation evidence 보존
+- [x] small exhaustive와 large deterministic comparison
 
 ## P28: Matcher V0 Exit Gate
 

@@ -33,6 +33,7 @@
 - P24 planner가 candidate budget을 명시하지 않은 같은 small boundary에서 ticket-set alternatives와 Pareto subset repair를 사용하며 128-seed differential corpus가 모두 frontier equivalent임을 검증한다.
 - P25 planner가 각 match/backfill demand의 priority age를 계산하고 backfill tier 안에서 oldest eligible wait를 rank utility보다 먼저 service한다. sustained fresh-arrival fixture는 configured 30초 경계에서 오래된 pair와 priority evidence를 고정한다.
 - P26 backfill이 optional roster-versioned team aggregate와 incoming placement의 resulting skill/role/latency를 평가하고 exhaustive frontier 및 stale reserve fixture가 같은 freshness contract를 검증한다.
+- P27 reusable discovery index가 party/skill/role/latency partition을 canonical age order로 merge해 96-ticket matrix와 10K queue에서 linear oldest-prefix와 exact-equivalent window를 만든다. per-plan build는 하지 않고 stateful owner 연결을 productization entry에 둔다.
 - P7 discovery가 versioned oldest-fitting ticket window, 10K correctness, 10K/100K manual benchmark와 fuzz invariant를 제공한다.
 - public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
 - `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
@@ -71,7 +72,7 @@
 
 ## Current Work
 
-P0 foundation부터 P26 roster-aware backfill까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 matcher milestone은 P27 indexed discovery이며 P28 matcher V0 exit가 뒤따른다. 그 다음 기존 journal/HTTP prototype을 persistence/API 제품 경계로 재설계하는 service milestone을 시작한다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P27 indexed discovery까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 matcher milestone은 P28 matcher V0 exit다. 그 다음 stateful index lifetime과 기존 journal/HTTP prototype을 persistence/API 제품 경계로 재설계하는 service milestone을 시작한다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 
