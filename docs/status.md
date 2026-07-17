@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog/simulation, initial integration/publication baseline이 완료되었다. 실제 consumer 또는 수치 SLO가 생길 때 production-facing boundary를 재평가한다.
+P0부터 P4 core/runtime/policy baseline과 P5 executable evaluation lab이 완료되었다. 현재는 P6 realistic workload와 quality/oracle evidence를 준비하며 실제 consumer 또는 수치 SLO가 생길 때 production-facing boundary를 재평가한다.
 
 ## Established
 
@@ -37,13 +37,15 @@ P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog/simula
 - public repository identity `github.com/zrma/sema`와 Apache-2.0 source license.
 - public source이지만 Go package는 `internal/`에 유지하고 public API compatibility는 아직 약속하지 않는 경계.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
+- built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
+- ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text 및 experimental `v0alpha1` JSON report.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
 
 ## Not Implemented
 
-- 대규모 queue를 위한 candidate index와 partition.
-- global optimum 또는 품질 근사 보장.
+- realistic arrival/party/skill/latency workload model과 small-case oracle comparison.
+- 대규모 queue를 위한 candidate index와 partition 및 품질 근사 보장.
 - reservation/assignment persistence와 distributed coordination.
 - API/server entrypoint, observability, deployment.
 - import 가능한 public Go SDK와 compatibility/migration policy.
@@ -53,9 +55,9 @@ P0부터 P3 runtime validation/demand index와 P4 policy identity/catalog/simula
 - matchmaking cycle p95, maximum queue wait, absolute latency cap의 수치.
 - skill uncertainty와 team balance metric.
 - role composition의 hard/soft 경계.
-- mixed-party battle royale과 backfill fixture의 P0 범위.
+- mixed-party battle royale과 현실적인 existing-roster backfill 분포.
 - 인메모리 baseline은 process restart recovery를 제공하지 않는다.
 
 ## Next Slice
 
-same-process, producer replay, synchronous acknowledgment와 single-replica baseline을 유지한다. 실제 consumer 또는 수치 SLO가 생기면 transport, durability와 public API 필요성을 함께 재평가하고, 그 전의 다음 repo-owned 작업은 distribution/release workflow다.
+same-process, producer replay, synchronous acknowledgment와 single-replica baseline을 유지한다. 다음 slice는 P6 workload generator, quality metric vocabulary와 small-case exhaustive oracle다. 실제 consumer 또는 수치 SLO가 생기면 transport, durability와 public API 필요성을 함께 재평가한다.

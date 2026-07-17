@@ -1,0 +1,137 @@
+package lab_test
+
+import (
+	"reflect"
+	"strings"
+	"testing"
+
+	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/lab"
+)
+
+func TestRunIsDeterministicAndCanonical(t *testing.T) {
+	first, err := lab.Run([]string{"team-5v5-mixed", "team-2v2-solo", "team-5v5-mixed"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := lab.Run([]string{"team-2v2-solo", "team-5v5-mixed"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(first, second) {
+		t.Fatalf("lab report is not deterministic: first=%#v second=%#v", first, second)
+	}
+	if first.SchemaVersion != lab.SchemaVersion || len(first.Scenarios) != 2 {
+		t.Fatalf("report envelope = %#v", first)
+	}
+	if first.Scenarios[0].ID != "team-2v2-solo" || first.Scenarios[1].ID != "team-5v5-mixed" {
+		t.Fatalf("scenario order = %#v", first.Scenarios)
+	}
+}
+
+func TestRunCoversReferenceOutcomes(t *testing.T) {
+	tests := []struct {
+		id               string
+		proposals        int
+		matchedPlayers   int
+		unmatchedPlayers int
+		kind             domain.ProposalKind
+	}{
+		{id: "team-50v50-solo", proposals: 1, matchedPlayers: 100, kind: domain.ProposalNewMatch},
+		{id: "battle-royale-duo", proposals: 1, matchedPlayers: 100, kind: domain.ProposalNewMatch},
+		{id: "battle-royale-squad", proposals: 1, matchedPlayers: 100, kind: domain.ProposalNewMatch},
+		{id: "backfill-2v2-two-slots", proposals: 1, matchedPlayers: 2, unmatchedPlayers: 2, kind: domain.ProposalBackfill},
+		{id: "no-match-insufficient-capacity", unmatchedPlayers: 3},
+		{id: "no-match-latency-hard-limit", unmatchedPlayers: 4},
+		{id: "quality-role-balanced-2v2", proposals: 1, matchedPlayers: 4, unmatchedPlayers: 2, kind: domain.ProposalNewMatch},
+		{id: "quality-wait-relaxed-2v2", proposals: 1, matchedPlayers: 4, kind: domain.ProposalNewMatch},
+	}
+
+	for _, test := range tests {
+		t.Run(test.id, func(t *testing.T) {
+			report, err := lab.Run([]string{test.id})
+			if err != nil {
+				t.Fatal(err)
+			}
+			result := report.Scenarios[0]
+			if result.Outcome.ProposalCount != test.proposals ||
+				result.Outcome.MatchedPlayers != test.matchedPlayers ||
+				result.Outcome.UnmatchedPlayers != test.unmatchedPlayers {
+				t.Fatalf("outcome = %#v", result.Outcome)
+			}
+			if test.proposals > 0 && result.Proposals[0].Kind != test.kind {
+				t.Fatalf("proposal kind = %q; want %q", result.Proposals[0].Kind, test.kind)
+			}
+		})
+	}
+}
+
+func TestRunFullCorpusPreservesCoverageAndOrdering(t *testing.T) {
+	report, err := lab.Run(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workloads := lab.Workloads()
+	if len(report.Scenarios) != len(workloads) {
+		t.Fatalf("scenario count = %d; want %d", len(report.Scenarios), len(workloads))
+	}
+	for index, result := range report.Scenarios {
+		if result.ID != workloads[index].ID {
+			t.Fatalf("scenario %d ID = %q; want %q", index, result.ID, workloads[index].ID)
+		}
+		if result.Outcome.MatchedPlayers+result.Outcome.UnmatchedPlayers != result.Demand.Players {
+			t.Fatalf("scenario %q loses player coverage: demand=%d outcome=%#v", result.ID, result.Demand.Players, result.Outcome)
+		}
+		if strings.HasPrefix(result.ID, "team-") || strings.HasPrefix(result.ID, "battle-royale-") {
+			if result.Outcome.MatchedPlayers != result.Demand.Players || result.Outcome.UnmatchedPlayers != 0 {
+				t.Fatalf("reference workload %q is not fully matched: %#v", result.ID, result.Outcome)
+			}
+		}
+	}
+}
+
+func TestRunReportsObjectiveAndHardConstraintEvidence(t *testing.T) {
+	report, err := lab.Run([]string{
+		"quality-role-balanced-2v2",
+		"quality-wait-relaxed-2v2",
+		"no-match-latency-hard-limit",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	byID := make(map[string]lab.ScenarioResult, len(report.Scenarios))
+	for _, result := range report.Scenarios {
+		byID[result.ID] = result
+	}
+	if result := byID["quality-role-balanced-2v2"]; result.Outcome.Search.TotalRolePenalty != 0 {
+		t.Fatalf("role-quality result = %#v", result.Outcome)
+	}
+	if result := byID["quality-wait-relaxed-2v2"]; result.Outcome.Search.MaxRelaxationLevel != 1 ||
+		result.Outcome.Search.TotalRolePenalty != 2 || result.Outcome.Search.WaitPriorityProposals != 1 {
+		t.Fatalf("wait-relaxed result = %#v", result.Outcome)
+	}
+	latency := byID["no-match-latency-hard-limit"]
+	if len(latency.Outcome.UnmatchedReasons) != 2 || latency.Outcome.UnmatchedReasons[0].Reason != domain.UnmatchedHardConstraint {
+		t.Fatalf("latency hard-limit reasons = %#v", latency.Outcome.UnmatchedReasons)
+	}
+}
+
+func TestRunRejectsUnknownWorkload(t *testing.T) {
+	report, err := lab.Run([]string{"unknown"})
+	if code, ok := domain.FailureCodeOf(err); !ok || code != domain.FailureInvalidInput {
+		t.Fatalf("unknown workload error = %v; want %s", err, domain.FailureInvalidInput)
+	}
+	if len(report.Scenarios) != 0 {
+		t.Fatalf("unknown workload produced a partial report: %#v", report)
+	}
+}
+
+func TestWorkloadsReturnsDefensiveCopies(t *testing.T) {
+	first := lab.Workloads()
+	first[0].Policy.Version = "mutated"
+	first[0].Scenario.MatchTickets[0].Players[0].Skill = -1
+	second := lab.Workloads()
+	if second[0].Policy.Version == "mutated" || second[0].Scenario.MatchTickets[0].Players[0].Skill < 0 {
+		t.Fatalf("built-in workload was mutated: %#v", second[0])
+	}
+}

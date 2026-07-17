@@ -36,3 +36,4 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - proposal 생성과 reservation/commit side effect를 분리하고 deterministic replay evidence를 우선한다.
 - 구현 baseline은 ADR 0001의 Go 단일 프로세스·인메모리 구조를 따르며 변경은 새 architecture decision으로 남긴다.
 - 기본 검증은 `scripts/check.sh`; 로컬 VCS는 `jj`; push는 명시적 권한이 있을 때만 수행한다.
+- 장기 milestone 순서는 ADR 0006을 따르며 현재 executable evidence는 `cmd/sema-lab`에서 확인한다.

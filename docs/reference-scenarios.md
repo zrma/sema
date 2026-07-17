@@ -138,3 +138,7 @@ first registration과 same-content retry는 같은 fingerprint/read model을 반
 ## S20: Offline Policy Simulation
 
 2:2 team, 100-player duo battle royale, backfill과 no-match scenario corpus를 side effect 없이 실행한다. policy와 scenario 입력 순서를 뒤집어도 version/fingerprint와 scenario ID로 정렬된 report는 같아야 한다. conflicting policy는 report 생성 전에 실패하고 각 result는 full batch와 matched/unmatched reason, search budget, score summary를 함께 가진다.
+
+## S21: Executable Evaluation Lab
+
+`cmd/sema-lab`은 team workload matrix의 solo/full-party/mixed-party, 100-player duo/squad, backfill, no-match, latency hard limit와 role/wait objective fixture를 built-in corpus로 제공한다. 선택 workload 입력 순서와 중복은 report에 영향을 주지 않고 반복 실행은 같은 proposal/team placement, ticket/player coverage, unmatched reason과 search evidence를 만든다. text summary, optional detail과 experimental JSON 경로를 실제 command smoke로 검증한다.

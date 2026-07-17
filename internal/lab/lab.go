@@ -1,0 +1,464 @@
+// Package lab provides deterministic, built-in workloads for inspecting Sema.
+package lab
+
+import (
+	"fmt"
+	"slices"
+	"sort"
+	"time"
+
+	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/simulation"
+)
+
+const SchemaVersion = "v0alpha1"
+
+var fixtureNow = time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+type Workload struct {
+	ID          string
+	Description string
+	Policy      domain.MatchmakingPolicy
+	Scenario    simulation.Scenario
+}
+
+type Report struct {
+	SchemaVersion string           `json:"schema_version"`
+	Scenarios     []ScenarioResult `json:"scenarios"`
+}
+
+type ScenarioResult struct {
+	ID          string            `json:"id"`
+	Description string            `json:"description"`
+	Policy      PolicySummary     `json:"policy"`
+	Demand      DemandSummary     `json:"demand"`
+	Outcome     OutcomeSummary    `json:"outcome"`
+	Proposals   []ProposalSummary `json:"proposals"`
+}
+
+type PolicySummary struct {
+	Version     string                   `json:"version"`
+	Fingerprint domain.PolicyFingerprint `json:"fingerprint"`
+}
+
+type DemandSummary struct {
+	MatchTickets    int `json:"match_tickets"`
+	BackfillTickets int `json:"backfill_tickets"`
+	Players         int `json:"players"`
+}
+
+type OutcomeSummary struct {
+	ProposalCount    int              `json:"proposal_count"`
+	MatchedTickets   int              `json:"matched_tickets"`
+	MatchedPlayers   int              `json:"matched_players"`
+	UnmatchedTickets int              `json:"unmatched_tickets"`
+	UnmatchedPlayers int              `json:"unmatched_players"`
+	UnmatchedReasons []UnmatchedCount `json:"unmatched_reasons"`
+	BudgetExhausted  bool             `json:"budget_exhausted"`
+	Search           SearchSummary    `json:"search"`
+}
+
+type UnmatchedCount struct {
+	Reason domain.UnmatchedReason `json:"reason"`
+	Count  int                    `json:"count"`
+}
+
+type SearchSummary struct {
+	CandidatesEvaluated   int   `json:"candidates_evaluated"`
+	Nodes                 int   `json:"nodes"`
+	TruncatedProposals    int   `json:"truncated_proposals"`
+	MaxRelaxationLevel    int   `json:"max_relaxation_level"`
+	WaitPriorityProposals int   `json:"wait_priority_proposals"`
+	TotalRolePenalty      int   `json:"total_role_penalty"`
+	MaxTeamSkillGap       int   `json:"max_team_skill_gap"`
+	OldestWaitMillis      int64 `json:"oldest_wait_millis"`
+	TotalWaitMillis       int64 `json:"total_wait_millis"`
+	MaxLatencyMillis      int   `json:"max_latency_millis"`
+}
+
+type ProposalSummary struct {
+	ID       domain.ProposalID   `json:"id"`
+	Kind     domain.ProposalKind `json:"kind"`
+	Backfill *BackfillSummary    `json:"backfill,omitempty"`
+	Teams    []TeamSummary       `json:"teams"`
+	Evidence EvidenceSummary     `json:"evidence"`
+}
+
+type BackfillSummary struct {
+	TicketID      domain.TicketID  `json:"ticket_id"`
+	SessionID     domain.SessionID `json:"session_id"`
+	RosterVersion domain.Revision  `json:"roster_version"`
+}
+
+type TeamSummary struct {
+	Team    int               `json:"team"`
+	Tickets []domain.TicketID `json:"tickets"`
+}
+
+type EvidenceSummary struct {
+	RelaxationLevel     int   `json:"relaxation_level"`
+	WaitPriority        bool  `json:"wait_priority"`
+	RolePenalty         int   `json:"role_penalty"`
+	TeamSkillGap        int   `json:"team_skill_gap"`
+	OldestWaitMillis    int64 `json:"oldest_wait_millis"`
+	TotalWaitMillis     int64 `json:"total_wait_millis"`
+	MaxLatencyMillis    int   `json:"max_latency_millis"`
+	CandidatesEvaluated int   `json:"candidates_evaluated"`
+	SearchNodes         int   `json:"search_nodes"`
+	SearchTruncated     bool  `json:"search_truncated"`
+}
+
+// Workloads returns defensive copies of the canonical built-in corpus.
+func Workloads() []Workload {
+	workloads := builtInWorkloads()
+	for index := range workloads {
+		workloads[index] = cloneWorkload(workloads[index])
+	}
+	return workloads
+}
+
+// Run evaluates selected built-in workloads. Empty IDs select the full corpus.
+func Run(ids []string) (Report, error) {
+	selected, err := selectWorkloads(ids)
+	if err != nil {
+		return Report{}, err
+	}
+
+	report := Report{SchemaVersion: SchemaVersion, Scenarios: make([]ScenarioResult, 0, len(selected))}
+	for _, workload := range selected {
+		simulationReport, err := simulation.Run(
+			[]domain.MatchmakingPolicy{workload.Policy},
+			[]simulation.Scenario{workload.Scenario},
+		)
+		if err != nil {
+			return Report{}, fmt.Errorf("run workload %q: %w", workload.ID, err)
+		}
+		policyResult := simulationReport.Policies[0]
+		scenarioResult := policyResult.Scenarios[0]
+		report.Scenarios = append(report.Scenarios, summarizeWorkload(workload, policyResult, scenarioResult))
+	}
+	return report, nil
+}
+
+func selectWorkloads(ids []string) ([]Workload, error) {
+	available := builtInWorkloads()
+	if len(ids) == 0 {
+		return available, nil
+	}
+
+	byID := make(map[string]Workload, len(available))
+	for _, workload := range available {
+		byID[workload.ID] = workload
+	}
+	seen := make(map[string]struct{}, len(ids))
+	selected := make([]Workload, 0, len(ids))
+	for _, id := range ids {
+		workload, exists := byID[id]
+		if !exists {
+			return nil, domain.NewFailure(domain.FailureInvalidInput, "unknown lab workload %q", id)
+		}
+		if _, duplicate := seen[id]; duplicate {
+			continue
+		}
+		seen[id] = struct{}{}
+		selected = append(selected, workload)
+	}
+	sort.Slice(selected, func(left, right int) bool { return selected[left].ID < selected[right].ID })
+	return selected, nil
+}
+
+func summarizeWorkload(
+	workload Workload,
+	policyResult simulation.PolicyResult,
+	result simulation.ScenarioResult,
+) ScenarioResult {
+	playersByTicket := make(map[domain.TicketID]int, len(workload.Scenario.MatchTickets))
+	demandPlayers := 0
+	for _, ticket := range workload.Scenario.MatchTickets {
+		playersByTicket[ticket.ID] = len(ticket.Players)
+		demandPlayers += len(ticket.Players)
+	}
+
+	matchedPlayers := 0
+	for _, proposal := range result.Batch.Proposals {
+		for _, ticket := range proposal.Tickets {
+			matchedPlayers += playersByTicket[ticket.ID]
+		}
+	}
+	unmatchedPlayers := 0
+	for _, unmatched := range result.Batch.Unmatched {
+		unmatchedPlayers += playersByTicket[unmatched.Ticket.ID]
+	}
+
+	unmatchedReasons := make([]UnmatchedCount, len(result.Summary.Unmatched))
+	for index, count := range result.Summary.Unmatched {
+		unmatchedReasons[index] = UnmatchedCount{Reason: count.Reason, Count: count.Count}
+	}
+
+	scores := result.Summary.Scores
+	return ScenarioResult{
+		ID:          workload.ID,
+		Description: workload.Description,
+		Policy: PolicySummary{
+			Version:     policyResult.Version,
+			Fingerprint: policyResult.Fingerprint,
+		},
+		Demand: DemandSummary{
+			MatchTickets:    len(workload.Scenario.MatchTickets),
+			BackfillTickets: len(workload.Scenario.BackfillTickets),
+			Players:         demandPlayers,
+		},
+		Outcome: OutcomeSummary{
+			ProposalCount:    result.Summary.ProposalCount,
+			MatchedTickets:   result.Summary.MatchedTicketCount,
+			MatchedPlayers:   matchedPlayers,
+			UnmatchedTickets: result.Summary.UnmatchedTicketCount,
+			UnmatchedPlayers: unmatchedPlayers,
+			UnmatchedReasons: unmatchedReasons,
+			BudgetExhausted:  result.Summary.BudgetExhausted,
+			Search: SearchSummary{
+				CandidatesEvaluated:   scores.CandidatesEvaluated,
+				Nodes:                 scores.SearchNodes,
+				TruncatedProposals:    scores.SearchTruncatedProposals,
+				MaxRelaxationLevel:    scores.MaxRelaxationLevel,
+				WaitPriorityProposals: scores.WaitPriorityProposals,
+				TotalRolePenalty:      scores.TotalRolePenalty,
+				MaxTeamSkillGap:       scores.MaxTeamSkillGap,
+				OldestWaitMillis:      scores.OldestWaitMillis,
+				TotalWaitMillis:       scores.TotalWaitMillis,
+				MaxLatencyMillis:      scores.MaxLatencyMillis,
+			},
+		},
+		Proposals: summarizeProposals(result.Batch.Proposals),
+	}
+}
+
+func summarizeProposals(proposals []domain.MatchProposal) []ProposalSummary {
+	summaries := make([]ProposalSummary, len(proposals))
+	for index, proposal := range proposals {
+		teams := make([]TeamSummary, len(proposal.Teams))
+		for teamIndex, team := range proposal.Teams {
+			tickets := make([]domain.TicketID, len(team.Tickets))
+			for ticketIndex, ticket := range team.Tickets {
+				tickets[ticketIndex] = ticket.ID
+			}
+			teams[teamIndex] = TeamSummary{Team: team.Team, Tickets: tickets}
+		}
+		var backfill *BackfillSummary
+		if proposal.Backfill != nil {
+			backfill = &BackfillSummary{
+				TicketID:      proposal.Backfill.Ticket.ID,
+				SessionID:     proposal.Backfill.SessionID,
+				RosterVersion: proposal.Backfill.RosterVersion,
+			}
+		}
+		evidence := proposal.Evidence
+		summaries[index] = ProposalSummary{
+			ID:       proposal.ID,
+			Kind:     proposal.Kind,
+			Backfill: backfill,
+			Teams:    teams,
+			Evidence: EvidenceSummary{
+				RelaxationLevel:     evidence.RelaxationLevel,
+				WaitPriority:        evidence.WaitPriority,
+				RolePenalty:         evidence.RolePenalty,
+				TeamSkillGap:        evidence.TeamSkillGap,
+				OldestWaitMillis:    evidence.OldestWaitMillis,
+				TotalWaitMillis:     evidence.TotalWaitMillis,
+				MaxLatencyMillis:    evidence.MaxLatencyMillis,
+				CandidatesEvaluated: evidence.CandidatesEvaluated,
+				SearchNodes:         evidence.SearchNodes,
+				SearchTruncated:     evidence.SearchTruncated,
+			},
+		}
+	}
+	return summaries
+}
+
+func builtInWorkloads() []Workload {
+	workloads := make([]Workload, 0, 27)
+	for _, teamSize := range []int{2, 3, 5, 10, 16, 20, 50} {
+		workloads = append(workloads,
+			teamWorkload(teamSize, "solo", repeatedPartySizes(teamSize*2, 1)),
+			teamWorkload(teamSize, "full-party", []int{teamSize, teamSize}),
+			teamWorkload(teamSize, "mixed", mixedPartySizes(teamSize)),
+		)
+	}
+	workloads = append(workloads,
+		battleRoyaleWorkload("duo", 2),
+		battleRoyaleWorkload("squad", 4),
+		backfillWorkload(),
+		noMatchWorkload(),
+		latencyHardLimitWorkload(),
+		roleQualityWorkload(),
+		waitRelaxationWorkload(),
+	)
+	sort.Slice(workloads, func(left, right int) bool { return workloads[left].ID < workloads[right].ID })
+	return workloads
+}
+
+func teamWorkload(teamSize int, variant string, partySizes []int) Workload {
+	id := fmt.Sprintf("team-%dv%d-%s", teamSize, teamSize, variant)
+	return Workload{
+		ID:          id,
+		Description: fmt.Sprintf("%d:%d team match with %s party distribution", teamSize, teamSize, variant),
+		Policy:      referencePolicy(id, 2, teamSize),
+		Scenario:    scenarioWithParties(id, partySizes),
+	}
+}
+
+func battleRoyaleWorkload(variant string, partySize int) Workload {
+	id := "battle-royale-" + variant
+	return Workload{
+		ID:          id,
+		Description: fmt.Sprintf("100-player battle royale with %d-player parties", partySize),
+		Policy:      referencePolicy(id, 1, 100),
+		Scenario:    scenarioWithParties(id, repeatedPartySizes(100/partySize, partySize)),
+	}
+}
+
+func backfillWorkload() Workload {
+	id := "backfill-2v2-two-slots"
+	scenario := scenarioWithParties(id, []int{1, 1, 1, 1})
+	scenario.BackfillTickets = []domain.BackfillTicket{{
+		ID:              "backfill-demand",
+		Revision:        1,
+		SessionID:       "session-backfill",
+		RosterVersion:   7,
+		OpenSlotsByTeam: []int{1, 1},
+		EnqueuedAt:      fixtureNow.Add(-time.Minute),
+	}}
+	return Workload{
+		ID:          id,
+		Description: "2:2 session backfill before new-match planning",
+		Policy:      referencePolicy(id, 2, 2),
+		Scenario:    scenario,
+	}
+}
+
+func noMatchWorkload() Workload {
+	id := "no-match-insufficient-capacity"
+	return Workload{
+		ID:          id,
+		Description: "2:2 demand with only three available players",
+		Policy:      referencePolicy(id, 2, 2),
+		Scenario:    scenarioWithParties(id, []int{1, 1, 1}),
+	}
+}
+
+func latencyHardLimitWorkload() Workload {
+	id := "no-match-latency-hard-limit"
+	scenario := scenarioWithParties(id, []int{1, 1, 1, 1})
+	scenario.MatchTickets[len(scenario.MatchTickets)-1].Players[0].LatencyMillis = 201
+	return Workload{
+		ID:          id,
+		Description: "2:2 demand with one player above the absolute latency cap",
+		Policy:      referencePolicy(id, 2, 2),
+		Scenario:    scenario,
+	}
+}
+
+func roleQualityWorkload() Workload {
+	id := "quality-role-balanced-2v2"
+	policy := qualityPolicy(id)
+	scenario := scenarioWithParties(id, []int{1, 1, 1, 1, 1, 1})
+	roles := []string{"healer", "dps", "healer", "dps", "dps", "dps"}
+	for index := range scenario.MatchTickets {
+		scenario.MatchTickets[index].Players[0].Role = roles[index]
+	}
+	return Workload{
+		ID:          id,
+		Description: "2:2 candidate selection with a healer on each team",
+		Policy:      policy,
+		Scenario:    scenario,
+	}
+}
+
+func waitRelaxationWorkload() Workload {
+	id := "quality-wait-relaxed-2v2"
+	policy := qualityPolicy(id)
+	scenario := scenarioWithParties(id, []int{1, 1, 1, 1})
+	for index := range scenario.MatchTickets {
+		scenario.MatchTickets[index].Players[0].Role = "dps"
+		scenario.MatchTickets[index].EnqueuedAt = fixtureNow.Add(-time.Minute)
+	}
+	return Workload{
+		ID:          id,
+		Description: "2:2 role requirement relaxed after a one-minute wait",
+		Policy:      policy,
+		Scenario:    scenario,
+	}
+}
+
+func referencePolicy(id string, teamCount, teamSize int) domain.MatchmakingPolicy {
+	return domain.MatchmakingPolicy{
+		Version:                  id + "-v1",
+		TeamCount:                teamCount,
+		TeamSize:                 teamSize,
+		MaxLatencyMillis:         200,
+		MaxSearchNodes:           100_000,
+		MaxCandidatesPerProposal: 64,
+	}
+}
+
+func qualityPolicy(id string) domain.MatchmakingPolicy {
+	policy := referencePolicy(id, 2, 2)
+	policy.MaxProposals = 1
+	policy.RoleRequirements = []domain.RoleRequirement{{Role: "healer", MinPerTeam: 1}}
+	policy.RelaxationSteps = []domain.RelaxationStep{
+		{AfterWait: 0, MaxTeamSkillGap: 10, MaxRolePenalty: 0},
+		{AfterWait: 30 * time.Second, MaxTeamSkillGap: 100, MaxRolePenalty: 2, PrioritizeWait: true},
+	}
+	return policy
+}
+
+func scenarioWithParties(id string, partySizes []int) simulation.Scenario {
+	tickets := make([]domain.MatchTicket, len(partySizes))
+	playerSequence := 0
+	for ticketIndex, partySize := range partySizes {
+		players := make([]domain.Player, partySize)
+		for playerIndex := range players {
+			players[playerIndex] = domain.Player{
+				ID:            domain.PlayerID(fmt.Sprintf("%s-player-%03d", id, playerSequence)),
+				Skill:         1000 + playerSequence%7,
+				LatencyMillis: 20 + playerSequence%5,
+			}
+			playerSequence++
+		}
+		tickets[ticketIndex] = domain.MatchTicket{
+			ID:         domain.TicketID(fmt.Sprintf("%s-ticket-%03d", id, ticketIndex)),
+			Revision:   1,
+			EnqueuedAt: fixtureNow.Add(-time.Duration(len(partySizes)-ticketIndex) * time.Second),
+			Players:    players,
+		}
+	}
+	return simulation.Scenario{ID: domain.SnapshotID(id), Now: fixtureNow, MatchTickets: tickets}
+}
+
+func mixedPartySizes(teamSize int) []int {
+	if teamSize == 2 {
+		return []int{2, 1, 1}
+	}
+	return []int{teamSize - 1, 1, teamSize - 1, 1}
+}
+
+func repeatedPartySizes(count, partySize int) []int {
+	partySizes := make([]int, count)
+	for index := range partySizes {
+		partySizes[index] = partySize
+	}
+	return partySizes
+}
+
+func cloneWorkload(workload Workload) Workload {
+	workload.Policy = domain.ClonePolicy(workload.Policy)
+	workload.Scenario.MatchTickets = slices.Clone(workload.Scenario.MatchTickets)
+	for index := range workload.Scenario.MatchTickets {
+		workload.Scenario.MatchTickets[index] = domain.CloneMatchTicket(workload.Scenario.MatchTickets[index])
+	}
+	workload.Scenario.BackfillTickets = slices.Clone(workload.Scenario.BackfillTickets)
+	for index := range workload.Scenario.BackfillTickets {
+		workload.Scenario.BackfillTickets[index] = domain.CloneBackfillTicket(workload.Scenario.BackfillTickets[index])
+	}
+	return workload
+}

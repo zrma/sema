@@ -100,4 +100,6 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Policy catalog: `docs/todo-0009-policy-catalog/spec.md`.
 - Policy simulation: `docs/todo-0010-policy-simulation/spec.md`.
 - Completed integration and publication baseline: `docs/todo-0011-integration-decision/spec.md`, `docs/decisions/0005-integration-publication-baseline.md`.
+- Executable evaluation lab: `docs/todo-0012-sema-lab/spec.md`, `docs/sema-lab.md`.
+- Long-term engine-first sequence: `docs/decisions/0006-product-development-sequence.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.
