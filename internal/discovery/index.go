@@ -98,7 +98,7 @@ func (index Index) SelectWindow(slots []int, limit int) Window {
 			return index.partyThresholds[position] > maxPartySize
 		}) - 1
 		if thresholdIndex < 0 {
-			return Window{}
+			return Window{Tickets: make([]domain.MatchTicket, 0)}
 		}
 		positions := index.fittingByPartyMax[index.partyThresholds[thresholdIndex]]
 		count := min(limit, len(positions))

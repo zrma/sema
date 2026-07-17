@@ -44,6 +44,7 @@ for required_file in \
   docs/workload-evaluation.md \
   docs/evaluation-baseline.md \
   docs/matcher-v0-exit.md \
+  docs/matcher-conformance.md \
   docs/candidate-discovery.md \
   docs/public-api.md \
   docs/api-compatibility.md \
@@ -120,6 +121,8 @@ for required_file in \
   docs/todo-0036-queue-fairness-starvation/spec.md \
   docs/todo-0037-backfill-quality-context/spec.md \
   docs/todo-0038-indexed-candidate-discovery/spec.md \
+  docs/todo-0039-matcher-v0-exit/spec.md \
+  docs/todo-0040-service-productization-entry/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \

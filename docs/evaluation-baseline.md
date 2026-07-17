@@ -18,6 +18,7 @@
 | sustained-arrival fairness | fresh pair per 10s cycle | 4-ticket oldest window, no truncation | old pair selected at configured 30s priority boundary |
 | roster-aware backfill | 2 existing + 2 incoming players per team shape | small exhaustive frontier | `frontier_equivalent`, resulting gap 0, role penalty 0, max latency 60 |
 | indexed discovery equivalence | 96-ticket matrix + 10K mixed-party queue | exact window/truncation equality | linear oldest-prefix와 `DeepEqual` |
+| matcher V0 fuzz conformance | multi-proposal + roster-aware planner seeds, indexed regression corpus | explicit generation/selection truncation | deterministic permutation, capacity/disjointness, linear/indexed exact equality |
 
 V1 값은 production SLO가 아니다. 현재 deterministic algorithm의 구조적 regression budget이며 policy, generator 또는 objective를 의도적으로 바꾸면 diff에서 metric tradeoff를 설명하고 이 문서와 test를 같은 change에서 갱신한다.
 
@@ -30,5 +31,6 @@ production cycle p95, allocation ceiling과 capacity target은 실제 consumer w
 ## Verification
 
 - deterministic gate: `go test ./internal/lab -run 'TestRunFullCorpusPreservesCoverageAndOrdering|TestRunReportsSyntheticMetricsAndOracleGap|TestRunReportsBatchQualityFrontier'`와 `go test ./internal/evaluation -run '^TestBatchFrontierDefaultBudgetDifferentialCorpus$'`.
+- matcher fuzz gate: `go test ./internal/planner -run '^$' -fuzz '^FuzzPlanInvariants$' -fuzztime=3s`와 `go test ./internal/discovery -run '^$' -fuzz '^FuzzIndexedWindowEquivalent$' -fuzztime=3s`.
 - planner benchmark: `go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x`.
 - engine benchmark: `go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x`.

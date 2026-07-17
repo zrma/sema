@@ -202,3 +202,7 @@ team size 2의 existing roster는 team A skill total 1000/healer 1, team B skill
 ## S36: Indexed Oldest-Prefix Equivalence
 
 party size 1..4, skill 1200..1899, empty/dps/healer role과 latency 20..99ms가 섞인 canonical queue를 party/skill/role/latency partition index로 만든다. 96-ticket queue의 slot shape 1/2/5와 limit 0/1/7/32/128 matrix, 10K queue의 limit 256에서 indexed window는 linear oldest-fitting window의 ticket order와 truncation을 정확히 재현한다. 100K reuse benchmark는 four-shape lookup과 one-time build를 분리해 측정하며 stateless planner가 per-call build를 하지 않는 결정을 검증한다.
+
+## S37: Matcher V0 Fuzz Conformance
+
+planner fuzz는 team count/size, candidate window, proposal upper bound 1..4와 optional roster-aware backfill을 조합한다. 같은 input과 reverse permutation이 같은 batch를 반환하고 caller input은 바뀌지 않으며 모든 proposal은 party/capacity와 ticket/backfill disjointness를 지켜야 한다. `BudgetExhausted`는 generation 또는 selection truncation과 같아야 한다. discovery fuzz는 canonical mixed ticket, maximum party size와 limit을 조합해 indexed window가 linear window의 non-nil empty result까지 `DeepEqual`인지 검증하고 발견된 failure input을 repository corpus에 보존한다.

@@ -230,6 +230,10 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 
 ## P28: Matcher V0 Exit Gate
 
-- [ ] matcher conformance matrix와 property/fuzz gate
-- [ ] algorithm-owned TODO와 calibration-owned decision 분리
-- [ ] persistence/API service productization entry spec
+- [x] matcher conformance matrix와 property/fuzz gate
+- [x] algorithm-owned TODO와 calibration-owned decision 분리
+- [x] persistence/API service productization entry spec
+
+## Next Program: Service Productization
+
+matcher V0의 algorithm-owned contract는 완료되었다. 다음 active milestone은 P29이며 `docs/todo-0040-service-productization-entry/spec.md`에서 transactional authority, stateful index lifetime, versioned API resource와 V0 migration을 시작한다. database, topology와 stable compatibility는 failure fixture와 workload evidence 전까지 확정하지 않는다.

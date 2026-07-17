@@ -10,6 +10,8 @@ lab: cmd/sema-lab
 lab_guide: docs/sema-lab.md
 workload_evaluation: docs/workload-evaluation.md
 evaluation_baseline: docs/evaluation-baseline.md
+matcher_conformance: docs/matcher-conformance.md
+service_productization_entry: docs/todo-0040-service-productization-entry/spec.md
 candidate_discovery: docs/candidate-discovery.md
 public_api: alpha
 public_api_guide: docs/public-api.md

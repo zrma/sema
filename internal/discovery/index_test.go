@@ -39,6 +39,40 @@ func TestIndexedWindowMatchesLinearTenThousandTickets(t *testing.T) {
 	}
 }
 
+func FuzzIndexedWindowEquivalent(f *testing.F) {
+	f.Add(uint8(2), uint8(7), []byte{1, 2, 3, 4, 1, 3, 2})
+	f.Add(uint8(5), uint8(0), []byte{4, 4, 2, 1, 3})
+	f.Fuzz(func(t *testing.T, maxPartySeed, limitSeed uint8, data []byte) {
+		if len(data) > 128 {
+			data = data[:128]
+		}
+		base := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+		tickets := make([]domain.MatchTicket, len(data))
+		for index, value := range data {
+			partySize := 1 + int(value%8)
+			ticket := domain.MatchTicket{
+				ID: domain.TicketID(fmt.Sprintf("fuzz-ticket-%03d", index)), Revision: 1,
+				EnqueuedAt: base.Add(time.Duration(index) * time.Millisecond),
+			}
+			for player := range partySize {
+				ticket.Players = append(ticket.Players, domain.Player{
+					ID:    domain.PlayerID(fmt.Sprintf("fuzz-player-%03d-%02d", index, player)),
+					Skill: int(value) * 10, Role: []string{"", "dps", "healer"}[int(value)%3],
+					LatencyMillis: 20 + int(value%100),
+				})
+			}
+			tickets[index] = ticket
+		}
+		maxParty := 1 + int(maxPartySeed%8)
+		limit := int(limitSeed % 33)
+		linear := discovery.SelectWindow(tickets, []int{maxParty}, limit)
+		indexed := discovery.BuildIndex(tickets).SelectWindow([]int{maxParty}, limit)
+		if !reflect.DeepEqual(linear, indexed) {
+			t.Fatalf("maxParty=%d limit=%d linear=%#v indexed=%#v", maxParty, limit, linear, indexed)
+		}
+	})
+}
+
 func BenchmarkWindowSelectionReuse(b *testing.B) {
 	tickets := indexedTickets(100_000)
 	index := discovery.BuildIndex(tickets)
