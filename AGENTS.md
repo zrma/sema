@@ -38,3 +38,4 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - 기본 검증은 `scripts/check.sh`; 로컬 VCS는 `jj`; push는 명시적 권한이 있을 때만 수행한다.
 - 장기 milestone 순서는 ADR 0006을 따르며 현재 executable evidence는 `cmd/sema-lab`에서 확인한다.
 - P6 quality 비교는 `docs/workload-evaluation.md`의 coverage/fairness metric과 bounded oracle 한계를 지킨다.
+- P7 candidate window는 opt-in approximation이며 discovery truncation과 quality gap evidence를 숨기지 않는다.

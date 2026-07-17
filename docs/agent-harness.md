@@ -103,5 +103,6 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Executable evaluation lab: `docs/todo-0012-sema-lab/spec.md`, `docs/sema-lab.md`.
 - Workload evaluation baseline: `docs/todo-0013-workload-evaluation/spec.md`, `docs/workload-evaluation.md`.
 - Evaluation regression and calibration: `docs/evaluation-baseline.md`, `docs/decisions/0007-evaluation-calibration-baseline.md`.
+- Candidate discovery and scale: `docs/todo-0014-candidate-discovery/spec.md`, `docs/candidate-discovery.md`, `docs/decisions/0008-candidate-window-baseline.md`.
 - Long-term engine-first sequence: `docs/decisions/0006-product-development-sequence.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

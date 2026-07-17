@@ -12,7 +12,7 @@ import (
 	"github.com/zrma/sema/internal/simulation"
 )
 
-const SchemaVersion = "v0alpha2"
+const SchemaVersion = "v0alpha3"
 
 var fixtureNow = time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 
@@ -89,6 +89,8 @@ type UnmatchedCount struct {
 }
 
 type SearchSummary struct {
+	CandidateTickets      int   `json:"candidate_tickets"`
+	TruncatedWindows      int   `json:"truncated_candidate_windows"`
 	CandidatesEvaluated   int   `json:"candidates_evaluated"`
 	Nodes                 int   `json:"nodes"`
 	TruncatedProposals    int   `json:"truncated_proposals"`
@@ -121,16 +123,18 @@ type TeamSummary struct {
 }
 
 type EvidenceSummary struct {
-	RelaxationLevel     int   `json:"relaxation_level"`
-	WaitPriority        bool  `json:"wait_priority"`
-	RolePenalty         int   `json:"role_penalty"`
-	TeamSkillGap        int   `json:"team_skill_gap"`
-	OldestWaitMillis    int64 `json:"oldest_wait_millis"`
-	TotalWaitMillis     int64 `json:"total_wait_millis"`
-	MaxLatencyMillis    int   `json:"max_latency_millis"`
-	CandidatesEvaluated int   `json:"candidates_evaluated"`
-	SearchNodes         int   `json:"search_nodes"`
-	SearchTruncated     bool  `json:"search_truncated"`
+	RelaxationLevel          int   `json:"relaxation_level"`
+	WaitPriority             bool  `json:"wait_priority"`
+	RolePenalty              int   `json:"role_penalty"`
+	TeamSkillGap             int   `json:"team_skill_gap"`
+	OldestWaitMillis         int64 `json:"oldest_wait_millis"`
+	TotalWaitMillis          int64 `json:"total_wait_millis"`
+	MaxLatencyMillis         int   `json:"max_latency_millis"`
+	CandidateTickets         int   `json:"candidate_tickets"`
+	CandidatesEvaluated      int   `json:"candidates_evaluated"`
+	SearchNodes              int   `json:"search_nodes"`
+	CandidateWindowTruncated bool  `json:"candidate_window_truncated"`
+	SearchTruncated          bool  `json:"search_truncated"`
 }
 
 // Workloads returns defensive copies of the canonical built-in corpus.
@@ -233,6 +237,8 @@ func summarizeWorkload(
 			UnmatchedReasons:          unmatchedReasons,
 			BudgetExhausted:           result.Summary.BudgetExhausted,
 			Search: SearchSummary{
+				CandidateTickets:      scores.CandidateTickets,
+				TruncatedWindows:      scores.TruncatedCandidateWindows,
 				CandidatesEvaluated:   scores.CandidatesEvaluated,
 				Nodes:                 scores.SearchNodes,
 				TruncatedProposals:    scores.SearchTruncatedProposals,
@@ -316,16 +322,18 @@ func summarizeProposals(proposals []domain.MatchProposal) []ProposalSummary {
 			Backfill: backfill,
 			Teams:    teams,
 			Evidence: EvidenceSummary{
-				RelaxationLevel:     evidence.RelaxationLevel,
-				WaitPriority:        evidence.WaitPriority,
-				RolePenalty:         evidence.RolePenalty,
-				TeamSkillGap:        evidence.TeamSkillGap,
-				OldestWaitMillis:    evidence.OldestWaitMillis,
-				TotalWaitMillis:     evidence.TotalWaitMillis,
-				MaxLatencyMillis:    evidence.MaxLatencyMillis,
-				CandidatesEvaluated: evidence.CandidatesEvaluated,
-				SearchNodes:         evidence.SearchNodes,
-				SearchTruncated:     evidence.SearchTruncated,
+				RelaxationLevel:          evidence.RelaxationLevel,
+				WaitPriority:             evidence.WaitPriority,
+				RolePenalty:              evidence.RolePenalty,
+				TeamSkillGap:             evidence.TeamSkillGap,
+				OldestWaitMillis:         evidence.OldestWaitMillis,
+				TotalWaitMillis:          evidence.TotalWaitMillis,
+				MaxLatencyMillis:         evidence.MaxLatencyMillis,
+				CandidateTickets:         evidence.CandidateTickets,
+				CandidatesEvaluated:      evidence.CandidatesEvaluated,
+				SearchNodes:              evidence.SearchNodes,
+				CandidateWindowTruncated: evidence.CandidateWindowTruncated,
+				SearchTruncated:          evidence.SearchTruncated,
 			},
 		}
 	}
@@ -350,17 +358,28 @@ func builtInWorkloads() []Workload {
 		roleQualityWorkload(),
 		waitRelaxationWorkload(),
 		boundedQualityGapWorkload(),
+		candidateWindowGapWorkload(),
 		syntheticQueueWorkload(),
 	)
 	sort.Slice(workloads, func(left, right int) bool { return workloads[left].ID < workloads[right].ID })
 	return workloads
 }
 
+func candidateWindowGapWorkload() Workload {
+	id := "diagnostic-candidate-window-gap"
+	return qualityGapWorkload(id, "1:1 diagnostic where an oldest-two ticket window misses the best skill balance", 2, 64)
+}
+
 func boundedQualityGapWorkload() Workload {
 	id := "diagnostic-bounded-quality-gap"
+	return qualityGapWorkload(id, "1:1 diagnostic where a one-candidate budget misses the best skill balance", 0, 1)
+}
+
+func qualityGapWorkload(id, description string, maxCandidateTickets, maxCandidates int) Workload {
 	policy := referencePolicy(id, 2, 1)
 	policy.MaxProposals = 1
-	policy.MaxCandidatesPerProposal = 1
+	policy.MaxCandidateTickets = maxCandidateTickets
+	policy.MaxCandidatesPerProposal = maxCandidates
 	scenario := scenarioWithParties(id, []int{1, 1, 1, 1})
 	skills := []int{0, 1000, 500, 500}
 	for index := range scenario.MatchTickets {
@@ -372,7 +391,7 @@ func boundedQualityGapWorkload() Workload {
 		}
 	}
 	return Workload{
-		ID: id, Description: "1:1 diagnostic where a one-candidate budget misses the best skill balance",
+		ID: id, Description: description,
 		Policy: policy, Scenario: scenario,
 	}
 }

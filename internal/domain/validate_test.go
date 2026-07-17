@@ -72,6 +72,14 @@ func TestValidatePolicyRequiresMonotonicRelaxation(t *testing.T) {
 	assertFailureCode(t, err, domain.FailureInvalidInput)
 }
 
+func TestValidatePolicyRejectsNegativeCandidateTicketWindow(t *testing.T) {
+	policy := domain.MatchmakingPolicy{
+		Version: "policy-v1", TeamCount: 2, TeamSize: 2, MaxLatencyMillis: 200,
+		MaxCandidateTickets: -1,
+	}
+	assertFailureCode(t, domain.ValidatePolicy(policy), domain.FailureInvalidInput)
+}
+
 func assertFailureCode(t *testing.T, err error, expected domain.FailureCode) {
 	t.Helper()
 	code, ok := domain.FailureCodeOf(err)

@@ -46,6 +46,24 @@ func TestFingerprintPolicyChangesWithVersionedRuleContent(t *testing.T) {
 	}
 }
 
+func TestFingerprintPolicyIncludesCandidateTicketWindow(t *testing.T) {
+	first := fingerprintPolicy()
+	second := first
+	second.MaxCandidateTickets = 256
+
+	firstFingerprint, err := domain.FingerprintPolicy(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondFingerprint, err := domain.FingerprintPolicy(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstFingerprint == secondFingerprint {
+		t.Fatalf("candidate ticket window reused fingerprint %q", firstFingerprint)
+	}
+}
+
 func fingerprintPolicy() domain.MatchmakingPolicy {
 	return domain.MatchmakingPolicy{
 		Version:                  "policy-content-v1",

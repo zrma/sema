@@ -53,6 +53,8 @@ func benchmarkEngineLifecycle(
 	var unmatchedTickets int
 	unmatchedByReason := make(map[domain.UnmatchedReason]int)
 	var searchNodes int
+	var candidateTickets int
+	var truncatedCandidateWindows int
 	var pendingAssignments int
 	var exhaustedCycles int
 	for range b.N {
@@ -84,6 +86,10 @@ func benchmarkEngineLifecycle(
 		for index, proposal := range batch.Proposals {
 			matchedTickets += len(proposal.Tickets)
 			searchNodes += proposal.Evidence.SearchNodes
+			candidateTickets += proposal.Evidence.CandidateTickets
+			if proposal.Evidence.CandidateWindowTruncated {
+				truncatedCandidateWindows++
+			}
 			reservationID := domain.ReservationID(fmt.Sprintf("reservation-%d", index))
 			assignmentID := domain.AssignmentID(fmt.Sprintf("assignment-%d", index))
 			if _, err := runtime.Reserve(proposal, reservationID, fixtureNow); err != nil {
@@ -115,6 +121,8 @@ func benchmarkEngineLifecycle(
 		b.ReportMetric(float64(unmatchedByReason[reason])/operations, unit)
 	}
 	b.ReportMetric(float64(searchNodes)/operations, "search_nodes/op")
+	b.ReportMetric(float64(candidateTickets)/operations, "candidate_tickets/op")
+	b.ReportMetric(float64(truncatedCandidateWindows)/operations, "truncated_candidate_windows/op")
 	b.ReportMetric(float64(pendingAssignments)/operations, "pending_assignments/op")
 	b.ReportMetric(float64(exhaustedCycles)/operations, "budget_exhausted/op")
 }

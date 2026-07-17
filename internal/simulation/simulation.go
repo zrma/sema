@@ -23,16 +23,18 @@ type UnmatchedCount struct {
 }
 
 type ScoreSummary struct {
-	CandidatesEvaluated      int
-	SearchNodes              int
-	SearchTruncatedProposals int
-	MaxRelaxationLevel       int
-	WaitPriorityProposals    int
-	TotalRolePenalty         int
-	MaxTeamSkillGap          int
-	OldestWaitMillis         int64
-	TotalWaitMillis          int64
-	MaxLatencyMillis         int
+	CandidateTickets          int
+	TruncatedCandidateWindows int
+	CandidatesEvaluated       int
+	SearchNodes               int
+	SearchTruncatedProposals  int
+	MaxRelaxationLevel        int
+	WaitPriorityProposals     int
+	TotalRolePenalty          int
+	MaxTeamSkillGap           int
+	OldestWaitMillis          int64
+	TotalWaitMillis           int64
+	MaxLatencyMillis          int
 }
 
 type Summary struct {
@@ -162,6 +164,10 @@ func summarize(batch domain.ProposalBatch) Summary {
 	for _, proposal := range batch.Proposals {
 		summary.MatchedTicketCount += len(proposal.Tickets)
 		evidence := proposal.Evidence
+		summary.Scores.CandidateTickets += evidence.CandidateTickets
+		if evidence.CandidateWindowTruncated {
+			summary.Scores.TruncatedCandidateWindows++
+		}
 		summary.Scores.CandidatesEvaluated += evidence.CandidatesEvaluated
 		summary.Scores.SearchNodes += evidence.SearchNodes
 		if evidence.SearchTruncated {

@@ -348,6 +348,101 @@ func TestPlanExposesCandidateTruncation(t *testing.T) {
 	}
 }
 
+func TestPlanCandidateWindowPrioritizesOldestTicketsAndExposesQualityGap(t *testing.T) {
+	configured := policy(2, 1)
+	configured.MaxProposals = 1
+	configured.MaxCandidateTickets = 2
+	configured.MaxCandidatesPerProposal = 64
+	tickets := namedSoloTickets([]ticketAttributes{
+		{id: "a-old-low", skill: 0, wait: time.Minute, latency: 20},
+		{id: "b-old-high", skill: 1000, wait: time.Minute, latency: 20},
+		{id: "c-new-mid", skill: 500, wait: 10 * time.Second, latency: 20},
+		{id: "d-new-mid", skill: 500, wait: 10 * time.Second, latency: 20},
+	})
+	bounded, err := planner.Plan(snapshotWith("candidate-window", configured, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bounded.Proposals) != 1 || !proposalHasTickets(bounded.Proposals[0], "a-old-low", "b-old-high") {
+		t.Fatalf("bounded proposal = %#v", bounded.Proposals)
+	}
+	evidence := bounded.Proposals[0].Evidence
+	if evidence.CandidateTickets != 2 || !evidence.CandidateWindowTruncated || !evidence.SearchTruncated || !bounded.BudgetExhausted {
+		t.Fatalf("candidate window evidence = %#v, batch=%#v", evidence, bounded)
+	}
+	if evidence.TeamSkillGap != 1000 {
+		t.Fatalf("bounded skill gap = %d; want 1000", evidence.TeamSkillGap)
+	}
+
+	configured.MaxCandidateTickets = 0
+	unbounded, err := planner.Plan(snapshotWith("candidate-window", configured, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !proposalHasTickets(unbounded.Proposals[0], "c-new-mid", "d-new-mid") || unbounded.Proposals[0].Evidence.TeamSkillGap != 0 {
+		t.Fatalf("unbounded proposal = %#v", unbounded.Proposals[0])
+	}
+}
+
+func TestPlanCandidateWindowSkipsPartiesThatCannotFitBackfill(t *testing.T) {
+	configured := policy(2, 2)
+	configured.MaxProposals = 1
+	configured.MaxCandidateTickets = 2
+	tickets := partyTickets([]int{2, 1, 1})
+	snapshot := snapshotWith("backfill-candidate-window", configured, tickets)
+	snapshot.BackfillTickets = []domain.BackfillTicket{{
+		ID: "backfill", Revision: 1, SessionID: "session", RosterVersion: 1,
+		OpenSlotsByTeam: []int{1, 1}, EnqueuedAt: fixtureNow.Add(-time.Minute),
+	}}
+	batch, err := planner.Plan(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 1 || batch.Proposals[0].Kind != domain.ProposalBackfill {
+		t.Fatalf("backfill batch = %#v", batch)
+	}
+	if !proposalHasTickets(batch.Proposals[0], "ticket-0001", "ticket-0002") {
+		t.Fatalf("backfill placement = %#v", batch.Proposals[0])
+	}
+	if batch.Proposals[0].Evidence.CandidateTickets != 2 || batch.Proposals[0].Evidence.CandidateWindowTruncated {
+		t.Fatalf("backfill candidate evidence = %#v", batch.Proposals[0].Evidence)
+	}
+}
+
+func TestPlanReportsSearchBudgetWhenCandidateWindowCannotFillMatch(t *testing.T) {
+	configured := policy(2, 1)
+	configured.MaxCandidateTickets = 1
+	tickets := partyTickets([]int{1, 1, 1})
+	batch, err := planner.Plan(snapshotWith("candidate-window-no-match", configured, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 0 || !batch.BudgetExhausted {
+		t.Fatalf("batch = %#v; want budget-exhausted no-match", batch)
+	}
+	assertAllUnmatchedReason(t, batch, domain.UnmatchedSearchBudget)
+}
+
+func TestPlanTenThousandTicketCandidateWindow(t *testing.T) {
+	configured := policy(2, 5)
+	configured.MaxProposals = 1
+	configured.MaxCandidateTickets = 256
+	configured.MaxCandidatesPerProposal = 64
+	tickets := partyTickets(repeatedPartySizes(10_000, 1))
+	batch, err := planner.Plan(snapshotWith("queue-10000-window-256", configured, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 1 || len(batch.Proposals[0].Tickets) != 10 || len(batch.Unmatched) != 9_990 {
+		t.Fatalf("large queue outcome: proposals=%d matched=%d unmatched=%d", len(batch.Proposals), len(batch.Proposals[0].Tickets), len(batch.Unmatched))
+	}
+	evidence := batch.Proposals[0].Evidence
+	if evidence.CandidateTickets != 256 || !evidence.CandidateWindowTruncated || !batch.BudgetExhausted {
+		t.Fatalf("large queue evidence = %#v, budget=%t", evidence, batch.BudgetExhausted)
+	}
+	assertDisjointAndCapacity(t, batch, tickets, 2, 5)
+}
+
 func TestPlanReportsHardRoleReason(t *testing.T) {
 	configured := objectivePolicy(2, 1)
 	configured.RoleRequirements[0].Hard = true
@@ -402,6 +497,28 @@ func BenchmarkPlanQueueSizes(b *testing.B) {
 				}
 			}
 		})
+	}
+}
+
+// BenchmarkPlanLargeQueues keeps the P7 10K/100K capacity path in the planner benchmark gate.
+func BenchmarkPlanLargeQueues(b *testing.B) {
+	for _, candidateWindow := range []int{0, 256} {
+		for _, queueSize := range []int{10_000, 100_000} {
+			b.Run(fmt.Sprintf("5v5/window-%d/queue-%d", candidateWindow, queueSize), func(b *testing.B) {
+				configured := policy(2, 5)
+				configured.MaxProposals = 1
+				configured.MaxCandidateTickets = candidateWindow
+				configured.MaxCandidatesPerProposal = 64
+				snapshot := snapshotWith(b.Name(), configured, partyTickets(repeatedPartySizes(queueSize, 1)))
+				b.ReportAllocs()
+				b.ResetTimer()
+				for range b.N {
+					if _, err := planner.Plan(snapshot); err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
+		}
 	}
 }
 

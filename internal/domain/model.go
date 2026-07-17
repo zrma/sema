@@ -62,6 +62,7 @@ type MatchmakingPolicy struct {
 	MaxLatencyMillis         int
 	MaxProposals             int
 	MaxSearchNodes           int
+	MaxCandidateTickets      int
 	MaxCandidatesPerProposal int
 	RoleRequirements         []RoleRequirement
 	RelaxationSteps          []RelaxationStep
@@ -100,16 +101,18 @@ type TeamAssignment struct {
 }
 
 type ScoreEvidence struct {
-	RelaxationLevel     int
-	WaitPriority        bool
-	RolePenalty         int
-	TeamSkillGap        int
-	OldestWaitMillis    int64
-	TotalWaitMillis     int64
-	MaxLatencyMillis    int
-	CandidatesEvaluated int
-	SearchNodes         int
-	SearchTruncated     bool
+	RelaxationLevel          int
+	WaitPriority             bool
+	RolePenalty              int
+	TeamSkillGap             int
+	OldestWaitMillis         int64
+	TotalWaitMillis          int64
+	MaxLatencyMillis         int
+	CandidateTickets         int
+	CandidatesEvaluated      int
+	SearchNodes              int
+	CandidateWindowTruncated bool
+	SearchTruncated          bool
 }
 
 // MatchProposal is a side-effect-free placement proposal.

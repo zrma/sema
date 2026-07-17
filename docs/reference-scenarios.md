@@ -146,3 +146,7 @@ first registration과 same-content retry는 같은 fingerprint/read model을 반
 ## S22: Synthetic Workload And Small-Case Oracle
 
 explicit seed와 weighted party/skill/role/latency/wait parameter는 같은 synthetic queue snapshot을 만든다. report는 player coverage basis points와 oldest unmatched wait를 ticket metric과 분리한다. 최대 12 ticket의 new-match fixture는 exhaustive oracle과 planner 첫 proposal의 objective quality vector를 비교한다. 충분한 candidate budget은 `equivalent`, candidate limit 1의 diagnostic은 더 낮은 skill gap을 가진 `oracle_preferred` evidence를 만들어야 한다.
+
+## S23: Candidate Window And Large Queue
+
+zero `MaxCandidateTickets`는 unbounded result를 유지하고 positive limit은 canonical queue에서 oldest fitting ticket만 exact placement search에 전달한다. 10K solo queue는 256-ticket window로 exact 5:5 proposal, full unmatched accounting과 truncation evidence를 만든다. 10K/100K benchmark gate는 unbounded/window path를 모두 실행한다. candidate-window diagnostic은 oldest quality gap 1000과 oracle gap 0을 함께 기록하고 fuzz target은 input order/immutability, capacity, disjoint와 ticket coverage invariant를 검증한다.

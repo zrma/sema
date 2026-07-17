@@ -24,6 +24,8 @@ type Metrics struct {
 	TotalRolePenalty          int
 	MaxTeamSkillGap           int
 	MaxLatencyMillis          int
+	CandidateTickets          int
+	TruncatedCandidateWindows int
 	SearchNodes               int
 	BudgetExhausted           bool
 }
@@ -45,6 +47,10 @@ func Measure(scenario simulation.Scenario, batch domain.ProposalBatch) Metrics {
 		metrics.TotalRolePenalty += proposal.Evidence.RolePenalty
 		metrics.MaxTeamSkillGap = max(metrics.MaxTeamSkillGap, proposal.Evidence.TeamSkillGap)
 		metrics.MaxLatencyMillis = max(metrics.MaxLatencyMillis, proposal.Evidence.MaxLatencyMillis)
+		metrics.CandidateTickets += proposal.Evidence.CandidateTickets
+		if proposal.Evidence.CandidateWindowTruncated {
+			metrics.TruncatedCandidateWindows++
+		}
 		metrics.SearchNodes += proposal.Evidence.SearchNodes
 		for _, reference := range proposal.Tickets {
 			ticket, exists := tickets[reference.ID]

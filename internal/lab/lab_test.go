@@ -118,7 +118,7 @@ func TestRunReportsObjectiveAndHardConstraintEvidence(t *testing.T) {
 }
 
 func TestRunReportsSyntheticMetricsAndOracleGap(t *testing.T) {
-	report, err := lab.Run([]string{"synthetic-5v5-seeded-queue", "diagnostic-bounded-quality-gap"})
+	report, err := lab.Run([]string{"synthetic-5v5-seeded-queue", "diagnostic-bounded-quality-gap", "diagnostic-candidate-window-gap"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,6 +145,13 @@ func TestRunReportsSyntheticMetricsAndOracleGap(t *testing.T) {
 	}
 	if diagnostic.Outcome.CoverageBasisPoints != 5000 || diagnostic.Outcome.Search.Nodes > 5 {
 		t.Fatalf("diagnostic regression budget = %#v", diagnostic.Outcome)
+	}
+	window := byID["diagnostic-candidate-window-gap"]
+	if window.Oracle == nil || window.Oracle.Relation != evaluation.QualityOraclePreferred {
+		t.Fatalf("candidate window oracle = %#v", window.Oracle)
+	}
+	if window.Outcome.Search.CandidateTickets != 2 || window.Outcome.Search.TruncatedWindows != 1 {
+		t.Fatalf("candidate window evidence = %#v", window.Outcome.Search)
 	}
 }
 

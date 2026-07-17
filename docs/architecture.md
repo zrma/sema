@@ -38,6 +38,7 @@ flowchart LR
 ## Boundaries
 
 - `discovery`는 검색 공간을 줄이되 유효 후보를 임의로 확정하지 않는다.
+- 초기 discovery는 canonical queue의 oldest fitting ticket prefix를 선택하며 opt-in window truncation을 policy identity와 proposal evidence에 남긴다.
 - `constraints`는 위반 시 후보를 제거하는 boolean contract를 제공한다.
 - `scoring`은 유효 후보를 비교할 objective vector와 explanation을 제공한다.
 - `optimizer`는 시간·후보 수 budget 안에서 mutually disjoint proposal set을 구성한다.

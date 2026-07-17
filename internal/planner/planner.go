@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/zrma/sema/internal/constraint"
+	"github.com/zrma/sema/internal/discovery"
 	"github.com/zrma/sema/internal/domain"
 	"github.com/zrma/sema/internal/objective"
 )
@@ -62,6 +63,7 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 	if maxCandidates == 0 {
 		maxCandidates = defaultMaxCandidatesPerProposal
 	}
+	maxCandidateTickets := snapshot.Policy.MaxCandidateTickets
 	budget := searchBudget{max: maxSearchNodes}
 	batch := domain.ProposalBatch{SnapshotID: snapshot.ID}
 	lastSearch := placementSearch{}
@@ -70,15 +72,20 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 		if len(batch.Proposals) >= maxProposals || budget.exhausted {
 			break
 		}
+		window := discovery.SelectWindow(available, backfill.OpenSlotsByTeam, maxCandidateTickets)
 		lastSearch = findBestPlacement(
-			available,
+			window.Tickets,
 			backfill.OpenSlotsByTeam,
 			snapshot,
 			domain.ProposalBackfill,
 			maxCandidates,
 			&budget,
 		)
-		batch.BudgetExhausted = batch.BudgetExhausted || lastSearch.truncated
+		lastSearch.candidateWindowTruncated = window.Truncated
+		lastSearch.evaluation.Evidence.CandidateTickets = len(window.Tickets)
+		lastSearch.evaluation.Evidence.CandidateWindowTruncated = window.Truncated
+		lastSearch.evaluation.Evidence.SearchTruncated = lastSearch.evaluation.Evidence.SearchTruncated || window.Truncated
+		batch.BudgetExhausted = batch.BudgetExhausted || lastSearch.truncated || window.Truncated
 		if !lastSearch.found {
 			continue
 		}
@@ -100,15 +107,20 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 		newMatchSlots[index] = snapshot.Policy.TeamSize
 	}
 	for len(batch.Proposals) < maxProposals && !budget.exhausted {
+		window := discovery.SelectWindow(available, newMatchSlots, maxCandidateTickets)
 		lastSearch = findBestPlacement(
-			available,
+			window.Tickets,
 			newMatchSlots,
 			snapshot,
 			domain.ProposalNewMatch,
 			maxCandidates,
 			&budget,
 		)
-		batch.BudgetExhausted = batch.BudgetExhausted || lastSearch.truncated
+		lastSearch.candidateWindowTruncated = window.Truncated
+		lastSearch.evaluation.Evidence.CandidateTickets = len(window.Tickets)
+		lastSearch.evaluation.Evidence.CandidateWindowTruncated = window.Truncated
+		lastSearch.evaluation.Evidence.SearchTruncated = lastSearch.evaluation.Evidence.SearchTruncated || window.Truncated
+		batch.BudgetExhausted = batch.BudgetExhausted || lastSearch.truncated || window.Truncated
 		if !lastSearch.found {
 			break
 		}
@@ -160,14 +172,15 @@ func (budget *searchBudget) visit() bool {
 }
 
 type placementSearch struct {
-	placement         [][]domain.MatchTicket
-	evaluation        objective.Evaluation
-	found             bool
-	exactCandidates   int
-	searchNodes       int
-	truncated         bool
-	sawHardFailure    bool
-	sawQualityFailure bool
+	placement                [][]domain.MatchTicket
+	evaluation               objective.Evaluation
+	found                    bool
+	exactCandidates          int
+	searchNodes              int
+	truncated                bool
+	candidateWindowTruncated bool
+	sawHardFailure           bool
+	sawQualityFailure        bool
 }
 
 func findBestPlacement(
@@ -409,7 +422,7 @@ func unmatchedReason(
 	switch {
 	case proposalCount >= maxProposals:
 		return domain.UnmatchedProposalLimit
-	case budget.exhausted || search.truncated:
+	case budget.exhausted || search.truncated || search.candidateWindowTruncated:
 		return domain.UnmatchedSearchBudget
 	case search.sawQualityFailure:
 		return domain.UnmatchedQualityThreshold

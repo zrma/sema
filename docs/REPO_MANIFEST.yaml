@@ -10,6 +10,7 @@ lab: cmd/sema-lab
 lab_guide: docs/sema-lab.md
 workload_evaluation: docs/workload-evaluation.md
 evaluation_baseline: docs/evaluation-baseline.md
+candidate_discovery: docs/candidate-discovery.md
 domain_model: docs/domain-model.md
 lifecycle: docs/lifecycle.md
 reference_scenarios: docs/reference-scenarios.md
@@ -22,6 +23,7 @@ policy_catalog_decision: docs/decisions/0004-policy-catalog.md
 integration_publication_decision: docs/decisions/0005-integration-publication-baseline.md
 development_sequence_decision: docs/decisions/0006-product-development-sequence.md
 evaluation_calibration_decision: docs/decisions/0007-evaluation-calibration-baseline.md
+candidate_window_decision: docs/decisions/0008-candidate-window-baseline.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -34,6 +36,8 @@ checks:
   engine_benchmark: go test ./internal/engine -run ^$ -bench ^BenchmarkEngine
   lab_test: go test ./internal/lab ./cmd/sema-lab
   evaluation_test: go test ./internal/evaluation
+  discovery_test: go test ./internal/discovery
+  planner_large_benchmark: go test ./internal/planner -run ^$ -bench ^BenchmarkPlanLargeQueues$ -benchtime=1x -count=1
   lab_smoke: go run ./cmd/sema-lab
   harness: scripts/check-agent-harness-interface.sh
   publication: scripts/check-publication-boundary.py

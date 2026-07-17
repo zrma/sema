@@ -63,10 +63,10 @@
 
 ## P7: Scalable Candidate Search
 
-- [ ] candidate index와 partition boundary
-- [ ] 10K/100K ticket queue workload
-- [ ] bounded approximation의 quality/fairness degradation 측정
-- [ ] invariant property/fuzz test와 performance gate
+- [x] queue-prefix candidate discovery/partition boundary
+- [x] 10K correctness와 10K/100K ticket queue benchmark
+- [x] bounded window approximation의 quality/fairness degradation 측정
+- [x] invariant property/fuzz test와 algorithmic performance evidence
 
 ## P8: Public Integration Contract
 

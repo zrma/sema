@@ -61,7 +61,7 @@ go run ./cmd/sema-lab synthetic-5v5-seeded-queue
 go run ./cmd/sema-lab -format json diagnostic-bounded-quality-gap
 ```
 
-JSON envelope은 `v0alpha2`이며 stable compatibility를 아직 약속하지 않는다.
+JSON envelope은 P7 discovery evidence가 추가된 `v0alpha3`이며 stable compatibility를 아직 약속하지 않는다.
 
 ## Verification
 

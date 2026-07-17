@@ -112,7 +112,9 @@ func writeTextReport(writer io.Writer, report lab.Report, details bool) error {
 		}
 		if _, err := fmt.Fprintf(
 			writer,
-			"  search candidates=%d nodes=%d truncated_proposals=%d relaxation_level=%d role_penalty=%d skill_gap=%d max_latency_ms=%d unmatched=%s\n",
+			"  search candidate_tickets=%d truncated_windows=%d candidates=%d nodes=%d truncated_proposals=%d relaxation_level=%d role_penalty=%d skill_gap=%d max_latency_ms=%d unmatched=%s\n",
+			outcome.Search.CandidateTickets,
+			outcome.Search.TruncatedWindows,
 			outcome.Search.CandidatesEvaluated,
 			outcome.Search.Nodes,
 			outcome.Search.TruncatedProposals,

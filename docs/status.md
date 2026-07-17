@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P6 deterministic workload/quality evaluation과 regression baseline이 완료되었다. 현재는 P7 scalable candidate search를 준비하며 실제 consumer 또는 수치 SLO가 생길 때 production-facing boundary를 재평가한다.
+P0부터 P7 deterministic evaluation과 scalable candidate discovery baseline이 완료되었다. 현재는 P8 public integration contract를 준비하며 실제 consumer가 생길 때 production-facing boundary와 compatibility를 재평가한다.
 
 ## Established
 
@@ -42,13 +42,15 @@ P0부터 P6 deterministic workload/quality evaluation과 regression baseline이 
 - seeded party/skill/role/latency/wait snapshot generator와 player coverage/oldest-unmatched-wait metric.
 - 12 ticket 이하 new-match의 exhaustive single-proposal oracle와 bounded quality-gap evidence를 제공하는 experimental `v0alpha2` JSON report.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
+- versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
+- 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
 - gitignore.io 기반 OS/editor/VCS baseline과 local secret/artifact overlay.
 - 로컬 change management는 `jj`; push는 명시적 권한 경계.
 
 ## Not Implemented
 
 - production-calibrated arrival sequence와 rating uncertainty/confidence model.
-- 대규모 queue를 위한 candidate index와 partition 및 품질 근사 보장.
+- region/skill/role-specific candidate index와 full unmatched output pagination.
 - reservation/assignment persistence와 distributed coordination.
 - API/server entrypoint, observability, deployment.
 - import 가능한 public Go SDK와 compatibility/migration policy.
@@ -63,4 +65,4 @@ P0부터 P6 deterministic workload/quality evaluation과 regression baseline이 
 
 ## Next Slice
 
-same-process, producer replay, synchronous acknowledgment와 single-replica baseline을 유지한다. 다음 slice는 P7 candidate index/partition boundary와 10K queue evidence다. rating uncertainty와 machine performance SLO는 각각 실제 rating contract와 target deployment input이 생길 때 재평가한다.
+same-process, producer replay, synchronous acknowledgment와 single-replica baseline을 유지한다. 다음 slice는 P8 실제 reference consumer와 최소 `v0alpha` integration contract다. 외부 consumer가 아직 없으면 먼저 repository-owned example consumer로 package/CLI boundary를 검증하되 stable compatibility나 service transport는 약속하지 않는다.
