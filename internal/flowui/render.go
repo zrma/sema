@@ -217,9 +217,12 @@ func (model *Model) renderStatus(glyphs glyphSet, width int) string {
 			model.queuePlayers,
 		)
 		activity := fmt.Sprintf(
-			"games %d/%dp%scooldown %d%splayed %d",
+			"games %d/%dp%sready %dt/%dp%scooldown %d%splayed %d",
 			model.activeMatches,
 			model.inGamePlayers,
+			glyphs.separator,
+			model.ingressTickets,
+			model.ingressPlayers,
 			glyphs.separator,
 			model.cooldownPlayers,
 			glyphs.separator,
@@ -228,7 +231,7 @@ func (model *Model) renderStatus(glyphs glyphSet, width int) string {
 		return population + "\n" + activity + "\n" + model.ratingLine(glyphs, width)
 	}
 	left := fmt.Sprintf(
-		"sim %s%scycle %04d%spopulation %d%sidle %d%squeued %dt/%dp%sin-game %dm/%dp%scooldown %d%splayed %d",
+		"sim %s%scycle %04d%spopulation %d%sidle %d%squeued %dt/%dp%sready %dt/%dp%sgames %dm/%dp%scooldown %d%splayed %d",
 		model.now.Format("15:04:05"),
 		glyphs.separator,
 		model.cycle,
@@ -239,6 +242,9 @@ func (model *Model) renderStatus(glyphs glyphSet, width int) string {
 		glyphs.separator,
 		model.queueTickets,
 		model.queuePlayers,
+		glyphs.separator,
+		model.ingressTickets,
+		model.ingressPlayers,
 		glyphs.separator,
 		model.activeMatches,
 		model.inGamePlayers,

@@ -3,6 +3,7 @@ package flow_test
 import (
 	"context"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ func TestSimulatorRunsClosedHTTPLeagueLifecycle(t *testing.T) {
 			t.Fatal(err)
 		}
 		seen[event.Kind]++
-		if total := event.IdlePlayers + event.QueuePlayers + event.InGamePlayers + event.CooldownPlayers; total != 40 {
+		if total := event.IdlePlayers + event.QueuePlayers + event.IngressBacklogPlayers + event.InGamePlayers + event.CooldownPlayers; total != 40 {
 			t.Fatalf("population conservation = %d after %s: %#v", total, event.Kind, event)
 		}
 		maximumConcurrent = max(maximumConcurrent, event.ActiveMatches)
@@ -109,11 +110,20 @@ func TestSimulatorProcessesDueArrivalWithoutAdvancingClock(t *testing.T) {
 		}
 	})
 
+	advanced, err := simulator.Step(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduledAt := configuration.Start.Add(configuration.ArrivalInterval)
+	if advanced.Kind != flow.EventTimeAdvanced || !advanced.At.Equal(scheduledAt) || advanced.IngressBacklogTickets != 1 {
+		t.Fatalf("arrival scheduling event = %#v", advanced)
+	}
 	event, err := simulator.Step(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if event.Kind != flow.EventTicketQueued || !event.At.Equal(configuration.Start) || event.Ticket == nil || !event.Ticket.EnqueuedAt.Equal(configuration.Start) {
+	if event.Kind != flow.EventTicketQueued || !event.At.Equal(scheduledAt) || !event.ArrivalScheduledAt.Equal(scheduledAt) ||
+		event.Ticket == nil || !event.Ticket.EnqueuedAt.Equal(scheduledAt) || event.IngressBacklogTickets != 0 {
 		t.Fatalf("first scheduled arrival = %#v", event)
 	}
 }
@@ -124,6 +134,55 @@ func TestSimulatorRejectsInvalidConfiguration(t *testing.T) {
 	}
 	if _, err := flow.Open(flow.Config{PopulationSize: 10, MatchesPerCycle: 2}); err == nil {
 		t.Fatal("workload larger than the population was accepted")
+	}
+}
+
+func TestSimulatorOrdersBatchStagesStablyAtOneTimestamp(t *testing.T) {
+	simulator := openSimulator(t, 101)
+	groups := make(map[time.Time][]flow.Event)
+	for range 180 {
+		event, err := simulator.Step(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		groups[event.At] = append(groups[event.At], event)
+	}
+
+	sawArrivalBeforeStage := false
+	sawMultiProposalStage := false
+	for at, events := range groups {
+		stageStarted := false
+		hasArrival := false
+		hasStage := false
+		proposalIDs := make(map[flow.EventKind][]string)
+		for _, event := range events {
+			switch event.Kind {
+			case flow.EventProposalReserved, flow.EventAssignmentConfirmed:
+				stageStarted = true
+				hasStage = true
+				if event.Proposal == nil {
+					t.Fatalf("%s stage at %s omitted proposal", event.Kind, at)
+				}
+				proposalIDs[event.Kind] = append(proposalIDs[event.Kind], event.Proposal.ID)
+			case flow.EventTicketQueued, flow.EventTicketReturned:
+				hasArrival = true
+				if stageStarted {
+					t.Fatalf("arrival %s followed a due batch stage at %s: %#v", event.Kind, at, events)
+				}
+			}
+		}
+		sawArrivalBeforeStage = sawArrivalBeforeStage || hasArrival && hasStage
+		for kind, identifiers := range proposalIDs {
+			if len(identifiers) > 1 {
+				sawMultiProposalStage = true
+			}
+			if !slices.IsSorted(identifiers) {
+				t.Fatalf("%s proposal order at %s = %v", kind, at, identifiers)
+			}
+		}
+	}
+	if !sawArrivalBeforeStage || !sawMultiProposalStage {
+		t.Fatalf("ordering fixture did not exercise arrival and multi-proposal ties")
 	}
 }
 

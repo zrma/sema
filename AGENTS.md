@@ -51,3 +51,4 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - Flow의 hidden true skill은 synthetic game result에만 사용하고 planner에는 visible rating만 전달한다.
 - closed population, outcome curve와 Elo update는 `docs/sema-flow.md`의 reference simulation이며 production MMR이나 scheduler contract로 승격하지 않는다.
 - Flow measurement는 `docs/sema-flow-measurement.md`의 player-weighted wait, time-weighted saturation과 fixed-point throughput 계약을 따르며 제품 SLA로 해석하지 않는다.
+- Flow simulation event frame은 logical time을 소유하지 않는다. `docs/todo-0025-discrete-event-scheduler/spec.md`의 due ingress, stable timestamp ordering과 horizon backlog 계약을 유지한다.

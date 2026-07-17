@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P13 Flow measurement baseline까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P14 Flow discrete-event scheduler까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -63,6 +63,9 @@ P0부터 P13 Flow measurement baseline까지 완료되었다. source/service는 
 - player-weighted queue wait, arrival-to-assignment yield, match throughput과 time-weighted queue saturation을 측정하는 `cmd/sema-flow-report`.
 - versioned deterministic text/JSON aggregate, proposal skill-gap/latency distribution과 final visible-rating summary.
 - due arrival을 presentation step과 분리해 예약된 server-clock 시각에 처리하는 measurement-safe Flow clock.
+- arrival, reservation/confirmation stage, game completion과 planning eligibility 중 가장 이른 logical timestamp로만 전진하는 deterministic Flow scheduler.
+- future cooldown과 due ingress backlog를 분리하고 arrival lag와 horizon backlog를 노출하는 `sema.flow.measurement.v0alpha2`.
+- 같은 10분 horizon의 8/16/32 concurrent fixture에서 initial party 600개, maximum arrival lag 0ms와 final ingress backlog 0을 확인한 demand-comparability gate.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
@@ -94,4 +97,4 @@ P0부터 P13 Flow measurement baseline까지 완료되었다. source/service는 
 
 ## Next Slice
 
-P13 repository-owned 목표는 완료되었다. 다음 simulation slice는 multi-seed comparison, uncertainty, 실제 접속률 calibration/영구 churn 또는 party 재편 중 비교할 hypothesis가 생길 때 연다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow report를 production capacity나 wait SLA로, Flow demo를 production scheduler나 production MMR로 승격하지 않는다.
+P14 repository-owned 목표는 완료되었다. 다음 simulation slice는 동일 demand contract를 사용하는 P15 multi-seed capacity matrix이며, 그 뒤 실제 접속률 calibration/영구 churn, uncertainty 또는 party 재편은 비교할 hypothesis가 생길 때 연다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow report를 production capacity나 wait SLA로, Flow demo를 production scheduler나 production MMR로 승격하지 않는다.

@@ -115,3 +115,11 @@
 - [x] proposal skill-gap/latency distribution과 final rating summary
 - [x] versioned deterministic text/JSON report command
 - [x] due arrival server-clock semantics와 closed-loop measurement regression gate
+
+## P14: Discrete-Event Flow Scheduler
+
+- [x] presentation frame과 simulated logical timestamp 분리
+- [x] arrival, lifecycle operation, game completion과 planning eligibility의 next-event scheduling
+- [x] due ingress 우선순위와 stable batch-stage ordering
+- [x] ingress backlog, arrival lag와 horizon drain measurement contract
+- [x] 동일 10분 demand horizon의 8/16/32 concurrent comparison gate

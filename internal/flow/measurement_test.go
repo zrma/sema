@@ -37,17 +37,20 @@ func TestMeasureIsDeterministicAndConservesPopulation(t *testing.T) {
 	if first.Wait.SamplesPlayers != first.Assignments.Players {
 		t.Fatalf("wait samples = %d, assigned players = %d", first.Wait.SamplesPlayers, first.Assignments.Players)
 	}
-	finalPlayers := first.Final.IdlePlayers + first.Final.QueuedPlayers + first.Final.InGamePlayers + first.Final.CooldownPlayers
+	finalPlayers := first.Final.IdlePlayers + first.Final.QueuedPlayers + first.Final.IngressBacklogPlayers + first.Final.InGamePlayers + first.Final.CooldownPlayers
 	if finalPlayers != configuration.PopulationSize {
 		t.Fatalf("final population = %d, want %d", finalPlayers, configuration.PopulationSize)
 	}
 	if first.Queue.MeanPlayers <= 0 || first.Queue.P95Players < first.Queue.MeanPlayers || first.Queue.PeakPlayers < first.Queue.P95Players {
 		t.Fatalf("queue measurement = %#v", first.Queue)
 	}
-	if first.Steps != 200 || first.Cycles != 6 || first.QueueEntries != (EntryCounts{Tickets: 80, Players: 132, InitialTickets: 24, ReturnedTickets: 56}) ||
-		first.Assignments != (MatchCounts{Matches: 12, Tickets: 72, Players: 120}) || first.Completions != (MatchCounts{Matches: 11, Tickets: 66, Players: 110}) ||
-		first.AssignmentYieldBasisPoints != 9_090 || first.Wait != (DurationDistribution{SamplesPlayers: 120, P50Millis: 8_000, P90Millis: 13_000, P99Millis: 15_000, MaxMillis: 16_000}) ||
-		first.Queue != (QueueMeasurement{MeanPlayers: 9, P95Players: 22, PeakPlayers: 25, MeanSaturationBasisPoints: 2_329, P95SaturationBasisPoints: 5_500, PeakSaturationBasisPoints: 6_250}) {
+	if first.Ingress != (IngressMeasurement{SamplesTickets: 96}) {
+		t.Fatalf("ingress measurement = %#v", first.Ingress)
+	}
+	if first.Steps != 264 || first.Cycles != 8 || first.QueueEntries != (EntryCounts{Tickets: 96, Players: 160, InitialTickets: 24, ReturnedTickets: 72}) ||
+		first.Assignments != (MatchCounts{Matches: 14, Tickets: 84, Players: 140}) || first.Completions != (MatchCounts{Matches: 12, Tickets: 72, Players: 120}) ||
+		first.AssignmentYieldBasisPoints != 8_750 || first.Wait != (DurationDistribution{SamplesPlayers: 140, P50Millis: 5_000, P90Millis: 12_000, P99Millis: 13_000, MaxMillis: 13_000}) ||
+		first.Queue != (QueueMeasurement{MeanPlayers: 7, P95Players: 20, PeakPlayers: 25, MeanSaturationBasisPoints: 1_866, P95SaturationBasisPoints: 5_000, PeakSaturationBasisPoints: 6_250}) {
 		t.Fatalf("reference measurement changed: %#v", first)
 	}
 }
@@ -98,5 +101,25 @@ func TestMeasureRejectsShortDuration(t *testing.T) {
 	_, err := Measure(context.Background(), DefaultConfig(), 999*time.Millisecond)
 	if err == nil || !strings.Contains(err.Error(), "at least one second") {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestMeasureDrainsScheduledIngressAtHorizon(t *testing.T) {
+	configuration := DefaultConfig()
+	configuration.PopulationSize = 100
+	configuration.MatchesPerCycle = 8
+	configuration.MaxConcurrentMatches = 8
+	configuration.ArrivalInterval = 100 * time.Millisecond
+	configuration.PlanningInterval = time.Second
+
+	report, err := Measure(context.Background(), configuration, 6*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.QueueEntries.InitialTickets != 60 || report.Ingress.SamplesTickets != 60 {
+		t.Fatalf("scheduled initial ingress was not fully observed: %#v", report)
+	}
+	if report.Ingress.MaxArrivalLagMillis != 0 || report.Ingress.FinalBacklogTickets != 0 || report.Ingress.FinalBacklogPlayers != 0 {
+		t.Fatalf("ingress scheduler lagged at the measurement horizon: %#v", report.Ingress)
 	}
 }

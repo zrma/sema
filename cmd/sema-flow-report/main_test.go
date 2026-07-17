@@ -44,7 +44,7 @@ func TestRunWritesTextMetricVocabulary(t *testing.T) {
 	if code := run(context.Background(), args, &stdout, &stderr); code != 0 {
 		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
 	}
-	for _, expected := range []string{"assignment_yield_bps=", "wait samples_players=", "throughput confirmed_matches_per_minute_milli=", "queue mean_players=", "quality samples=", "final idle="} {
+	for _, expected := range []string{"assignment_yield_bps=", "wait samples_players=", "throughput confirmed_matches_per_minute_milli=", "queue mean_players=", "ingress samples_tickets=", "quality samples=", "final idle="} {
 		if !strings.Contains(stdout.String(), expected) {
 			t.Fatalf("text report omitted %q:\n%s", expected, stdout.String())
 		}

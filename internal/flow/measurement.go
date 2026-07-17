@@ -10,7 +10,7 @@ import (
 	"github.com/zrma/sema/internal/league"
 )
 
-const MeasurementSchemaVersion = "sema.flow.measurement.v0alpha1"
+const MeasurementSchemaVersion = "sema.flow.measurement.v0alpha2"
 
 // MeasurementReport is a deterministic aggregate of one bounded Flow run.
 type MeasurementReport struct {
@@ -28,6 +28,7 @@ type MeasurementReport struct {
 	Throughput                 Throughput               `json:"throughput"`
 	Wait                       DurationDistribution     `json:"wait"`
 	Queue                      QueueMeasurement         `json:"queue"`
+	Ingress                    IngressMeasurement       `json:"ingress"`
 	Quality                    QualityMeasurement       `json:"quality"`
 	Final                      FinalMeasurement         `json:"final"`
 }
@@ -86,17 +87,26 @@ type QueueMeasurement struct {
 	PeakSaturationBasisPoints int `json:"peak_saturation_basis_points"`
 }
 
+type IngressMeasurement struct {
+	SamplesTickets      int   `json:"samples_tickets"`
+	MaxArrivalLagMillis int64 `json:"max_arrival_lag_millis"`
+	FinalBacklogTickets int   `json:"final_backlog_tickets"`
+	FinalBacklogPlayers int   `json:"final_backlog_players"`
+}
+
 type QualityMeasurement struct {
 	TeamSkillGap     IntegerDistribution `json:"team_skill_gap"`
 	MaxLatencyMillis IntegerDistribution `json:"max_latency_millis"`
 }
 
 type FinalMeasurement struct {
-	IdlePlayers     int               `json:"idle_players"`
-	QueuedPlayers   int               `json:"queued_players"`
-	InGamePlayers   int               `json:"in_game_players"`
-	CooldownPlayers int               `json:"cooldown_players"`
-	Rating          RatingMeasurement `json:"rating"`
+	IdlePlayers           int               `json:"idle_players"`
+	QueuedPlayers         int               `json:"queued_players"`
+	IngressBacklogTickets int               `json:"ingress_backlog_tickets"`
+	IngressBacklogPlayers int               `json:"ingress_backlog_players"`
+	InGamePlayers         int               `json:"in_game_players"`
+	CooldownPlayers       int               `json:"cooldown_players"`
+	Rating                RatingMeasurement `json:"rating"`
 }
 
 type RatingMeasurement struct {
@@ -142,6 +152,8 @@ type measurementRecorder struct {
 	queueOccupancy    []weightedValue
 	queuePlayerMillis int64
 	peakQueuePlayers  int
+	ingressSamples    int
+	maxArrivalLag     int64
 }
 
 // Measure runs one isolated Flow simulation for a fixed amount of simulated time.
@@ -164,7 +176,7 @@ func Measure(ctx context.Context, configuration Config, duration time.Duration) 
 	initial := simulator.Snapshot()
 	recorder := newMeasurementRecorder(normalized, duration, initial)
 	now := initial.Now
-	for now.Before(recorder.end) {
+	for now.Before(recorder.end) || (now.Equal(recorder.end) && simulator.hasDueEvent()) {
 		if err := ctx.Err(); err != nil {
 			return MeasurementReport{}, err
 		}
@@ -190,7 +202,15 @@ func newMeasurementRecorder(configuration Config, duration time.Duration, initia
 		queued:        make(map[string]queuedMeasurement),
 		activePlayers: make(map[string]int),
 	}
-	recorder.final = finalMeasurement(initial.IdlePlayers, initial.QueuePlayers, initial.InGamePlayers, initial.CooldownPlayers, initial.Population)
+	recorder.final = finalMeasurement(
+		initial.IdlePlayers,
+		initial.QueuePlayers,
+		initial.IngressBacklogTickets,
+		initial.IngressBacklogPlayers,
+		initial.InGamePlayers,
+		initial.CooldownPlayers,
+		initial.Population,
+	)
 	recorder.peakQueuePlayers = initial.QueuePlayers
 	return recorder
 }
@@ -224,6 +244,16 @@ func (recorder *measurementRecorder) observe(event Event) error {
 			return fmt.Errorf("ticket %q entered measurement queue twice", event.Ticket.ID)
 		}
 		players := len(event.Ticket.Players)
+		scheduledAt := event.ArrivalScheduledAt
+		if scheduledAt.IsZero() {
+			scheduledAt = event.At
+		}
+		arrivalLag := event.At.Sub(scheduledAt).Milliseconds()
+		if arrivalLag < 0 {
+			return fmt.Errorf("ticket %q arrived before its scheduled time", event.Ticket.ID)
+		}
+		recorder.ingressSamples++
+		recorder.maxArrivalLag = max(recorder.maxArrivalLag, arrivalLag)
 		recorder.queued[event.Ticket.ID] = queuedMeasurement{enqueuedAt: event.Ticket.EnqueuedAt, players: players}
 		recorder.entries.Tickets++
 		recorder.entries.Players += players
@@ -271,7 +301,15 @@ func (recorder *measurementRecorder) observe(event Event) error {
 
 	recorder.lastQueue = event.QueuePlayers
 	recorder.peakQueuePlayers = max(recorder.peakQueuePlayers, event.QueuePlayers)
-	recorder.final = finalMeasurement(event.IdlePlayers, event.QueuePlayers, event.InGamePlayers, event.CooldownPlayers, event.Population)
+	recorder.final = finalMeasurement(
+		event.IdlePlayers,
+		event.QueuePlayers,
+		event.IngressBacklogTickets,
+		event.IngressBacklogPlayers,
+		event.InGamePlayers,
+		event.CooldownPlayers,
+		event.Population,
+	)
 	return nil
 }
 
@@ -298,6 +336,12 @@ func (recorder *measurementRecorder) report() MeasurementReport {
 		Assignments:  recorder.assignments,
 		Completions:  recorder.completions,
 		Wait:         durationDistribution(recorder.waits),
+		Ingress: IngressMeasurement{
+			SamplesTickets:      recorder.ingressSamples,
+			MaxArrivalLagMillis: recorder.maxArrivalLag,
+			FinalBacklogTickets: recorder.final.IngressBacklogTickets,
+			FinalBacklogPlayers: recorder.final.IngressBacklogPlayers,
+		},
 		Quality: QualityMeasurement{
 			TeamSkillGap:     integerDistribution(recorder.skillGaps),
 			MaxLatencyMillis: integerDistribution(recorder.latencies),
@@ -323,9 +367,14 @@ func (recorder *measurementRecorder) report() MeasurementReport {
 	return report
 }
 
-func finalMeasurement(idle, queued, inGame, cooldown int, stats league.Stats) FinalMeasurement {
+func finalMeasurement(idle, queued, ingressTickets, ingressPlayers, inGame, cooldown int, stats league.Stats) FinalMeasurement {
 	return FinalMeasurement{
-		IdlePlayers: idle, QueuedPlayers: queued, InGamePlayers: inGame, CooldownPlayers: cooldown,
+		IdlePlayers:           idle,
+		QueuedPlayers:         queued,
+		IngressBacklogTickets: ingressTickets,
+		IngressBacklogPlayers: ingressPlayers,
+		InGamePlayers:         inGame,
+		CooldownPlayers:       cooldown,
 		Rating: RatingMeasurement{
 			GamesPlayed: stats.GamesPlayed, Minimum: stats.Minimum, Percentile10: stats.Percentile10,
 			Median: stats.Median, Percentile90: stats.Percentile90, Maximum: stats.Maximum,

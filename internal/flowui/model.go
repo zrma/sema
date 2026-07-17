@@ -108,6 +108,8 @@ type Model struct {
 	simulatedStep   time.Duration
 	queueTickets    int
 	queuePlayers    int
+	ingressTickets  int
+	ingressPlayers  int
 	activeMatches   int
 	inGamePlayers   int
 	idlePlayers     int
@@ -156,6 +158,8 @@ func New(simulator *flow.Simulator, options Options) *Model {
 	model.now = initial.Now
 	model.queueTickets = initial.QueueTickets
 	model.queuePlayers = initial.QueuePlayers
+	model.ingressTickets = initial.IngressBacklogTickets
+	model.ingressPlayers = initial.IngressBacklogPlayers
 	model.activeMatches = initial.ActiveMatches
 	model.inGamePlayers = initial.InGamePlayers
 	model.idlePlayers = initial.IdlePlayers
@@ -290,6 +294,8 @@ func (model *Model) apply(event flow.Event) {
 	model.now = event.At
 	model.queueTickets = event.QueueTickets
 	model.queuePlayers = event.QueuePlayers
+	model.ingressTickets = event.IngressBacklogTickets
+	model.ingressPlayers = event.IngressBacklogPlayers
 	model.activeMatches = event.ActiveMatches
 	model.inGamePlayers = event.InGamePlayers
 	model.idlePlayers = event.IdlePlayers
@@ -402,12 +408,13 @@ func (model *Model) apply(event flow.Event) {
 			participants += partySize
 		}
 		model.logf(
-			"+ %s team %d won %+d; %d entered cooldown (%d total)",
+			"+ %s team %d won %+d; %d scheduled to return (%d cooling, %d ready)",
 			matchLabel(event.Proposal.ID),
 			winner,
 			match.result.RatingDelta[match.result.WinnerTeam],
 			participants,
 			event.CooldownPlayers,
+			event.IngressBacklogPlayers,
 		)
 	}
 }

@@ -98,6 +98,7 @@ for required_file in \
   docs/todo-0022-sema-flow/spec.md \
   docs/todo-0023-population-simulation/spec.md \
   docs/todo-0024-flow-measurement/spec.md \
+  docs/todo-0025-discrete-event-scheduler/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \

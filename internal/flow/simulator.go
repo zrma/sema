@@ -86,39 +86,44 @@ func DefaultConfig() Config {
 
 // Event is a defensive lifecycle result produced by one simulator step.
 type Event struct {
-	Kind            EventKind
-	At              time.Time
-	Cycle           int
-	Ticket          *api.MatchTicket
-	Batch           *api.ProposalBatch
-	Proposal        *api.MatchProposal
-	Reservation     *api.Reservation
-	Assignment      *api.Assignment
-	Result          *league.Result
-	GameStartedAt   time.Time
-	GameEndsAt      time.Time
-	QueueTickets    int
-	QueuePlayers    int
-	ActiveMatches   int
-	InGamePlayers   int
-	IdlePlayers     int
-	CooldownPlayers int
-	Population      league.Stats
-	MaxCandidates   int
-	MaxSearchNodes  int
+	Kind                  EventKind
+	At                    time.Time
+	Cycle                 int
+	Ticket                *api.MatchTicket
+	Batch                 *api.ProposalBatch
+	Proposal              *api.MatchProposal
+	Reservation           *api.Reservation
+	Assignment            *api.Assignment
+	Result                *league.Result
+	ArrivalScheduledAt    time.Time
+	GameStartedAt         time.Time
+	GameEndsAt            time.Time
+	QueueTickets          int
+	QueuePlayers          int
+	IngressBacklogTickets int
+	IngressBacklogPlayers int
+	ActiveMatches         int
+	InGamePlayers         int
+	IdlePlayers           int
+	CooldownPlayers       int
+	Population            league.Stats
+	MaxCandidates         int
+	MaxSearchNodes        int
 }
 
 // State is a defensive full read model used to initialize a renderer.
 type State struct {
-	Now             time.Time
-	Tickets         []api.MatchTicket
-	QueueTickets    int
-	QueuePlayers    int
-	ActiveMatches   int
-	InGamePlayers   int
-	IdlePlayers     int
-	CooldownPlayers int
-	Population      league.Stats
+	Now                   time.Time
+	Tickets               []api.MatchTicket
+	QueueTickets          int
+	QueuePlayers          int
+	IngressBacklogTickets int
+	IngressBacklogPlayers int
+	ActiveMatches         int
+	InGamePlayers         int
+	IdlePlayers           int
+	CooldownPlayers       int
+	Population            league.Stats
 }
 
 type operationKind uint8
@@ -132,6 +137,7 @@ const (
 type operation struct {
 	kind       operationKind
 	proposalID string
+	at         time.Time
 }
 
 type scheduledArrival struct {
@@ -188,7 +194,6 @@ type Simulator struct {
 	pending       []operation
 	arrivals      []scheduledArrival
 	nextPlanAt    time.Time
-	arrivalTurn   bool
 	closed        bool
 	closeOnce     sync.Once
 }
@@ -257,7 +262,7 @@ func Open(configuration Config) (*Simulator, error) {
 	for index, party := range population.Parties() {
 		simulator.arrivals = append(simulator.arrivals, scheduledArrival{
 			ticketID: party.ID,
-			at:       normalized.Start.Add(time.Duration(index) * normalized.ArrivalInterval),
+			at:       normalized.Start.Add(time.Duration(index+1) * normalized.ArrivalInterval),
 		})
 	}
 	simulator.sortArrivals()
@@ -329,16 +334,19 @@ func (simulator *Simulator) Seed() int64 {
 func (simulator *Simulator) Snapshot() State {
 	simulator.mu.Lock()
 	defer simulator.mu.Unlock()
+	ingressTickets, ingressPlayers := simulator.ingressBacklog()
 	state := State{
-		Now:             simulator.clock.Now(),
-		QueueTickets:    len(simulator.queued),
-		QueuePlayers:    simulator.queuedPlayers,
-		Population:      simulator.population.Stats(),
-		ActiveMatches:   simulator.activeGameCount(),
-		InGamePlayers:   simulator.inGamePlayerCount(),
-		IdlePlayers:     simulator.idlePlayerCount(),
-		CooldownPlayers: simulator.cooldownPlayerCount(),
-		Tickets:         make([]api.MatchTicket, 0, len(simulator.queued)),
+		Now:                   simulator.clock.Now(),
+		QueueTickets:          len(simulator.queued),
+		QueuePlayers:          simulator.queuedPlayers,
+		IngressBacklogTickets: ingressTickets,
+		IngressBacklogPlayers: ingressPlayers,
+		Population:            simulator.population.Stats(),
+		ActiveMatches:         simulator.activeGameCount(),
+		InGamePlayers:         simulator.inGamePlayerCount(),
+		IdlePlayers:           simulator.idlePlayerCount(),
+		CooldownPlayers:       simulator.cooldownPlayerCount(),
+		Tickets:               make([]api.MatchTicket, 0, len(simulator.queued)),
 	}
 	identifiers := make([]string, 0, len(simulator.queued))
 	for identifier := range simulator.queued {
@@ -351,39 +359,31 @@ func (simulator *Simulator) Snapshot() State {
 	return state
 }
 
-// Step executes one serialized HTTP lifecycle operation or one simulated clock tick.
+// Step emits one logical event while keeping presentation frames separate from simulated time.
 func (simulator *Simulator) Step(ctx context.Context) (Event, error) {
 	simulator.mu.Lock()
 	defer simulator.mu.Unlock()
 	if simulator.closed {
 		return Event{}, fmt.Errorf("flow simulator is closed")
 	}
-	if proposalID := simulator.nextCompletedGame(); proposalID != "" {
-		return simulator.execute(ctx, operation{kind: operationAcknowledge, proposalID: proposalID})
-	}
-	if len(simulator.pending) > 0 {
-		if simulator.arrivalTurn && simulator.hasDueArrival() {
-			simulator.arrivalTurn = false
-			return simulator.submitArrival(ctx)
-		}
-		current := simulator.pending[0]
-		simulator.pending = simulator.pending[1:]
-		simulator.arrivalTurn = true
-		return simulator.execute(ctx, current)
-	}
-	if simulator.configuration.MaxConcurrentMatches-len(simulator.active) >= simulator.configuration.MatchesPerCycle &&
-		simulator.queuedPlayers >= defaultTeamCount*defaultTeamSize*simulator.configuration.MatchesPerCycle &&
-		!simulator.clock.Now().Before(simulator.nextPlanAt) {
-		return simulator.plan(ctx)
-	}
 	if simulator.hasDueArrival() {
 		return simulator.submitArrival(ctx)
+	}
+	if proposalID := simulator.nextCompletedGame(); proposalID != "" {
+		return simulator.execute(ctx, operation{kind: operationAcknowledge, proposalID: proposalID, at: simulator.clock.Now()})
+	}
+	if current, due := simulator.nextDueOperation(); due {
+		simulator.pending = simulator.pending[1:]
+		return simulator.execute(ctx, current)
+	}
+	if simulator.canPlan(simulator.clock.Now()) {
+		return simulator.plan(ctx)
 	}
 	return simulator.advanceTime(), nil
 }
 
 func (simulator *Simulator) plan(ctx context.Context) (Event, error) {
-	now := simulator.clock.Advance(operationDuration)
+	now := simulator.clock.Now()
 	nextCycle := simulator.cycle + 1
 	snapshotID := fmt.Sprintf("flow-snapshot-%04d", nextCycle)
 	batch, err := request[api.ProposalBatch](
@@ -395,6 +395,8 @@ func (simulator *Simulator) plan(ctx context.Context) (Event, error) {
 	}
 	simulator.cycle = nextCycle
 	simulator.nextPlanAt = now.Add(simulator.configuration.PlanningInterval)
+	reserveAt := now.Add(operationDuration)
+	confirmAt := reserveAt.Add(operationDuration)
 	for index, proposal := range batch.Proposals {
 		state := &lifecycle{
 			proposal:      proposal,
@@ -402,11 +404,12 @@ func (simulator *Simulator) plan(ctx context.Context) (Event, error) {
 			assignmentID:  fmt.Sprintf("flow-assignment-%04d-%02d", simulator.cycle, index+1),
 		}
 		simulator.active[proposal.ID] = state
-		simulator.pending = append(simulator.pending, operation{kind: operationReserve, proposalID: proposal.ID})
+		simulator.pending = append(simulator.pending, operation{kind: operationReserve, proposalID: proposal.ID, at: reserveAt})
 	}
 	for _, proposal := range batch.Proposals {
-		simulator.pending = append(simulator.pending, operation{kind: operationConfirm, proposalID: proposal.ID})
+		simulator.pending = append(simulator.pending, operation{kind: operationConfirm, proposalID: proposal.ID, at: confirmAt})
 	}
+	simulator.sortPending()
 	copy := batch
 	return simulator.event(Event{
 		Kind: EventPlanCompleted, At: now, Cycle: simulator.cycle, Batch: &copy,
@@ -419,7 +422,10 @@ func (simulator *Simulator) execute(ctx context.Context, current operation) (Eve
 	if !exists {
 		return Event{}, fmt.Errorf("flow proposal %q is not active", current.proposalID)
 	}
-	now := simulator.clock.Advance(operationDuration)
+	now := simulator.clock.Now()
+	if current.at.After(now) {
+		return Event{}, fmt.Errorf("flow operation for %q is scheduled in the future", current.proposalID)
+	}
 	proposal := state.proposal
 	switch current.kind {
 	case operationReserve:
@@ -518,7 +524,7 @@ func (simulator *Simulator) submitArrival(ctx context.Context) (Event, error) {
 	if arrival.returning {
 		kind = EventTicketReturned
 	}
-	return simulator.event(Event{Kind: kind, At: now, Cycle: simulator.cycle, Ticket: &copy}), nil
+	return simulator.event(Event{Kind: kind, At: now, Cycle: simulator.cycle, Ticket: &copy, ArrivalScheduledAt: arrival.at}), nil
 }
 
 func (simulator *Simulator) hasDueArrival() bool {
@@ -528,6 +534,25 @@ func (simulator *Simulator) hasDueArrival() bool {
 func (simulator *Simulator) scheduleArrival(arrival scheduledArrival) {
 	simulator.arrivals = append(simulator.arrivals, arrival)
 	simulator.sortArrivals()
+}
+
+func (simulator *Simulator) nextDueOperation() (operation, bool) {
+	if len(simulator.pending) == 0 || simulator.pending[0].at.After(simulator.clock.Now()) {
+		return operation{}, false
+	}
+	return simulator.pending[0], true
+}
+
+func (simulator *Simulator) sortPending() {
+	slices.SortFunc(simulator.pending, func(left, right operation) int {
+		if compared := left.at.Compare(right.at); compared != 0 {
+			return compared
+		}
+		if left.kind != right.kind {
+			return int(left.kind) - int(right.kind)
+		}
+		return strings.Compare(left.proposalID, right.proposalID)
+	})
 }
 
 func (simulator *Simulator) sortArrivals() {
@@ -571,8 +596,52 @@ func (simulator *Simulator) play(proposal api.MatchProposal) (league.Result, err
 }
 
 func (simulator *Simulator) advanceTime() Event {
-	now := simulator.clock.Advance(simulator.configuration.TickDuration)
+	current := simulator.clock.Now()
+	next := current.Add(simulator.configuration.TickDuration)
+	consider := func(candidate time.Time) {
+		if !candidate.IsZero() && candidate.After(current) && candidate.Before(next) {
+			next = candidate
+		}
+	}
+	if len(simulator.arrivals) > 0 {
+		consider(simulator.arrivals[0].at)
+	}
+	if len(simulator.pending) > 0 {
+		consider(simulator.pending[0].at)
+	}
+	for _, match := range simulator.active {
+		consider(match.endsAt)
+	}
+	if simulator.planningDemandReady() {
+		consider(simulator.nextPlanAt)
+	}
+	now := simulator.clock.Advance(next.Sub(current))
 	return simulator.event(Event{Kind: EventTimeAdvanced, At: now, Cycle: simulator.cycle})
+}
+
+func (simulator *Simulator) planningDemandReady() bool {
+	return simulator.configuration.MaxConcurrentMatches-len(simulator.active) >= simulator.configuration.MatchesPerCycle &&
+		simulator.queuedPlayers >= defaultTeamCount*defaultTeamSize*simulator.configuration.MatchesPerCycle
+}
+
+func (simulator *Simulator) canPlan(now time.Time) bool {
+	return simulator.planningDemandReady() && !now.Before(simulator.nextPlanAt)
+}
+
+func (simulator *Simulator) hasDueEvent() bool {
+	simulator.mu.Lock()
+	defer simulator.mu.Unlock()
+	return simulator.hasDueEventLocked()
+}
+
+func (simulator *Simulator) hasDueEventLocked() bool {
+	if simulator.hasDueArrival() || simulator.nextCompletedGame() != "" {
+		return true
+	}
+	if _, due := simulator.nextDueOperation(); due {
+		return true
+	}
+	return simulator.canPlan(simulator.clock.Now())
 }
 
 func (simulator *Simulator) nextCompletedGame() string {
@@ -640,9 +709,10 @@ func (simulator *Simulator) inGamePlayerCount() int {
 }
 
 func (simulator *Simulator) cooldownPlayerCount() int {
+	now := simulator.clock.Now()
 	players := 0
 	for _, arrival := range simulator.arrivals {
-		if !arrival.returning {
+		if !arrival.returning || !arrival.at.After(now) {
 			continue
 		}
 		party, exists := simulator.population.Party(arrival.ticketID)
@@ -653,13 +723,35 @@ func (simulator *Simulator) cooldownPlayerCount() int {
 	return players
 }
 
+func (simulator *Simulator) ingressBacklog() (int, int) {
+	now := simulator.clock.Now()
+	tickets := 0
+	players := 0
+	for _, arrival := range simulator.arrivals {
+		if arrival.at.After(now) {
+			break
+		}
+		party, exists := simulator.population.Party(arrival.ticketID)
+		if !exists {
+			continue
+		}
+		tickets++
+		players += len(party.Players)
+	}
+	return tickets, players
+}
+
 func (simulator *Simulator) idlePlayerCount() int {
-	return max(0, simulator.configuration.PopulationSize-simulator.queuedPlayers-simulator.inGamePlayerCount()-simulator.cooldownPlayerCount())
+	_, ingressPlayers := simulator.ingressBacklog()
+	return max(0, simulator.configuration.PopulationSize-simulator.queuedPlayers-ingressPlayers-simulator.inGamePlayerCount()-simulator.cooldownPlayerCount())
 }
 
 func (simulator *Simulator) event(event Event) Event {
+	ingressTickets, ingressPlayers := simulator.ingressBacklog()
 	event.QueueTickets = len(simulator.queued)
 	event.QueuePlayers = simulator.queuedPlayers
+	event.IngressBacklogTickets = ingressTickets
+	event.IngressBacklogPlayers = ingressPlayers
 	event.ActiveMatches = simulator.activeGameCount()
 	event.InGamePlayers = simulator.inGamePlayerCount()
 	event.IdlePlayers = simulator.idlePlayerCount()

@@ -20,7 +20,7 @@ func TestSnapshotRendersUnicodeLifecycleWithinWidth(t *testing.T) {
 	options.ReducedMotion = true
 	options.Width = 120
 	model := flowui.New(simulator, options)
-	if err := model.RunSteps(context.Background(), 60); err != nil {
+	if err := model.RunSteps(context.Background(), 80); err != nil {
 		t.Fatal(err)
 	}
 	content := model.Content()
@@ -71,7 +71,7 @@ func TestSnapshotSupportsASCIIFallback(t *testing.T) {
 	options.Unicode = false
 	options.Color = false
 	model := flowui.New(simulator, options)
-	if err := model.RunSteps(context.Background(), 60); err != nil {
+	if err := model.RunSteps(context.Background(), 80); err != nil {
 		t.Fatal(err)
 	}
 	content := model.Content()
@@ -88,7 +88,7 @@ func TestCompactSnapshotFitsStandardTerminal(t *testing.T) {
 	options.Width = 80
 	options.Height = 24
 	model := flowui.New(simulator, options)
-	if err := model.RunSteps(context.Background(), 30); err != nil {
+	if err := model.RunSteps(context.Background(), 36); err != nil {
 		t.Fatal(err)
 	}
 	lines := strings.Split(model.Content(), "\n")
