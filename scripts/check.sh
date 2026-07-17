@@ -18,6 +18,8 @@ for required_file in \
   docs/reference-scenarios.md \
   docs/reference-workloads.md \
   docs/sema-lab.md \
+  docs/workload-evaluation.md \
+  docs/evaluation-baseline.md \
   docs/policy-simulation.md \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
@@ -26,6 +28,7 @@ for required_file in \
   docs/decisions/0004-policy-catalog.md \
   docs/decisions/0005-integration-publication-baseline.md \
   docs/decisions/0006-product-development-sequence.md \
+  docs/decisions/0007-evaluation-calibration-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -41,6 +44,7 @@ for required_file in \
   docs/todo-0010-policy-simulation/spec.md \
   docs/todo-0011-integration-decision/spec.md \
   docs/todo-0012-sema-lab/spec.md \
+  docs/todo-0013-workload-evaluation/spec.md \
   go.mod; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2
@@ -89,6 +93,7 @@ go test -race ./...
 go run ./cmd/sema-lab -list >/dev/null
 go run ./cmd/sema-lab team-2v2-mixed >/dev/null
 go run ./cmd/sema-lab -format json battle-royale-duo >/dev/null
+go run ./cmd/sema-lab -format json diagnostic-bounded-quality-gap synthetic-5v5-seeded-queue >/dev/null
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x
 go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x
 

@@ -55,10 +55,11 @@
 
 ## P6: Workload And Quality Evidence
 
-- [ ] arrival, wait, party, skill uncertainty, role scarcity와 latency workload model
-- [ ] coverage, fairness와 quality metric vocabulary 및 comparison report
-- [ ] small-case exhaustive oracle와 optimality-gap 측정
-- [ ] benchmark history와 regression budget 결정
+- [x] seeded snapshot-level wait, party, point-skill, role scarcity와 latency model
+- [x] player coverage, oldest unmatched wait와 proposal quality metric vocabulary
+- [x] small-case exhaustive new-match oracle와 bounded quality-gap 측정
+- [x] point-estimate rating boundary와 uncertainty revisit trigger 결정
+- [x] deterministic coverage/search/oracle regression baseline
 
 ## P7: Scalable Candidate Search
 
@@ -86,4 +87,5 @@
 - [ ] metrics, traces와 decision audit exporter
 - [ ] load, soak와 failure-injection validation
 - [ ] container/deployment example과 operations runbook
+- [ ] target hardware의 repeated latency/allocation benchmark history와 numeric SLO
 - [ ] measured SLO, recovery와 stable release gate

@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/evaluation"
 	"github.com/zrma/sema/internal/simulation"
 )
 
-const SchemaVersion = "v0alpha1"
+const SchemaVersion = "v0alpha2"
 
 var fixtureNow = time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 
@@ -33,6 +34,7 @@ type ScenarioResult struct {
 	Policy      PolicySummary     `json:"policy"`
 	Demand      DemandSummary     `json:"demand"`
 	Outcome     OutcomeSummary    `json:"outcome"`
+	Oracle      *OracleSummary    `json:"oracle,omitempty"`
 	Proposals   []ProposalSummary `json:"proposals"`
 }
 
@@ -48,14 +50,37 @@ type DemandSummary struct {
 }
 
 type OutcomeSummary struct {
-	ProposalCount    int              `json:"proposal_count"`
-	MatchedTickets   int              `json:"matched_tickets"`
-	MatchedPlayers   int              `json:"matched_players"`
-	UnmatchedTickets int              `json:"unmatched_tickets"`
-	UnmatchedPlayers int              `json:"unmatched_players"`
-	UnmatchedReasons []UnmatchedCount `json:"unmatched_reasons"`
-	BudgetExhausted  bool             `json:"budget_exhausted"`
-	Search           SearchSummary    `json:"search"`
+	ProposalCount             int              `json:"proposal_count"`
+	MatchedTickets            int              `json:"matched_tickets"`
+	MatchedPlayers            int              `json:"matched_players"`
+	UnmatchedTickets          int              `json:"unmatched_tickets"`
+	UnmatchedPlayers          int              `json:"unmatched_players"`
+	CoverageBasisPoints       int              `json:"coverage_basis_points"`
+	OldestMatchedWaitMillis   int64            `json:"oldest_matched_wait_millis"`
+	OldestUnmatchedWaitMillis int64            `json:"oldest_unmatched_wait_millis"`
+	UnmatchedReasons          []UnmatchedCount `json:"unmatched_reasons"`
+	BudgetExhausted           bool             `json:"budget_exhausted"`
+	Search                    SearchSummary    `json:"search"`
+}
+
+type OracleSummary struct {
+	Relation             evaluation.QualityRelation `json:"relation"`
+	PlannerFound         bool                       `json:"planner_found"`
+	OracleFound          bool                       `json:"oracle_found"`
+	CandidatesEvaluated  int                        `json:"candidates_evaluated"`
+	AdmissibleCandidates int                        `json:"admissible_candidates"`
+	PlannerQuality       *QualityVector             `json:"planner_quality,omitempty"`
+	OracleQuality        *QualityVector             `json:"oracle_quality,omitempty"`
+}
+
+type QualityVector struct {
+	RelaxationLevel  int   `json:"relaxation_level"`
+	WaitPriority     bool  `json:"wait_priority"`
+	RolePenalty      int   `json:"role_penalty"`
+	TeamSkillGap     int   `json:"team_skill_gap"`
+	OldestWaitMillis int64 `json:"oldest_wait_millis"`
+	TotalWaitMillis  int64 `json:"total_wait_millis"`
+	MaxLatencyMillis int   `json:"max_latency_millis"`
 }
 
 type UnmatchedCount struct {
@@ -135,7 +160,11 @@ func Run(ids []string) (Report, error) {
 		}
 		policyResult := simulationReport.Policies[0]
 		scenarioResult := policyResult.Scenarios[0]
-		report.Scenarios = append(report.Scenarios, summarizeWorkload(workload, policyResult, scenarioResult))
+		summarized, err := summarizeWorkload(workload, policyResult, scenarioResult)
+		if err != nil {
+			return Report{}, fmt.Errorf("summarize workload %q: %w", workload.ID, err)
+		}
+		report.Scenarios = append(report.Scenarios, summarized)
 	}
 	return report, nil
 }
@@ -171,24 +200,8 @@ func summarizeWorkload(
 	workload Workload,
 	policyResult simulation.PolicyResult,
 	result simulation.ScenarioResult,
-) ScenarioResult {
-	playersByTicket := make(map[domain.TicketID]int, len(workload.Scenario.MatchTickets))
-	demandPlayers := 0
-	for _, ticket := range workload.Scenario.MatchTickets {
-		playersByTicket[ticket.ID] = len(ticket.Players)
-		demandPlayers += len(ticket.Players)
-	}
-
-	matchedPlayers := 0
-	for _, proposal := range result.Batch.Proposals {
-		for _, ticket := range proposal.Tickets {
-			matchedPlayers += playersByTicket[ticket.ID]
-		}
-	}
-	unmatchedPlayers := 0
-	for _, unmatched := range result.Batch.Unmatched {
-		unmatchedPlayers += playersByTicket[unmatched.Ticket.ID]
-	}
+) (ScenarioResult, error) {
+	metrics := evaluation.Measure(workload.Scenario, result.Batch)
 
 	unmatchedReasons := make([]UnmatchedCount, len(result.Summary.Unmatched))
 	for index, count := range result.Summary.Unmatched {
@@ -196,7 +209,7 @@ func summarizeWorkload(
 	}
 
 	scores := result.Summary.Scores
-	return ScenarioResult{
+	summary := ScenarioResult{
 		ID:          workload.ID,
 		Description: workload.Description,
 		Policy: PolicySummary{
@@ -206,16 +219,19 @@ func summarizeWorkload(
 		Demand: DemandSummary{
 			MatchTickets:    len(workload.Scenario.MatchTickets),
 			BackfillTickets: len(workload.Scenario.BackfillTickets),
-			Players:         demandPlayers,
+			Players:         metrics.DemandPlayers,
 		},
 		Outcome: OutcomeSummary{
-			ProposalCount:    result.Summary.ProposalCount,
-			MatchedTickets:   result.Summary.MatchedTicketCount,
-			MatchedPlayers:   matchedPlayers,
-			UnmatchedTickets: result.Summary.UnmatchedTicketCount,
-			UnmatchedPlayers: unmatchedPlayers,
-			UnmatchedReasons: unmatchedReasons,
-			BudgetExhausted:  result.Summary.BudgetExhausted,
+			ProposalCount:             result.Summary.ProposalCount,
+			MatchedTickets:            metrics.MatchedTickets,
+			MatchedPlayers:            metrics.MatchedPlayers,
+			UnmatchedTickets:          result.Summary.UnmatchedTicketCount,
+			UnmatchedPlayers:          metrics.UnmatchedPlayers,
+			CoverageBasisPoints:       metrics.CoverageBasisPoints,
+			OldestMatchedWaitMillis:   metrics.OldestMatchedWaitMillis,
+			OldestUnmatchedWaitMillis: metrics.OldestUnmatchedWaitMillis,
+			UnmatchedReasons:          unmatchedReasons,
+			BudgetExhausted:           result.Summary.BudgetExhausted,
 			Search: SearchSummary{
 				CandidatesEvaluated:   scores.CandidatesEvaluated,
 				Nodes:                 scores.SearchNodes,
@@ -230,6 +246,47 @@ func summarizeWorkload(
 			},
 		},
 		Proposals: summarizeProposals(result.Batch.Proposals),
+	}
+	snapshot := domain.MatchmakingSnapshot{
+		ID: workload.Scenario.ID, Now: workload.Scenario.Now,
+		MatchTickets: workload.Scenario.MatchTickets, BackfillTickets: workload.Scenario.BackfillTickets,
+		Policy: workload.Policy,
+	}
+	if evaluation.OracleEligible(snapshot) {
+		comparison, err := evaluation.CompareBatch(snapshot, result.Batch)
+		if err != nil {
+			return ScenarioResult{}, err
+		}
+		summary.Oracle = summarizeOracle(comparison)
+	}
+	return summary, nil
+}
+
+func summarizeOracle(comparison evaluation.OracleComparison) *OracleSummary {
+	summary := &OracleSummary{
+		Relation:             comparison.Relation,
+		PlannerFound:         comparison.PlannerFound,
+		OracleFound:          comparison.Oracle.Found,
+		CandidatesEvaluated:  comparison.Oracle.CandidatesEvaluated,
+		AdmissibleCandidates: comparison.Oracle.AdmissibleCandidates,
+	}
+	if comparison.PlannerFound {
+		quality := qualityVector(comparison.PlannerEvidence)
+		summary.PlannerQuality = &quality
+	}
+	if comparison.Oracle.Found {
+		quality := qualityVector(comparison.Oracle.BestEvidence)
+		summary.OracleQuality = &quality
+	}
+	return summary
+}
+
+func qualityVector(evidence domain.ScoreEvidence) QualityVector {
+	return QualityVector{
+		RelaxationLevel: evidence.RelaxationLevel, WaitPriority: evidence.WaitPriority,
+		RolePenalty: evidence.RolePenalty, TeamSkillGap: evidence.TeamSkillGap,
+		OldestWaitMillis: evidence.OldestWaitMillis, TotalWaitMillis: evidence.TotalWaitMillis,
+		MaxLatencyMillis: evidence.MaxLatencyMillis,
 	}
 }
 
@@ -276,7 +333,7 @@ func summarizeProposals(proposals []domain.MatchProposal) []ProposalSummary {
 }
 
 func builtInWorkloads() []Workload {
-	workloads := make([]Workload, 0, 27)
+	workloads := make([]Workload, 0, 30)
 	for _, teamSize := range []int{2, 3, 5, 10, 16, 20, 50} {
 		workloads = append(workloads,
 			teamWorkload(teamSize, "solo", repeatedPartySizes(teamSize*2, 1)),
@@ -292,9 +349,63 @@ func builtInWorkloads() []Workload {
 		latencyHardLimitWorkload(),
 		roleQualityWorkload(),
 		waitRelaxationWorkload(),
+		boundedQualityGapWorkload(),
+		syntheticQueueWorkload(),
 	)
 	sort.Slice(workloads, func(left, right int) bool { return workloads[left].ID < workloads[right].ID })
 	return workloads
+}
+
+func boundedQualityGapWorkload() Workload {
+	id := "diagnostic-bounded-quality-gap"
+	policy := referencePolicy(id, 2, 1)
+	policy.MaxProposals = 1
+	policy.MaxCandidatesPerProposal = 1
+	scenario := scenarioWithParties(id, []int{1, 1, 1, 1})
+	skills := []int{0, 1000, 500, 500}
+	for index := range scenario.MatchTickets {
+		scenario.MatchTickets[index].Players[0].Skill = skills[index]
+		if index < 2 {
+			scenario.MatchTickets[index].EnqueuedAt = fixtureNow.Add(-time.Minute)
+		} else {
+			scenario.MatchTickets[index].EnqueuedAt = fixtureNow.Add(-10 * time.Second)
+		}
+	}
+	return Workload{
+		ID: id, Description: "1:1 diagnostic where a one-candidate budget misses the best skill balance",
+		Policy: policy, Scenario: scenario,
+	}
+}
+
+func syntheticQueueWorkload() Workload {
+	id := "synthetic-5v5-seeded-queue"
+	scenario, err := evaluation.Generate(evaluation.WorkloadModel{
+		ID: domain.SnapshotID(id), Seed: 20260717, Now: fixtureNow, TicketCount: 40, MaxPartySize: 5,
+		PartySizes: []evaluation.PartySizeWeight{
+			{Size: 1, Weight: 55}, {Size: 2, Weight: 25}, {Size: 3, Weight: 15}, {Size: 5, Weight: 5},
+		},
+		SkillCenter: 1000, SkillSpread: 300,
+		Roles: []evaluation.RoleWeight{
+			{Role: "healer", Weight: 12}, {Role: "tank", Weight: 18}, {Role: "dps", Weight: 70},
+		},
+		MinLatencyMS: 20, MaxLatencyMS: 120, MinWait: 0, MaxWait: 2 * time.Minute,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("invalid built-in synthetic workload: %v", err))
+	}
+	policy := referencePolicy(id, 2, 5)
+	policy.MaxProposals = 4
+	policy.RoleRequirements = []domain.RoleRequirement{
+		{Role: "healer", MinPerTeam: 1}, {Role: "tank", MinPerTeam: 1},
+	}
+	policy.RelaxationSteps = []domain.RelaxationStep{
+		{AfterWait: 0, MaxTeamSkillGap: 100, MaxRolePenalty: 0},
+		{AfterWait: 30 * time.Second, MaxTeamSkillGap: 250, MaxRolePenalty: 2, PrioritizeWait: true},
+	}
+	return Workload{
+		ID: id, Description: "seeded 5:5 queue with weighted party, skill, role, latency, and wait distributions",
+		Policy: policy, Scenario: scenario,
+	}
 }
 
 func teamWorkload(teamSize int, variant string, partySizes []int) Workload {

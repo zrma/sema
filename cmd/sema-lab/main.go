@@ -79,7 +79,7 @@ func writeTextReport(writer io.Writer, report lab.Report, details bool) error {
 		outcome := scenario.Outcome
 		if _, err := fmt.Fprintf(
 			writer,
-			"scenario=%s policy=%s fingerprint=%s demand_tickets=%d demand_players=%d backfills=%d proposals=%d matched_tickets=%d matched_players=%d unmatched_tickets=%d unmatched_players=%d budget_exhausted=%t\n",
+			"scenario=%s policy=%s fingerprint=%s demand_tickets=%d demand_players=%d backfills=%d proposals=%d matched_tickets=%d matched_players=%d unmatched_tickets=%d unmatched_players=%d coverage_bps=%d oldest_unmatched_wait_ms=%d budget_exhausted=%t\n",
 			scenario.ID,
 			scenario.Policy.Version,
 			scenario.Policy.Fingerprint,
@@ -91,9 +91,24 @@ func writeTextReport(writer io.Writer, report lab.Report, details bool) error {
 			outcome.MatchedPlayers,
 			outcome.UnmatchedTickets,
 			outcome.UnmatchedPlayers,
+			outcome.CoverageBasisPoints,
+			outcome.OldestUnmatchedWaitMillis,
 			outcome.BudgetExhausted,
 		); err != nil {
 			return err
+		}
+		if scenario.Oracle != nil {
+			if _, err := fmt.Fprintf(
+				writer,
+				"  oracle relation=%s candidates=%d admissible=%d planner_found=%t oracle_found=%t\n",
+				scenario.Oracle.Relation,
+				scenario.Oracle.CandidatesEvaluated,
+				scenario.Oracle.AdmissibleCandidates,
+				scenario.Oracle.PlannerFound,
+				scenario.Oracle.OracleFound,
+			); err != nil {
+				return err
+			}
 		}
 		if _, err := fmt.Fprintf(
 			writer,

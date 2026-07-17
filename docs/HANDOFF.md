@@ -28,6 +28,7 @@
 - process-local policy catalog가 explicit registration 뒤 version-only planning을 제공한다.
 - offline simulation이 policy/scenario 순서와 무관한 canonical comparison report를 만든다.
 - `cmd/sema-lab`이 2:2부터 50:50, 100-player battle royale, backfill/no-match와 objective fixture를 실행하고 ticket/player coverage 및 search evidence를 출력한다.
+- P6 evaluation이 seeded synthetic snapshot, coverage basis points, oldest unmatched wait와 12-ticket exhaustive new-match oracle를 제공한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
 - Go package는 `internal/`에 유지하며 public API와 compatibility guarantee는 아직 제공하지 않는다.
@@ -36,7 +37,7 @@
 
 ## Current Work
 
-P0 foundation부터 P5 executable evaluation lab까지 완료되었다. ADR 0006의 engine-first 순서에 따라 다음 repo-owned 작업은 realistic workload model, quality metric과 small-case oracle comparison을 만드는 P6 evaluation evidence다. 실제 consumer 또는 수치 SLO가 생기기 전에는 protocol, database나 stable public SDK를 추가하지 않는다.
+P0 foundation부터 P6 workload/quality evaluation과 deterministic regression baseline까지 완료되었다. ADR 0006의 engine-first 순서에 따라 다음 repo-owned 작업은 P7 candidate index/partition boundary와 10K queue evidence다. 실제 consumer 또는 수치 SLO가 생기기 전에는 protocol, database나 stable public SDK를 추가하지 않는다.
 
 ## Completion Rule
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/evaluation"
 	"github.com/zrma/sema/internal/lab"
 )
 
@@ -113,6 +114,37 @@ func TestRunReportsObjectiveAndHardConstraintEvidence(t *testing.T) {
 	latency := byID["no-match-latency-hard-limit"]
 	if len(latency.Outcome.UnmatchedReasons) != 2 || latency.Outcome.UnmatchedReasons[0].Reason != domain.UnmatchedHardConstraint {
 		t.Fatalf("latency hard-limit reasons = %#v", latency.Outcome.UnmatchedReasons)
+	}
+}
+
+func TestRunReportsSyntheticMetricsAndOracleGap(t *testing.T) {
+	report, err := lab.Run([]string{"synthetic-5v5-seeded-queue", "diagnostic-bounded-quality-gap"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	byID := make(map[string]lab.ScenarioResult, len(report.Scenarios))
+	for _, result := range report.Scenarios {
+		byID[result.ID] = result
+	}
+	synthetic := byID["synthetic-5v5-seeded-queue"]
+	if synthetic.Demand.MatchTickets != 40 || synthetic.Demand.Players != 65 || synthetic.Outcome.CoverageBasisPoints < 6000 {
+		t.Fatalf("synthetic metrics = %#v", synthetic)
+	}
+	if synthetic.Outcome.Search.Nodes > 1000 || synthetic.Outcome.OldestUnmatchedWaitMillis == 0 {
+		t.Fatalf("synthetic regression budget = %#v", synthetic.Outcome)
+	}
+	if synthetic.Oracle != nil {
+		t.Fatalf("large synthetic queue unexpectedly ran exhaustive oracle: %#v", synthetic.Oracle)
+	}
+	diagnostic := byID["diagnostic-bounded-quality-gap"]
+	if diagnostic.Oracle == nil || diagnostic.Oracle.Relation != evaluation.QualityOraclePreferred {
+		t.Fatalf("diagnostic oracle = %#v", diagnostic.Oracle)
+	}
+	if diagnostic.Oracle.PlannerQuality.TeamSkillGap != 1000 || diagnostic.Oracle.OracleQuality.TeamSkillGap != 0 {
+		t.Fatalf("diagnostic quality vectors = %#v", diagnostic.Oracle)
+	}
+	if diagnostic.Outcome.CoverageBasisPoints != 5000 || diagnostic.Outcome.Search.Nodes > 5 {
+		t.Fatalf("diagnostic regression budget = %#v", diagnostic.Outcome)
 	}
 }
 
