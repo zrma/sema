@@ -89,3 +89,11 @@
 - [x] container/deployment example과 operations runbook
 - [x] reference container target profile의 repeated latency/allocation history와 numeric SLO
 - [x] measured SLO, recovery와 stable release admission gate
+
+## P11: Interactive Flow Visualization
+
+- [x] deterministic mixed-party HTTP lifecycle simulator
+- [x] Unicode party movement와 proposal/reservation/assignment animation
+- [x] pause, single-step, speed와 reduced-motion control
+- [x] ASCII compatibility glyph와 deterministic snapshot mode
+- [x] renderer width, lifecycle ordering과 command smoke gate

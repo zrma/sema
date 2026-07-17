@@ -26,6 +26,8 @@ deployment_example: deploy/compose.yaml
 operations_runbook: docs/operations-runbook.md
 performance_slo: docs/performance-slo.md
 release_admission: docs/release-admission.md
+flow_tui: cmd/sema-tui
+flow_tui_guide: docs/sema-flow.md
 domain_model: docs/domain-model.md
 lifecycle: docs/lifecycle.md
 reference_scenarios: docs/reference-scenarios.md
@@ -74,6 +76,8 @@ checks:
   performance_unit: go test ./internal/performance ./cmd/sema-benchmark-gate
   performance: scripts/check-performance.sh
   release_admission: scripts/check-release-admission.sh v0.0.0-test
+  flow_tui_test: go test ./internal/flow ./internal/flowui ./cmd/sema-tui
+  flow_tui_snapshot: go run ./cmd/sema-tui -snapshot -steps 34 -width 120 -height 38
   planner_large_benchmark: go test ./internal/planner -run ^$ -bench ^BenchmarkPlanLargeQueues$ -benchtime=1x -count=1
   lab_smoke: go run ./cmd/sema-lab
   harness: scripts/check-agent-harness-interface.sh

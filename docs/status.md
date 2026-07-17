@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P10 reference target profile과 release admission까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P11 interactive flow visualization까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -51,6 +51,9 @@ P0부터 P10 reference target profile과 release admission까지 완료되었다
 - pinned non-root `scratch` image, host-loopback Compose example과 single-writer operations runbook.
 - 2 CPU/2 GiB reference container의 repeated service SLO와 Go latency/allocation budget, sanitized CI history artifact.
 - full/container/performance/recovery/publication 검증을 묶고 현재 v1 stable tag를 차단하는 release admission gate.
+- 실제 loopback HTTP lifecycle을 단계별로 실행하는 deterministic mixed-party Flow simulator.
+- Unicode party movement, proposal/reservation/assignment/departure와 ASCII/reduced-motion fallback을 제공하는 `cmd/sema-tui`.
+- waiting, active와 departed surface를 함께 검증하는 terminal-independent Flow snapshot.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
@@ -70,6 +73,7 @@ P0부터 P10 reference target profile과 release admission까지 완료되었다
 - authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 - stable release 자체; 현재 `stable_admitted: false`다.
+- production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
 
 ## Risks And Decisions Pending
 
@@ -81,4 +85,4 @@ P0부터 P10 reference target profile과 release admission까지 완료되었다
 
 ## Next Slice
 
-P10 repository-owned 목표는 완료되었다. 다음 장기 slice는 실제 consumer와 production target이 생겼을 때 authentication/TLS gateway, stable API, production traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 연다. 그 전에는 reference SLO를 제품 SLA로 승격하지 않는다.
+P11 repository-owned 목표는 완료되었다. 다음 장기 slice는 실제 consumer와 production target이 생겼을 때 authentication/TLS gateway, stable API, production traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 연다. 그 전에는 Flow demo를 production scheduler로, reference SLO를 제품 SLA로 승격하지 않는다.
