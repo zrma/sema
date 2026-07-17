@@ -168,3 +168,11 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] backlog에서 한 cycle 32-match 반환 regression
 - [x] 1,000-player 30분 wait/throughput 안정성 검증
 - [x] TUI batch/limit/cadence 관찰값과 report/matrix 기본값 정렬
+
+## P20: Single-Select Performance
+
+- [x] single-proposal limit의 redundant anchored search 제거
+- [x] exact one-match capacity의 redundant candidate graph 제거
+- [x] multi-proposal/backfill conflict candidate graph 보존
+- [x] 50v50, 100K queue와 engine 1,000-ticket 기존 budget 복구
+- [x] focused/full/race/container performance와 publication gate

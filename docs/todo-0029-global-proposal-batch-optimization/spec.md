@@ -22,7 +22,7 @@ rank utility는 admissible match 하나를 성립시키는 admission baseline과
 
 - canonical queue와 P7 candidate ticket window를 그대로 사용한다.
 - side effect 없는 greedy cover를 seed로 넣어 현재 planner가 만들 수 있던 disjoint feasible batch를 candidate graph의 초기 incumbent로 보존한다.
-- 전체 window의 각 ticket을 required anchor로 삼아 해당 ticket을 포함하는 best admissible placement를 추가한다.
+- 전체 window의 각 ticket을 required anchor로 삼아 해당 ticket을 포함하는 best admissible placement를 추가한다. 단, per-search candidate budget이 기본값 이상이고 proposal limit 또는 available capacity가 하나이며 backfill 경쟁도 없으면 unanchored best candidate 하나만 생성한다. 작은 search budget의 queue-order 편향을 보완하는 anchor는 single-select에서도 유지한다.
 - 같은 kind, backfill target과 ticket 집합을 쓰는 후보는 하나로 deduplicate하고 team placement 중 기존 objective가 가장 좋은 것을 보존한다.
 - backfill candidate를 먼저 생성하되 new-match 후보도 같은 최종 selector에 전달한다.
 - 이 단계는 diverse bounded approximation이며 snapshot 전체 feasible placement를 모두 생성한다고 주장하지 않는다.

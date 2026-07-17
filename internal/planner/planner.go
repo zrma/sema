@@ -168,6 +168,8 @@ func generateProposalCandidates(
 ) candidateGeneration {
 	result := candidateGeneration{}
 	indexes := make(map[string]int)
+	singleSelectFastPath := maxCandidatesPerSearch >= defaultMaxCandidatesPerProposal &&
+		(maxSeedProposals == 1 || len(backfills) == 0 && !canFillMultipleProposals(available, matchSlots(snapshot.Policy)))
 	for _, backfill := range backfills {
 		if budget.exhausted || len(result.candidates) >= maxBatchCandidates {
 			result.truncated = true
@@ -178,14 +180,12 @@ func generateProposalCandidates(
 		collectShapeCandidates(
 			&result, indexes, window.Tickets, backfill.OpenSlotsByTeam, snapshot,
 			domain.ProposalBackfill, &target, window.Truncated,
+			!singleSelectFastPath,
 			maxCandidatesPerSearch, maxBatchCandidates, budget,
 		)
 	}
 
-	newMatchSlots := make([]int, snapshot.Policy.TeamCount)
-	for index := range newMatchSlots {
-		newMatchSlots[index] = snapshot.Policy.TeamSize
-	}
+	newMatchSlots := matchSlots(snapshot.Policy)
 	if !budget.exhausted && len(result.candidates) < maxBatchCandidates {
 		collectGreedyCoverCandidates(
 			&result, indexes, available, newMatchSlots, snapshot,
@@ -193,18 +193,28 @@ func generateProposalCandidates(
 			maxCandidateTickets, budget,
 		)
 	}
-	if !budget.exhausted && len(result.candidates) < maxBatchCandidates {
+	needsBatchAlternatives := !singleSelectFastPath
+	if needsBatchAlternatives && !budget.exhausted && len(result.candidates) < maxBatchCandidates {
 		window := discovery.SelectWindow(available, newMatchSlots, maxCandidateTickets)
 		collectShapeCandidates(
 			&result, indexes, window.Tickets, newMatchSlots, snapshot,
 			domain.ProposalNewMatch, nil, window.Truncated,
+			true,
 			maxCandidatesPerSearch, maxBatchCandidates, budget,
 		)
-	} else if len(available) > 0 {
+	} else if needsBatchAlternatives && len(available) > 0 {
 		result.truncated = true
 	}
 	result.truncated = result.truncated || budget.exhausted
 	return result
+}
+
+func matchSlots(policy domain.MatchmakingPolicy) []int {
+	slots := make([]int, policy.TeamCount)
+	for index := range slots {
+		slots[index] = policy.TeamSize
+	}
+	return slots
 }
 
 func collectGreedyCoverCandidates(
@@ -246,13 +256,16 @@ func collectShapeCandidates(
 	kind domain.ProposalKind,
 	backfill *domain.BackfillTarget,
 	windowTruncated bool,
+	includeAnchors bool,
 	maxCandidatesPerSearch int,
 	maxBatchCandidates int,
 	budget *searchBudget,
 ) {
 	anchors := make([]domain.TicketID, 1, len(tickets)+1)
-	for _, ticket := range tickets {
-		anchors = append(anchors, ticket.ID)
+	if includeAnchors {
+		for _, ticket := range tickets {
+			anchors = append(anchors, ticket.ID)
+		}
 	}
 	for anchorIndex, anchor := range anchors {
 		if budget.exhausted || len(result.candidates) >= maxBatchCandidates {
@@ -267,6 +280,21 @@ func collectShapeCandidates(
 		prepareSearchEvidence(&search, len(tickets), windowTruncated)
 		recordGeneratedCandidate(result, indexes, search, kind, backfill)
 	}
+}
+
+func canFillMultipleProposals(tickets []domain.MatchTicket, slots []int) bool {
+	needed := 0
+	for _, count := range slots {
+		needed += count
+	}
+	if needed == 0 {
+		return false
+	}
+	available := 0
+	for _, ticket := range tickets {
+		available += len(ticket.Players)
+	}
+	return available >= 2*needed
 }
 
 func prepareSearchEvidence(search *placementSearch, candidateTickets int, windowTruncated bool) {

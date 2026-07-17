@@ -68,6 +68,55 @@ func TestPlanExposesGlobalBatchSelectionEvidence(t *testing.T) {
 	assertDisjointAndCapacity(t, batch, tickets, 2, 1)
 }
 
+func TestPlanSkipsBatchAlternativesWhenProposalLimitIsOne(t *testing.T) {
+	configured := policy(2, 2)
+	configured.MaxProposals = 1
+	tickets := partyTickets(repeatedPartySizes(100, 1))
+
+	batch, err := planner.Plan(snapshotWith("single-select-limit", configured, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 1 || batch.Evidence.CandidateProposals != 1 {
+		t.Fatalf("single-select batch = %#v; want one candidate and proposal", batch.Evidence)
+	}
+}
+
+func TestPlanRetainsAnchorsForSmallSingleSelectSearchBudget(t *testing.T) {
+	configured := policy(2, 1)
+	configured.MaxProposals = 1
+	configured.MaxCandidatesPerProposal = 1
+	tickets := namedSoloTickets([]ticketAttributes{
+		{id: "a", skill: 0, wait: time.Minute, latency: 20},
+		{id: "b", skill: 1000, wait: time.Minute, latency: 20},
+		{id: "c", skill: 500, wait: 10 * time.Second, latency: 20},
+		{id: "d", skill: 500, wait: 10 * time.Second, latency: 20},
+	})
+
+	batch, err := planner.Plan(snapshotWith("single-select-small-budget", configured, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 1 || batch.Evidence.CandidateProposals <= 1 ||
+		batch.Proposals[0].Evidence.TeamSkillGap != 500 {
+		t.Fatalf("small-budget batch = %#v; want anchored quality fallback", batch)
+	}
+}
+
+func TestPlanSkipsBatchAlternativesWhenOnlyOneMatchFits(t *testing.T) {
+	configured := policy(2, 50)
+	tickets := partyTickets(repeatedPartySizes(100, 1))
+
+	batch, err := planner.Plan(snapshotWith("single-select-capacity", configured, tickets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 1 || batch.Evidence.CandidateProposals != 1 ||
+		batch.Evidence.CandidateGenerationNodes >= 1_000 {
+		t.Fatalf("single-capacity batch = %#v; want one bounded candidate", batch.Evidence)
+	}
+}
+
 func TestPlanReturnsFeasibleBatchWhenGlobalSelectionBudgetEnds(t *testing.T) {
 	configured := policy(2, 1)
 	configured.MaxProposals = 2
