@@ -192,3 +192,12 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] bucket당 단일 Y-axis label 유지
 - [x] 기존 histogram/measurement 의미 보존
 - [x] 기본/tall/medium/compact와 ASCII regression gate
+
+## P23: Batch Quality Frontier
+
+- [x] 12 match ticket, 2 backfill ticket, 2 team exhaustive safety bound
+- [x] exact-capacity new-match/backfill candidate와 disjoint batch enumeration
+- [x] coverage, wait와 per-match quality의 deterministic Pareto frontier
+- [x] planner equivalent/dominated/incomparable relation과 dominating witness
+- [x] solo/duo/trio + backfill fixture와 bounded candidate gap diagnostic
+- [x] `sema-lab` experimental `v0alpha5` text/JSON evidence와 regression gate

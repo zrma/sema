@@ -136,6 +136,9 @@ func TestRunReportsSyntheticMetricsAndOracleGap(t *testing.T) {
 	if synthetic.Oracle != nil {
 		t.Fatalf("large synthetic queue unexpectedly ran exhaustive oracle: %#v", synthetic.Oracle)
 	}
+	if synthetic.Frontier != nil {
+		t.Fatalf("large synthetic queue unexpectedly ran exhaustive batch frontier: %#v", synthetic.Frontier)
+	}
 	diagnostic := byID["diagnostic-bounded-quality-gap"]
 	if diagnostic.Oracle == nil || diagnostic.Oracle.Relation != evaluation.QualityOraclePreferred {
 		t.Fatalf("diagnostic oracle = %#v", diagnostic.Oracle)
@@ -153,6 +156,39 @@ func TestRunReportsSyntheticMetricsAndOracleGap(t *testing.T) {
 	}
 	if window.Outcome.Search.CandidateTickets != 2 || window.Outcome.Search.TruncatedWindows != 1 {
 		t.Fatalf("candidate window evidence = %#v", window.Outcome.Search)
+	}
+}
+
+func TestRunReportsBatchQualityFrontier(t *testing.T) {
+	report, err := lab.Run([]string{"batch-frontier-mixed-party-backfill", "diagnostic-batch-frontier-gap"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.SchemaVersion != "v0alpha5" {
+		t.Fatalf("schema version = %q; want v0alpha5", report.SchemaVersion)
+	}
+	byID := make(map[string]lab.ScenarioResult, len(report.Scenarios))
+	for _, result := range report.Scenarios {
+		byID[result.ID] = result
+	}
+
+	mixed := byID["batch-frontier-mixed-party-backfill"]
+	if mixed.Frontier == nil || mixed.Frontier.Relation != evaluation.BatchFrontierEquivalent {
+		t.Fatalf("mixed frontier = %#v", mixed.Frontier)
+	}
+	if mixed.Frontier.Planner.SelectedBackfills != 1 || mixed.Frontier.Planner.ProposalCount != 2 ||
+		mixed.Frontier.Planner.MatchedPlayers != 11 || mixed.Outcome.CoverageBasisPoints != 10_000 {
+		t.Fatalf("mixed frontier outcome = %#v", mixed)
+	}
+
+	diagnostic := byID["diagnostic-batch-frontier-gap"]
+	if diagnostic.Frontier == nil || diagnostic.Frontier.Relation != evaluation.BatchFrontierDominated {
+		t.Fatalf("diagnostic frontier = %#v", diagnostic.Frontier)
+	}
+	if diagnostic.Frontier.Planner.ProposalCount != 1 || diagnostic.Frontier.Planner.MatchedPlayers != 2 ||
+		diagnostic.Frontier.Dominating == nil || diagnostic.Frontier.Dominating.ProposalCount != 2 ||
+		diagnostic.Frontier.Dominating.MatchedPlayers != 4 {
+		t.Fatalf("diagnostic frontier witness = %#v", diagnostic.Frontier)
 	}
 }
 

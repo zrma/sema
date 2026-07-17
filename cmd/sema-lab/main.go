@@ -120,6 +120,42 @@ func writeTextReport(writer io.Writer, report lab.Report, details bool) error {
 				return err
 			}
 		}
+		if scenario.Frontier != nil {
+			frontier := scenario.Frontier
+			if _, err := fmt.Fprintf(
+				writer,
+				"  frontier relation=%s placements=%d candidates=%d batches=%d points=%d planner_proposals=%d planner_players=%d planner_backfills=%d\n",
+				frontier.Relation,
+				frontier.PlacementsEvaluated,
+				frontier.AdmissibleCandidates,
+				frontier.BatchesEvaluated,
+				frontier.FrontierPoints,
+				frontier.Planner.ProposalCount,
+				frontier.Planner.MatchedPlayers,
+				frontier.Planner.SelectedBackfills,
+			); err != nil {
+				return err
+			}
+			if frontier.Dominating != nil {
+				witness := frontier.Dominating
+				if _, err := fmt.Fprintf(
+					writer,
+					"    witness proposals=%d players=%d backfills=%d max_role_penalty=%d mean_role_penalty_milli=%d max_skill_gap=%d mean_skill_gap_milli=%d max_latency_ms=%d oldest_wait_ms=%d mean_wait_ms=%d\n",
+					witness.ProposalCount,
+					witness.MatchedPlayers,
+					witness.SelectedBackfills,
+					witness.MaxRolePenalty,
+					witness.MeanRolePenaltyMilli,
+					witness.MaxTeamSkillGap,
+					witness.MeanTeamSkillGapMilli,
+					witness.MaxLatencyMillis,
+					witness.OldestWaitMillis,
+					witness.MeanWaitMillis,
+				); err != nil {
+					return err
+				}
+			}
+		}
 		if _, err := fmt.Fprintf(
 			writer,
 			"  batch candidates=%d selected=%d backfills=%d utility=%d generation_nodes=%d selection_nodes=%d generation_truncated=%t selection_truncated=%t\n",

@@ -12,7 +12,7 @@ import (
 	"github.com/zrma/sema/internal/simulation"
 )
 
-const SchemaVersion = "v0alpha4"
+const SchemaVersion = "v0alpha5"
 
 var fixtureNow = time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 
@@ -35,6 +35,7 @@ type ScenarioResult struct {
 	Demand      DemandSummary     `json:"demand"`
 	Outcome     OutcomeSummary    `json:"outcome"`
 	Oracle      *OracleSummary    `json:"oracle,omitempty"`
+	Frontier    *FrontierSummary  `json:"frontier,omitempty"`
 	Proposals   []ProposalSummary `json:"proposals"`
 }
 
@@ -93,6 +94,34 @@ type QualityVector struct {
 	OldestWaitMillis int64 `json:"oldest_wait_millis"`
 	TotalWaitMillis  int64 `json:"total_wait_millis"`
 	MaxLatencyMillis int   `json:"max_latency_millis"`
+}
+
+type FrontierSummary struct {
+	Relation             evaluation.BatchFrontierRelation `json:"relation"`
+	PlacementsEvaluated  int                              `json:"placements_evaluated"`
+	AdmissibleCandidates int                              `json:"admissible_candidates"`
+	BatchesEvaluated     int                              `json:"batches_evaluated"`
+	FrontierPoints       int                              `json:"frontier_points"`
+	Planner              BatchQualitySummary              `json:"planner"`
+	Dominating           *BatchQualitySummary             `json:"dominating,omitempty"`
+	Points               []BatchQualitySummary            `json:"points"`
+}
+
+type BatchQualitySummary struct {
+	SelectedBackfills     int   `json:"selected_backfills"`
+	ProposalCount         int   `json:"proposal_count"`
+	MatchedTickets        int   `json:"matched_tickets"`
+	MatchedPlayers        int   `json:"matched_players"`
+	MaxRolePenalty        int   `json:"max_role_penalty"`
+	MeanRolePenaltyMilli  int   `json:"mean_role_penalty_milli"`
+	TotalRolePenalty      int   `json:"total_role_penalty"`
+	MaxTeamSkillGap       int   `json:"max_team_skill_gap"`
+	MeanTeamSkillGapMilli int   `json:"mean_team_skill_gap_milli"`
+	TotalTeamSkillGap     int   `json:"total_team_skill_gap"`
+	MaxLatencyMillis      int   `json:"max_latency_millis"`
+	OldestWaitMillis      int64 `json:"oldest_wait_millis"`
+	MeanWaitMillis        int64 `json:"mean_wait_millis"`
+	TotalWaitMillis       int64 `json:"total_wait_millis"`
 }
 
 type UnmatchedCount struct {
@@ -288,6 +317,13 @@ func summarizeWorkload(
 		}
 		summary.Oracle = summarizeOracle(comparison)
 	}
+	if evaluation.BatchFrontierEligible(snapshot) {
+		comparison, err := evaluation.CompareBatchFrontier(snapshot, result.Batch)
+		if err != nil {
+			return ScenarioResult{}, err
+		}
+		summary.Frontier = summarizeFrontier(comparison)
+	}
 	return summary, nil
 }
 
@@ -316,6 +352,46 @@ func qualityVector(evidence domain.ScoreEvidence) QualityVector {
 		RolePenalty: evidence.RolePenalty, TeamSkillGap: evidence.TeamSkillGap,
 		OldestWaitMillis: evidence.OldestWaitMillis, TotalWaitMillis: evidence.TotalWaitMillis,
 		MaxLatencyMillis: evidence.MaxLatencyMillis,
+	}
+}
+
+func summarizeFrontier(comparison evaluation.BatchFrontierComparison) *FrontierSummary {
+	points := make([]BatchQualitySummary, len(comparison.Frontier.Points))
+	for index, point := range comparison.Frontier.Points {
+		points[index] = batchQualitySummary(point)
+	}
+	summary := &FrontierSummary{
+		Relation:             comparison.Relation,
+		PlacementsEvaluated:  comparison.Frontier.PlacementsEvaluated,
+		AdmissibleCandidates: comparison.Frontier.AdmissibleCandidates,
+		BatchesEvaluated:     comparison.Frontier.BatchesEvaluated,
+		FrontierPoints:       len(comparison.Frontier.Points),
+		Planner:              batchQualitySummary(comparison.Planner),
+		Points:               points,
+	}
+	if comparison.Dominating != nil {
+		dominating := batchQualitySummary(*comparison.Dominating)
+		summary.Dominating = &dominating
+	}
+	return summary
+}
+
+func batchQualitySummary(quality evaluation.BatchQuality) BatchQualitySummary {
+	return BatchQualitySummary{
+		SelectedBackfills:     quality.SelectedBackfills,
+		ProposalCount:         quality.ProposalCount,
+		MatchedTickets:        quality.MatchedTickets,
+		MatchedPlayers:        quality.MatchedPlayers,
+		MaxRolePenalty:        quality.MaxRolePenalty,
+		MeanRolePenaltyMilli:  quality.MeanRolePenaltyMilli,
+		TotalRolePenalty:      quality.TotalRolePenalty,
+		MaxTeamSkillGap:       quality.MaxTeamSkillGap,
+		MeanTeamSkillGapMilli: quality.MeanTeamSkillGapMilli,
+		TotalTeamSkillGap:     quality.TotalTeamSkillGap,
+		MaxLatencyMillis:      quality.MaxLatencyMillis,
+		OldestWaitMillis:      quality.OldestWaitMillis,
+		MeanWaitMillis:        quality.MeanWaitMillis,
+		TotalWaitMillis:       quality.TotalWaitMillis,
 	}
 }
 
@@ -383,10 +459,60 @@ func builtInWorkloads() []Workload {
 		waitRelaxationWorkload(),
 		boundedQualityGapWorkload(),
 		candidateWindowGapWorkload(),
+		batchFrontierMixedWorkload(),
+		batchFrontierGapWorkload(),
 		syntheticQueueWorkload(),
 	)
 	sort.Slice(workloads, func(left, right int) bool { return workloads[left].ID < workloads[right].ID })
 	return workloads
+}
+
+func batchFrontierMixedWorkload() Workload {
+	id := "batch-frontier-mixed-party-backfill"
+	policy := referencePolicy(id, 2, 5)
+	policy.MaxProposals = 2
+	policy.MaxBatchCandidates = 1024
+	policy.MaxBatchSearchNodes = 500_000
+	policy.MaxSearchNodes = 500_000
+	policy.MaxCandidatesPerProposal = 512
+	scenario := scenarioWithParties(id, []int{1, 2, 3, 2, 3})
+	for index := range scenario.MatchTickets {
+		for playerIndex := range scenario.MatchTickets[index].Players {
+			scenario.MatchTickets[index].Players[playerIndex].Skill = 1500
+			scenario.MatchTickets[index].Players[playerIndex].LatencyMillis = 30
+		}
+	}
+	scenario.BackfillTickets = []domain.BackfillTicket{{
+		ID: "batch-frontier-backfill", Revision: 1,
+		SessionID: "batch-frontier-session", RosterVersion: 1,
+		OpenSlotsByTeam: []int{1, 0}, EnqueuedAt: fixtureNow.Add(-time.Minute),
+	}}
+	return Workload{
+		ID:          id,
+		Description: "small exhaustive batch frontier with solo, duo, trio, and one backfill vacancy",
+		Policy:      policy,
+		Scenario:    scenario,
+	}
+}
+
+func batchFrontierGapWorkload() Workload {
+	id := "diagnostic-batch-frontier-gap"
+	policy := referencePolicy(id, 2, 1)
+	policy.MaxProposals = 2
+	policy.MaxBatchCandidates = 1
+	policy.MaxBatchSearchNodes = 100_000
+	scenario := scenarioWithParties(id, []int{1, 1, 1, 1})
+	for index := range scenario.MatchTickets {
+		scenario.MatchTickets[index].EnqueuedAt = fixtureNow.Add(-time.Minute)
+		scenario.MatchTickets[index].Players[0].Skill = 1500
+		scenario.MatchTickets[index].Players[0].LatencyMillis = 30
+	}
+	return Workload{
+		ID:          id,
+		Description: "small exhaustive diagnostic where a one-candidate batch budget leaves a second match uncovered",
+		Policy:      policy,
+		Scenario:    scenario,
+	}
 }
 
 func candidateWindowGapWorkload() Workload {

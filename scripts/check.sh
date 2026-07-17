@@ -111,6 +111,7 @@ for required_file in \
   docs/todo-0031-single-select-performance/spec.md \
   docs/todo-0032-flow-lifecycle-entry-motion/spec.md \
   docs/todo-0033-flow-rating-density-scaling/spec.md \
+  docs/todo-0034-batch-quality-frontier/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \
@@ -188,6 +189,7 @@ go run ./cmd/sema-lab -list >/dev/null
 go run ./cmd/sema-lab team-2v2-mixed >/dev/null
 go run ./cmd/sema-lab -format json battle-royale-duo >/dev/null
 go run ./cmd/sema-lab -format json diagnostic-bounded-quality-gap diagnostic-candidate-window-gap synthetic-5v5-seeded-queue >/dev/null
+go run ./cmd/sema-lab -format json batch-frontier-mixed-party-backfill diagnostic-batch-frontier-gap >/dev/null
 go run ./examples/compose >/dev/null
 go run ./cmd/sema-server -version >/dev/null
 go run ./cmd/sema-healthcheck -version >/dev/null

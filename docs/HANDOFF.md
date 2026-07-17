@@ -29,6 +29,7 @@
 - offline simulation이 policy/scenario 순서와 무관한 canonical comparison report를 만든다.
 - `cmd/sema-lab`이 2:2부터 50:50, 100-player battle royale, backfill/no-match와 objective fixture를 실행하고 ticket/player coverage 및 search evidence를 출력한다.
 - P6 evaluation이 seeded synthetic snapshot, coverage basis points, oldest unmatched wait와 12-ticket exhaustive new-match oracle를 제공한다.
+- P23 evaluation이 12 match ticket/2 backfill/2 team 이하의 모든 admissible disjoint batch를 열거해 planner의 coverage/wait/per-match quality Pareto relation과 dominating witness를 제공한다.
 - P7 discovery가 versioned oldest-fitting ticket window, 10K correctness, 10K/100K manual benchmark와 fuzz invariant를 제공한다.
 - public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
 - `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
@@ -67,7 +68,7 @@
 
 ## Current Work
 
-P0 foundation부터 P22 Flow rating-density scaling까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 matcher milestone은 wait/quality target이나 traffic calibration hypothesis가 생길 때 열며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P23 batch quality frontier까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 matcher milestone은 P23 diagnostic으로 확인한 bounded candidate coverage gap을 representative fixture와 search budget 안에서 줄이는 작업이다. traffic calibration 없는 frontier는 production quality 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

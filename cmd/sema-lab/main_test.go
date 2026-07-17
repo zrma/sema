@@ -70,6 +70,36 @@ func TestRunWritesJSONReport(t *testing.T) {
 	}
 }
 
+func TestRunWritesBatchFrontierTextAndJSON(t *testing.T) {
+	var textOutput, jsonOutput, stderr bytes.Buffer
+	if exitCode := run([]string{"diagnostic-batch-frontier-gap"}, &textOutput, &stderr); exitCode != 0 {
+		t.Fatalf("text exit code = %d, stderr = %q", exitCode, stderr.String())
+	}
+	for _, expected := range []string{
+		"sema-lab schema=v0alpha5",
+		"frontier relation=frontier_dominated",
+		"planner_proposals=1 planner_players=2",
+		"witness proposals=2 players=4",
+	} {
+		if !strings.Contains(textOutput.String(), expected) {
+			t.Fatalf("text output does not contain %q:\n%s", expected, textOutput.String())
+		}
+	}
+
+	stderr.Reset()
+	if exitCode := run([]string{"-format", "json", "batch-frontier-mixed-party-backfill"}, &jsonOutput, &stderr); exitCode != 0 {
+		t.Fatalf("json exit code = %d, stderr = %q", exitCode, stderr.String())
+	}
+	var report lab.Report
+	if err := json.Unmarshal(jsonOutput.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.SchemaVersion != "v0alpha5" || report.Scenarios[0].Frontier == nil ||
+		report.Scenarios[0].Frontier.Relation != "frontier_equivalent" {
+		t.Fatalf("frontier JSON = %#v", report)
+	}
+}
+
 func TestRunRejectsUnknownInputs(t *testing.T) {
 	tests := [][]string{{"-format", "yaml"}, {"unknown-workload"}}
 	for _, args := range tests {
