@@ -126,5 +126,6 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Flow discrete-event scheduler: `docs/todo-0025-discrete-event-scheduler/spec.md`, `internal/flow`.
 - Flow capacity matrix: `docs/todo-0026-capacity-matrix/spec.md`, `docs/sema-flow-capacity-matrix.md`, `cmd/sema-flow-matrix`.
 - Flow ownership correction: `docs/todo-0027-unbounded-game-simulation/spec.md`, `internal/flow`, `cmd/sema-tui`.
+- Flow trend panels: `docs/todo-0028-flow-trend-panels/spec.md`, `internal/flowui`, `cmd/sema-tui`.
 - Long-term engine-first sequence: `docs/decisions/0006-product-development-sequence.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

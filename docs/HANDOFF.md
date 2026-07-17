@@ -51,6 +51,8 @@
 - `sema.flow.measurement.v0alpha3`가 ingress arrival lag와 horizon backlog를 노출하며 frontend-owned game-capacity field를 포함하지 않는다.
 - active game 수는 planning eligibility를 제한하지 않는다. Flow는 assignment confirm 이후 game/result/return을 synthetic하게 모사하고 TUI `MATCH LIFECYCLE` 패널에서 계속 보여준다.
 - `cmd/sema-flow-matrix`가 seed 42/73/101과 planning batch 2/4/8을 비교하고 throughput, wait, queue와 quality min/median/max를 `sema.flow.capacity-matrix.v0alpha2`로 출력한다.
+- wide Flow TUI는 `WAITING POOL | MATCH LIFECYCLE`, `AVERAGE QUEUE WAIT | RATING DENSITY`, `COMPLETED MATCHES | EVENT STREAM`의 세 행을 사용한다.
+- trend는 player-weighted pre-confirm wait와 1500-centered whole-population rating density를 logical time 기준 최근 512 sample로 보여준다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
 - `alpha` 외 Go package는 `internal/`에 유지하며 stable API와 wire compatibility는 아직 제공하지 않는다.
@@ -59,7 +61,7 @@
 
 ## Current Work
 
-P0 foundation부터 P16 matchmaker/game-runtime ownership correction까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 simulation milestone은 wait/quality target이나 traffic calibration hypothesis가 생길 때 열며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P17 Flow trend panels까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 simulation milestone은 wait/quality target이나 traffic calibration hypothesis가 생길 때 열며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

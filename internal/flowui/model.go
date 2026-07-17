@@ -19,6 +19,7 @@ const (
 	frameInterval     = 70 * time.Millisecond
 	maxHistoryEntries = 64
 	maxLogEntries     = 128
+	maxTrendSamples   = 512
 )
 
 type ticketState string
@@ -80,6 +81,13 @@ type matchView struct {
 	partySizes map[string]int
 }
 
+type trendSample struct {
+	at              time.Time
+	averageWait     time.Duration
+	ratingHistogram [9]int
+	population      int
+}
+
 type frameMsg time.Time
 
 type eventMsg struct {
@@ -123,6 +131,7 @@ type Model struct {
 	activeOrder []string
 	history     []matchView
 	logs        []string
+	trends      []trendSample
 
 	lastCandidateTickets int
 	lastCandidatesMax    int
@@ -174,6 +183,7 @@ func New(simulator *flow.Simulator, options Options) *Model {
 		model.tickets[ticket.ID] = &ticketView{ticket: copy, state: ticketQueued, position: position}
 		model.ticketOrder = append(model.ticketOrder, ticket.ID)
 	}
+	model.recordTrendSample()
 	return model
 }
 
@@ -304,6 +314,7 @@ func (model *Model) apply(event flow.Event) {
 	if event.Cycle > 0 {
 		model.cycle = event.Cycle
 	}
+	defer model.recordTrendSample()
 
 	switch event.Kind {
 	case flow.EventTicketQueued, flow.EventTicketReturned:
@@ -324,7 +335,11 @@ func (model *Model) apply(event flow.Event) {
 			}
 			model.logf("%s %s %s returned r%d", marker, shortID(ticket.ID), model.partyGlyph(len(ticket.Players)), ticket.Revision)
 		} else {
-			model.logf("+ %s %s joined queue r%d", shortID(ticket.ID), model.partyGlyph(len(ticket.Players)), ticket.Revision)
+			marker := "+"
+			if model.options.Unicode {
+				marker = "→"
+			}
+			model.logf("%s %s %s joined queue r%d", marker, shortID(ticket.ID), model.partyGlyph(len(ticket.Players)), ticket.Revision)
 		}
 	case flow.EventPlanCompleted:
 		if event.Batch == nil {
@@ -354,7 +369,11 @@ func (model *Model) apply(event flow.Event) {
 			model.lastSearchNodes += proposal.Evidence.SearchNodes
 			model.setTicketState(proposal.Tickets, ticketProposed)
 		}
-		model.logf("o cycle %04d formed %d proposals", event.Cycle, len(event.Batch.Proposals))
+		marker := "o"
+		if model.options.Unicode {
+			marker = "◉"
+		}
+		model.logf("%s cycle %04d formed %d proposals", marker, event.Cycle, len(event.Batch.Proposals))
 	case flow.EventProposalReserved:
 		if event.Proposal == nil {
 			return
@@ -364,7 +383,11 @@ func (model *Model) apply(event flow.Event) {
 			match.motion = 0
 			model.setTicketState(match.proposal.Tickets, ticketReserved)
 		}
-		model.logf("* %s reserved", matchLabel(event.Proposal.ID))
+		marker := "*"
+		if model.options.Unicode {
+			marker = "◆"
+		}
+		model.logf("%s %s reserved", marker, matchLabel(event.Proposal.ID))
 	case flow.EventAssignmentConfirmed:
 		if event.Proposal == nil || event.Assignment == nil {
 			return
@@ -377,7 +400,11 @@ func (model *Model) apply(event flow.Event) {
 			match.motion = 0
 			model.setTicketState(match.proposal.Tickets, ticketConfirmed)
 		}
-		model.logf("# %s started %s game", matchLabel(event.Proposal.ID), event.GameEndsAt.Sub(event.GameStartedAt))
+		marker := ">"
+		if model.options.Unicode {
+			marker = "▶"
+		}
+		model.logf("%s %s started %s game", marker, matchLabel(event.Proposal.ID), event.GameEndsAt.Sub(event.GameStartedAt))
 	case flow.EventMatchCompleted:
 		if event.Proposal == nil || event.Assignment == nil {
 			return
@@ -407,8 +434,13 @@ func (model *Model) apply(event flow.Event) {
 		for _, partySize := range match.partySizes {
 			participants += partySize
 		}
+		marker := "OK"
+		if model.options.Unicode {
+			marker = "✓"
+		}
 		model.logf(
-			"+ %s team %d won %+d; %d scheduled to return (%d cooling, %d ready)",
+			"%s %s team %d won %+d; %d scheduled to return (%d cooling, %d ready)",
+			marker,
 			matchLabel(event.Proposal.ID),
 			winner,
 			match.result.RatingDelta[match.result.WinnerTeam],
@@ -417,6 +449,41 @@ func (model *Model) apply(event flow.Event) {
 			event.IngressBacklogPlayers,
 		)
 	}
+}
+
+func (model *Model) recordTrendSample() {
+	sample := trendSample{
+		at:              model.now,
+		averageWait:     model.averageQueueWait(),
+		ratingHistogram: model.population.CenteredHistogram,
+		population:      model.population.Players,
+	}
+	if len(model.trends) > 0 && model.trends[len(model.trends)-1].at.Equal(sample.at) {
+		model.trends[len(model.trends)-1] = sample
+		return
+	}
+	model.trends = append(model.trends, sample)
+	if len(model.trends) > maxTrendSamples {
+		model.trends = slices.Clone(model.trends[len(model.trends)-maxTrendSamples:])
+	}
+}
+
+func (model *Model) averageQueueWait() time.Duration {
+	var total time.Duration
+	players := 0
+	for _, ticket := range model.tickets {
+		if ticket.state == ticketConfirmed {
+			continue
+		}
+		partyPlayers := len(ticket.ticket.Players)
+		wait := max(time.Duration(0), model.now.Sub(ticket.ticket.EnqueuedAt))
+		total += wait * time.Duration(partyPlayers)
+		players += partyPlayers
+	}
+	if players == 0 {
+		return 0
+	}
+	return total / time.Duration(players)
 }
 
 func (model *Model) setTicketState(references []api.TicketRef, state ticketState) {

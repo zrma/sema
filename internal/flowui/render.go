@@ -53,7 +53,7 @@ func (model *Model) render() string {
 
 	header := model.renderHeader(glyphs, width)
 	status := model.renderStatus(glyphs, width)
-	if height < 30 {
+	if height < 30 || width < 72 {
 		return model.renderCompact(glyphs, width, height, header, status)
 	}
 	footer := model.paint(
@@ -61,7 +61,7 @@ func (model *Model) render() string {
 		"#7f8c98",
 	)
 	panelHeight := height - lineCount(header) - lineCount(status) - lineCount(footer)
-	mainHeight, historyHeight, eventHeight := fullPanelHeights(panelHeight)
+	mainHeight, analyticsHeight, recentHeight := fullPanelHeights(panelHeight)
 
 	var main string
 	if width >= 96 {
@@ -83,15 +83,45 @@ func (model *Model) render() string {
 		)
 	}
 
-	history := model.panel(
-		"COMPLETED MATCHES",
-		model.historyLines(glyphs, historyHeight-3),
-		width,
-		historyHeight,
-		glyphs,
+	leftWidth := (width - 1) / 2
+	rightWidth := width - leftWidth - 1
+	analytics := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		model.panel(
+			model.waitTrendTitle(glyphs, leftWidth-12),
+			model.waitTrendLines(glyphs, leftWidth-4, analyticsHeight-3),
+			leftWidth,
+			analyticsHeight,
+			glyphs,
+		),
+		" ",
+		model.panel(
+			model.trendTitle("RATING DENSITY", glyphs, rightWidth-12),
+			model.ratingDensityLines(glyphs, rightWidth-4, analyticsHeight-3),
+			rightWidth,
+			analyticsHeight,
+			glyphs,
+		),
 	)
-	events := model.panel("EVENT STREAM", model.eventLines(glyphs, eventHeight-3), width, eventHeight, glyphs)
-	return strings.Join([]string{header, status, main, history, events, footer}, "\n")
+	recent := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		model.panel(
+			"COMPLETED MATCHES",
+			fitLines(model.historyLines(glyphs, recentHeight-3), leftWidth-12, glyphs.ellipsis),
+			leftWidth,
+			recentHeight,
+			glyphs,
+		),
+		" ",
+		model.panel(
+			"EVENT STREAM",
+			fitLines(model.eventLines(glyphs, recentHeight-3), rightWidth-12, glyphs.ellipsis),
+			rightWidth,
+			recentHeight,
+			glyphs,
+		),
+	)
+	return strings.Join([]string{header, status, main, analytics, recent, footer}, "\n")
 }
 
 func (model *Model) renderCompact(glyphs glyphSet, width, height int, header, status string) string {
@@ -124,16 +154,15 @@ func (model *Model) renderCompact(glyphs glyphSet, width, height int, header, st
 
 func fullPanelHeights(available int) (int, int, int) {
 	const (
-		minimumMain    = 8
-		minimumHistory = 5
-		minimumEvents  = 5
+		minimumMain      = 8
+		minimumAnalytics = 8
+		minimumRecent    = 5
 	)
-	extra := max(0, available-minimumMain-minimumHistory-minimumEvents)
-	mainExtra := (extra + 1) / 2
-	remaining := extra - mainExtra
-	historyExtra := remaining / 2
-	eventExtra := remaining - historyExtra
-	return minimumMain + mainExtra, minimumHistory + historyExtra, minimumEvents + eventExtra
+	extra := max(0, available-minimumMain-minimumAnalytics-minimumRecent)
+	mainExtra := extra * 2 / 5
+	analyticsExtra := extra * 2 / 5
+	recentExtra := extra - mainExtra - analyticsExtra
+	return minimumMain + mainExtra, minimumAnalytics + analyticsExtra, minimumRecent + recentExtra
 }
 
 func compactPanelHeights(available int) (int, int) {
@@ -148,6 +177,14 @@ func compactPanelHeights(available int) (int, int) {
 
 func lineCount(value string) int {
 	return strings.Count(value, "\n") + 1
+}
+
+func fitLines(lines []string, width int, tail string) []string {
+	fitted := make([]string, 0, len(lines))
+	for _, line := range lines {
+		fitted = append(fitted, ansi.Truncate(line, max(1, width), tail))
+	}
+	return fitted
 }
 
 func (model *Model) renderHeader(glyphs glyphSet, width int) string {
@@ -408,6 +445,242 @@ func (model *Model) eventLines(glyphs glyphSet, limit int) []string {
 	}
 	start := max(0, len(model.logs)-limit)
 	return append([]string(nil), model.logs[start:]...)
+}
+
+type trendColumn struct {
+	sample trendSample
+	valid  bool
+}
+
+type ratingBand struct {
+	lower int
+	upper int
+	label string
+}
+
+func (model *Model) trendTitle(title string, glyphs glyphSet, width int) string {
+	if len(model.trends) == 0 {
+		return ansi.Truncate(title, width, glyphs.ellipsis)
+	}
+	arrow := "→"
+	if !model.options.Unicode {
+		arrow = ">"
+	}
+	first := model.trends[0].at.Format("15:04")
+	last := model.trends[len(model.trends)-1].at.Format("15:04")
+	return ansi.Truncate(fmt.Sprintf("%s  %s%s%s", title, first, arrow, last), width, glyphs.ellipsis)
+}
+
+func (model *Model) waitTrendTitle(glyphs glyphSet, width int) string {
+	title := "AVERAGE QUEUE WAIT"
+	if len(model.trends) > 0 {
+		title += " " + formatAxisDuration(model.trends[len(model.trends)-1].averageWait)
+	}
+	return model.trendTitle(title, glyphs, width)
+}
+
+func (model *Model) waitTrendLines(glyphs glyphSet, width, height int) []string {
+	if height <= 0 {
+		return nil
+	}
+	const axisWidth = 7
+	// Leave a small right gutter. Lipgloss preserves long leading-space runs in
+	// sparse chart rows, which can otherwise wrap the last populated cells.
+	chartWidth := max(1, width-axisWidth-12)
+	columns := trendColumns(model.trends, chartWidth)
+	maximumWait := time.Duration(0)
+	for _, column := range columns {
+		if column.valid {
+			maximumWait = max(maximumWait, column.sample.averageWait)
+		}
+	}
+	maximumWait = niceWaitCeiling(maximumWait)
+	lines := make([]string, 0, height)
+	for row := range height {
+		axisValue := maximumWait
+		if height > 1 {
+			axisValue = maximumWait * time.Duration(height-1-row) / time.Duration(height-1)
+		}
+		label := ""
+		if row == 0 || row == height/2 || row == height-1 {
+			label = formatAxisDuration(axisValue)
+		}
+		axis := "│"
+		if !model.options.Unicode {
+			axis = "|"
+		}
+		var chart strings.Builder
+		for _, column := range columns {
+			if !column.valid {
+				chart.WriteByte(' ')
+				continue
+			}
+			pointRow := height - 1
+			if height > 1 && maximumWait > 0 {
+				pointRow -= int(column.sample.averageWait * time.Duration(height-1) / maximumWait)
+			}
+			switch {
+			case row == pointRow:
+				point := "*"
+				if model.options.Unicode {
+					point = "●"
+				}
+				chart.WriteString(model.paint(point, "#d97706"))
+			case row > pointRow:
+				fill := ":"
+				if model.options.Unicode {
+					fill = "░"
+				}
+				chart.WriteString(model.paint(fill, "#f0c36e"))
+			default:
+				chart.WriteByte(' ')
+			}
+		}
+		lines = append(lines, fmt.Sprintf("%6s%s%s", label, axis, chart.String()))
+	}
+	return lines
+}
+
+func (model *Model) ratingDensityLines(glyphs glyphSet, width, height int) []string {
+	if height <= 0 {
+		return nil
+	}
+	bandCount := min(9, height)
+	bands := ratingBands(bandCount)
+	const axisWidth = 6
+	chartWidth := max(1, width-axisWidth-12)
+	columns := trendColumns(model.trends, chartWidth)
+	axis := "│"
+	if !model.options.Unicode {
+		axis = "|"
+	}
+	lines := make([]string, 0, bandCount)
+	for _, band := range bands {
+		var chart strings.Builder
+		for _, column := range columns {
+			if !column.valid {
+				chart.WriteByte(' ')
+				continue
+			}
+			players := 0
+			for bucket := band.lower; bucket <= band.upper; bucket++ {
+				players += column.sample.ratingHistogram[bucket]
+			}
+			centered := band.lower <= 4 && band.upper >= 4
+			chart.WriteString(model.densityCell(players, column.sample.population, centered))
+		}
+		lines = append(lines, fmt.Sprintf("%5s%s%s", band.label, axis, chart.String()))
+	}
+	return lines
+}
+
+func trendColumns(samples []trendSample, width int) []trendColumn {
+	columns := make([]trendColumn, max(1, width))
+	if len(samples) == 0 {
+		return columns
+	}
+	if len(samples) == 1 || width == 1 {
+		columns[len(columns)-1] = trendColumn{sample: samples[len(samples)-1], valid: true}
+		return columns
+	}
+	first := samples[0].at
+	span := samples[len(samples)-1].at.Sub(first)
+	if span <= 0 {
+		columns[len(columns)-1] = trendColumn{sample: samples[len(samples)-1], valid: true}
+		return columns
+	}
+	for _, sample := range samples {
+		position := int(float64(sample.at.Sub(first)) / float64(span) * float64(len(columns)-1))
+		position = min(len(columns)-1, max(0, position))
+		columns[position] = trendColumn{sample: sample, valid: true}
+	}
+	var previous trendColumn
+	for index := range columns {
+		if columns[index].valid {
+			previous = columns[index]
+			continue
+		}
+		if previous.valid {
+			columns[index] = previous
+		}
+	}
+	return columns
+}
+
+func ratingBands(count int) []ratingBand {
+	labels := [...]string{"<1400", "1400", "1450", "1475", "1500", "1501", "1526", "1551", ">1600"}
+	bands := make([]ratingBand, 0, count)
+	for row := range count {
+		group := count - 1 - row
+		lower := group * len(labels) / count
+		upper := (group+1)*len(labels)/count - 1
+		labelIndex := lower
+		if lower <= 4 && upper >= 4 {
+			labelIndex = 4
+		} else if upper < 4 {
+			labelIndex = upper
+		}
+		bands = append(bands, ratingBand{lower: lower, upper: upper, label: labels[labelIndex]})
+	}
+	return bands
+}
+
+func (model *Model) densityCell(players, population int, centered bool) string {
+	if centered && (players <= 0 || population <= 0) {
+		axis := "─"
+		if !model.options.Unicode {
+			axis = "-"
+		}
+		return model.paint(axis, "#e2e8f0")
+	}
+	if players <= 0 || population <= 0 {
+		return " "
+	}
+	basisPoints := players * 10_000 / population
+	level := 4
+	switch {
+	case basisPoints <= 100:
+		level = 0
+	case basisPoints <= 500:
+		level = 1
+	case basisPoints <= 1_500:
+		level = 2
+	case basisPoints <= 3_500:
+		level = 3
+	}
+	colors := [...]string{"#cbd5e1", "#93c5d8", "#38bdf8", "#0284c7", "#075985"}
+	glyphs := [...]string{"·", "░", "▒", "▓", "█"}
+	if !model.options.Unicode {
+		glyphs = [...]string{".", ":", "*", "#", "%"}
+	}
+	return model.paint(glyphs[level], colors[level])
+}
+
+func niceWaitCeiling(value time.Duration) time.Duration {
+	step := time.Second
+	switch {
+	case value >= 5*time.Minute:
+		step = time.Minute
+	case value >= time.Minute:
+		step = 30 * time.Second
+	case value >= 10*time.Second:
+		step = 5 * time.Second
+	}
+	value = max(5*time.Second, value)
+	return (value + step - 1) / step * step
+}
+
+func formatAxisDuration(value time.Duration) string {
+	value = max(time.Duration(0), value.Round(time.Second))
+	if value >= time.Minute {
+		minutes := int(value / time.Minute)
+		seconds := int(value%time.Minute) / int(time.Second)
+		if seconds == 0 {
+			return fmt.Sprintf("%dm", minutes)
+		}
+		return fmt.Sprintf("%dm%02ds", minutes, seconds)
+	}
+	return fmt.Sprintf("%ds", int(value/time.Second))
 }
 
 func (model *Model) panel(title string, lines []string, width, height int, glyphs glyphSet) string {

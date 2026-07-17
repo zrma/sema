@@ -141,3 +141,11 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] `MATCH LIFECYCLE` 관찰 패널과 synthetic result/return 연출 유지
 - [x] measurement `v0alpha3`와 batch-only capacity matrix `v0alpha2`
 - [x] active game 8개 초과 planning regression과 1,000-player TUI smoke
+
+## P17: Flow Trend Panels
+
+- [x] `COMPLETED MATCHES | EVENT STREAM` 하단 split layout
+- [x] player-weighted average queue wait time-series panel
+- [x] 1500 중심 symmetric rating-density time-series panel
+- [x] density glyph/color intensity와 bounded logical-time sampling
+- [x] Unicode/color, ASCII, medium/tall/compact terminal regression gate

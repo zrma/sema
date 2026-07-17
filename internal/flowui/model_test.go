@@ -25,13 +25,31 @@ func TestSnapshotRendersUnicodeLifecycleWithinWidth(t *testing.T) {
 	}
 	content := model.Content()
 	lines := strings.Split(content, "\n")
-	for _, expected := range []string{"SEMA FLOW", "speed 4.5×", "[●─●]", "rating", "team", "won"} {
+	for _, expected := range []string{
+		"SEMA FLOW", "speed 4.5×", "[●─●]", "rating", "team", "won",
+		"AVERAGE QUEUE WAIT", "RATING DENSITY", "1500│█", "COMPLETED MATCHES", "EVENT STREAM",
+	} {
 		if !strings.Contains(content, expected) {
 			t.Fatalf("snapshot omitted %q:\n%s", expected, content)
 		}
 	}
 	if strings.Contains(content, "more lifecycle matches") {
 		t.Fatalf("snapshot reported hidden matches when all active matches fit:\n%s", content)
+	}
+	if strings.Contains(content, "@") {
+		t.Fatalf("rating density reused the distracting @ glyph:\n%s", content)
+	}
+	if strings.Contains(content, "*") {
+		t.Fatalf("Unicode snapshot reused an ASCII chart or event marker:\n%s", content)
+	}
+	analyticsSideBySide := false
+	recentSideBySide := false
+	for _, line := range lines {
+		analyticsSideBySide = analyticsSideBySide || strings.Contains(line, "AVERAGE QUEUE WAIT") && strings.Contains(line, "RATING DENSITY")
+		recentSideBySide = recentSideBySide || strings.Contains(line, "COMPLETED MATCHES") && strings.Contains(line, "EVENT STREAM")
+	}
+	if !analyticsSideBySide || !recentSideBySide {
+		t.Fatalf("wide snapshot did not keep analytics and recent panels side by side:\n%s", content)
 	}
 	if len(lines) != options.Height {
 		t.Fatalf("rendered lines = %d; want %d:\n%s", len(lines), options.Height, content)
@@ -75,8 +93,52 @@ func TestSnapshotSupportsASCIIFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	content := model.Content()
-	if !strings.Contains(content, "[o-o]") || strings.Contains(content, "●") || strings.Contains(content, "╭") || strings.Contains(content, "▁") {
+	if !strings.Contains(content, "[o-o]") || strings.Contains(content, "●") || strings.Contains(content, "╭") || strings.Contains(content, "▁") ||
+		strings.Contains(content, "░") || strings.Contains(content, "█") || strings.Contains(content, "◉") || strings.Contains(content, "◆") ||
+		strings.Contains(content, "▶") || strings.Contains(content, "↻") || strings.Contains(content, "→") {
 		t.Fatalf("ASCII fallback contains unexpected glyphs:\n%s", content)
+	}
+}
+
+func TestColoredTrendSnapshotFitsWindow(t *testing.T) {
+	simulator := openSimulator(t)
+	options := flowui.DefaultOptions()
+	options.ReducedMotion = true
+	model := flowui.New(simulator, options)
+	if err := model.RunSteps(context.Background(), 120); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(model.Content(), "\n")
+	if len(lines) != options.Height {
+		t.Fatalf("colored snapshot lines = %d; want %d", len(lines), options.Height)
+	}
+	for _, line := range lines {
+		if width := lipgloss.Width(line); width > options.Width {
+			t.Fatalf("colored line width = %d; want <= %d:\n%s", width, options.Width, line)
+		}
+	}
+}
+
+func TestMediumWidthFullSnapshotFitsWindow(t *testing.T) {
+	simulator := openSimulator(t)
+	options := flowui.DefaultOptions()
+	options.Color = false
+	options.ReducedMotion = true
+	options.Width = 80
+	options.Height = 38
+	model := flowui.New(simulator, options)
+	if err := model.RunSteps(context.Background(), 120); err != nil {
+		t.Fatal(err)
+	}
+	content := model.Content()
+	lines := strings.Split(content, "\n")
+	if len(lines) != options.Height || !strings.Contains(content, "AVERAGE QUEUE WAIT") || !strings.Contains(content, "RATING DENSITY") {
+		t.Fatalf("medium full snapshot did not preserve analytics layout:\n%s", content)
+	}
+	for _, line := range lines {
+		if width := lipgloss.Width(line); width > options.Width {
+			t.Fatalf("medium line width = %d; want <= %d:\n%s", width, options.Width, line)
+		}
 	}
 }
 

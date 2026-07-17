@@ -34,7 +34,8 @@ func TestRunRendersDeterministicASCIISnapshot(t *testing.T) {
 		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
 	}
 	for _, expected := range []string{
-		"SEMA FLOW", "idle", "queued", "ready", "games", "cooldown", "WAITING POOL", "MATCH LIFECYCLE", "COMPLETED MATCHES", "rating", "team", "won",
+		"SEMA FLOW", "idle", "queued", "ready", "games", "cooldown", "WAITING POOL", "MATCH LIFECYCLE",
+		"AVERAGE QUEUE WAIT", "RATING DENSITY", "COMPLETED MATCHES", "EVENT STREAM", "rating", "team", "won",
 	} {
 		if !strings.Contains(stdout.String(), expected) {
 			t.Fatalf("snapshot omitted %q:\n%s", expected, stdout.String())

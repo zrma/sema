@@ -63,6 +63,8 @@ type Stats struct {
 	Mean         int
 	StdDev       int
 	Histogram    [9]int
+	// CenteredHistogram preserves a dedicated 1500 bucket for symmetric TUI history.
+	CenteredHistogram [9]int
 }
 
 // Result records one simulated outcome and the per-player Elo movement for each team.
@@ -298,6 +300,7 @@ func (population *Population) Stats() Stats {
 		difference := float64(rating - stats.Mean)
 		variance += difference * difference
 		stats.Histogram[ratingBucket(rating)]++
+		stats.CenteredHistogram[centeredRatingBucket(rating)]++
 	}
 	stats.StdDev = int(math.Round(math.Sqrt(variance / float64(len(ratings)))))
 	return stats
@@ -310,6 +313,15 @@ func percentile(sorted []int, percentage int) int {
 
 func ratingBucket(rating int) int {
 	for index, upper := range [...]int{1100, 1250, 1400, 1500, 1600, 1750, 1900, 2100} {
+		if rating < upper {
+			return index
+		}
+	}
+	return 8
+}
+
+func centeredRatingBucket(rating int) int {
+	for index, upper := range [...]int{1400, 1450, 1475, 1500, 1501, 1526, 1551, 1601} {
 		if rating < upper {
 			return index
 		}

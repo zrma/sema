@@ -17,6 +17,9 @@ func TestDefaultPopulationStartsAsOneThousandPlayerMixedPartyLeague(t *testing.T
 	if stats.Minimum != 1500 || stats.Median != 1500 || stats.Maximum != 1500 || stats.StdDev != 0 {
 		t.Fatalf("initial rating distribution = %#v", stats)
 	}
+	if stats.CenteredHistogram[4] != 1000 {
+		t.Fatalf("centered rating histogram = %#v", stats.CenteredHistogram)
+	}
 	parties := population.Parties()
 	for index, expected := range []int{2, 1, 1, 1, 3, 2} {
 		if len(parties[index].Players) != expected {
@@ -57,6 +60,9 @@ func TestMatchResultAndRatingEvolutionAreDeterministicAndZeroSum(t *testing.T) {
 	stats := first.Stats()
 	if stats.GamesPlayed != 1 || stats.Minimum >= stats.Maximum || stats.StdDev == 0 {
 		t.Fatalf("rating did not spread after a game: %#v", stats)
+	}
+	if stats.CenteredHistogram[3] != 5 || stats.CenteredHistogram[5] != 5 {
+		t.Fatalf("rating did not spread symmetrically around 1500: %#v", stats.CenteredHistogram)
 	}
 	for _, party := range first.Parties() {
 		if party.Revision != 2 {

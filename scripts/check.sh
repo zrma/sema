@@ -104,6 +104,7 @@ for required_file in \
   docs/todo-0025-discrete-event-scheduler/spec.md \
   docs/todo-0026-capacity-matrix/spec.md \
   docs/todo-0027-unbounded-game-simulation/spec.md \
+  docs/todo-0028-flow-trend-panels/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \

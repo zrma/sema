@@ -70,6 +70,15 @@ trio    [●─●─●]
 
 `MATCH LIFECYCLE` 패널은 Sema가 confirm한 assignment 이후 frontend가 game을 진행하고 결과를 돌려주는 흐름을 보여주는 관찰 surface다. 진행 중인 match가 많으면 화면 높이에 맞는 최근 항목과 나머지 개수를 요약하며, 패널의 game 수가 새 proposal 생성을 막지는 않는다.
 
+기본 wide layout은 세 행이다. 상단은 `WAITING POOL | MATCH LIFECYCLE`, 중단은 `AVERAGE QUEUE WAIT | RATING DENSITY`, 하단은 `COMPLETED MATCHES | EVENT STREAM`이다.
+
+- average queue wait chart는 assignment confirm 전인 party의 현재 wait를 player 수로 가중한다. Y axis는 wait duration이고 simulated time은 오른쪽으로 흐른다.
+- rating density chart는 전체 population을 1500 exact center와 대칭 rating bucket으로 집계한다. 1500 row의 빈 cell은 낮은 강조도의 `─` 기준축이고 실제 density가 있으면 `·`/`░`/`▒`/`▓`/`█` block ramp가 덮는다. `@`는 사용하지 않는다.
+- 같은 logical timestamp의 lifecycle event는 trend 한 시점으로 합치고 최근 512 sample만 유지한다.
+- 기본 Unicode mode는 wait chart의 `●`/`░`와 event stream의 `→`/`◉`/`◆`/`▶`/`✓` marker를 사용하며 ASCII symbol은 `-ascii` fallback에서만 사용한다.
+- 72 columns 미만 또는 30 rows 미만에서는 lifecycle/recent summary를 우선하는 compact view로 축약한다.
+- trend는 관찰용 read model이며 planning, measurement나 rating authority가 아니다.
+
 ## Controls
 
 - `space`: pause/resume.
