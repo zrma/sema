@@ -72,6 +72,7 @@ P0부터 P17 Flow trend panels까지 완료되었다. source/service는 계속 e
 - wide TUI의 `AVERAGE QUEUE WAIT | RATING DENSITY` analytics 행과 `COMPLETED MATCHES | EVENT STREAM` recent 행.
 - assignment confirm 전 ticket을 player-weighted한 queue wait history와 1500 exact center symmetric rating-density history.
 - 같은 logical timestamp를 합치고 512 sample로 제한하는 deterministic trend read model과 Unicode/color, ASCII, medium/tall/compact terminal gate.
+- selected party를 match별 color/marker로 묶어 hold 뒤 오른쪽으로 이동시키고 남은 waiting row를 frame 단위로 접는 queue departure motion과 reduced-motion final-state fallback.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.

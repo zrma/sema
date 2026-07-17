@@ -16,10 +16,12 @@ import (
 )
 
 const (
-	frameInterval     = 70 * time.Millisecond
-	maxHistoryEntries = 64
-	maxLogEntries     = 128
-	maxTrendSamples   = 512
+	frameInterval         = 70 * time.Millisecond
+	selectionHoldFrames   = 4
+	departureTravelFrames = 10
+	maxHistoryEntries     = 64
+	maxLogEntries         = 128
+	maxTrendSamples       = 512
 )
 
 type ticketState string
@@ -65,20 +67,26 @@ func DefaultOptions() Options {
 }
 
 type ticketView struct {
-	ticket   api.MatchTicket
-	state    ticketState
-	position int
+	ticket         api.MatchTicket
+	state          ticketState
+	position       int
+	queueRow       int
+	matchVisual    int
+	selectionFrame int
+	leaving        bool
+	hidden         bool
 }
 
 type matchView struct {
-	proposal   api.MatchProposal
-	stage      matchStage
-	assignment api.Assignment
-	result     league.Result
-	startedAt  time.Time
-	endsAt     time.Time
-	motion     int
-	partySizes map[string]int
+	proposal    api.MatchProposal
+	stage       matchStage
+	assignment  api.Assignment
+	result      league.Result
+	startedAt   time.Time
+	endsAt      time.Time
+	motion      int
+	partySizes  map[string]int
+	matchVisual int
 }
 
 type trendSample struct {
@@ -174,13 +182,15 @@ func New(simulator *flow.Simulator, options Options) *Model {
 	model.idlePlayers = initial.IdlePlayers
 	model.cooldownPlayers = initial.CooldownPlayers
 	model.population = initial.Population
-	for _, ticket := range initial.Tickets {
+	for row, ticket := range initial.Tickets {
 		position := 0
 		if options.ReducedMotion {
 			position = 6
 		}
 		copy := ticket
-		model.tickets[ticket.ID] = &ticketView{ticket: copy, state: ticketQueued, position: position}
+		model.tickets[ticket.ID] = &ticketView{
+			ticket: copy, state: ticketQueued, position: position, queueRow: row, matchVisual: -1,
+		}
 		model.ticketOrder = append(model.ticketOrder, ticket.ID)
 	}
 	model.recordTrendSample()
@@ -326,7 +336,10 @@ func (model *Model) apply(event flow.Event) {
 		if model.options.ReducedMotion {
 			position = 6
 		}
-		model.tickets[ticket.ID] = &ticketView{ticket: ticket, state: ticketQueued, position: position}
+		model.tickets[ticket.ID] = &ticketView{
+			ticket: ticket, state: ticketQueued, position: position,
+			queueRow: model.nextQueueRow(), matchVisual: -1,
+		}
 		model.ticketOrder = append(model.ticketOrder, ticket.ID)
 		if event.Kind == flow.EventTicketReturned {
 			marker := "R"
@@ -361,13 +374,19 @@ func (model *Model) apply(event flow.Event) {
 					partySizes[reference.ID] = len(ticket.ticket.Players)
 				}
 			}
+			visual := model.allocateMatchVisual()
 			model.active[proposal.ID] = &matchView{
 				proposal: proposal, stage: stageProposed, motion: motion, partySizes: partySizes,
+				matchVisual: visual,
 			}
 			model.activeOrder = append(model.activeOrder, proposal.ID)
 			model.lastCandidateTickets = max(model.lastCandidateTickets, proposal.Evidence.CandidateTickets)
 			model.lastSearchNodes += proposal.Evidence.SearchNodes
 			model.setTicketState(proposal.Tickets, ticketProposed)
+			model.beginTicketDeparture(proposal.Tickets, visual)
+		}
+		if model.options.ReducedMotion {
+			model.compactQueueRows(true)
 		}
 		marker := "o"
 		if model.options.Unicode {
@@ -494,6 +513,29 @@ func (model *Model) setTicketState(references []api.TicketRef, state ticketState
 	}
 }
 
+func (model *Model) beginTicketDeparture(references []api.TicketRef, visual int) {
+	for _, reference := range references {
+		if ticket := model.tickets[reference.ID]; ticket != nil {
+			ticket.matchVisual = visual
+			ticket.selectionFrame = 0
+			ticket.leaving = true
+			ticket.hidden = model.options.ReducedMotion
+		}
+	}
+}
+
+func (model *Model) allocateMatchVisual() int {
+	used := make(map[int]struct{}, len(model.active))
+	for _, match := range model.active {
+		used[match.matchVisual] = struct{}{}
+	}
+	for visual := 0; ; visual++ {
+		if _, exists := used[visual]; !exists {
+			return visual
+		}
+	}
+}
+
 func (model *Model) animate() {
 	if model.options.ReducedMotion {
 		model.animateToEnd()
@@ -503,21 +545,65 @@ func (model *Model) animate() {
 		if ticket.position < 6 {
 			ticket.position++
 		}
+		if ticket.leaving && !ticket.hidden {
+			ticket.selectionFrame++
+			if ticket.selectionFrame >= selectionHoldFrames+departureTravelFrames {
+				ticket.hidden = true
+			}
+		}
 	}
 	for _, match := range model.active {
 		if match.motion < 8 {
 			match.motion++
 		}
 	}
+	model.compactQueueRows(false)
 }
 
 func (model *Model) animateToEnd() {
 	for _, ticket := range model.tickets {
 		ticket.position = 6
+		if ticket.leaving {
+			ticket.selectionFrame = selectionHoldFrames + departureTravelFrames
+			ticket.hidden = true
+		}
 	}
 	for _, match := range model.active {
 		match.motion = 8
 	}
+	model.compactQueueRows(true)
+}
+
+func (model *Model) compactQueueRows(immediate bool) {
+	target := 0
+	for _, identifier := range model.ticketOrder {
+		ticket := model.tickets[identifier]
+		if ticket == nil || !ticket.displayedInQueue() {
+			continue
+		}
+		if immediate {
+			ticket.queueRow = target
+		} else if ticket.queueRow > target {
+			ticket.queueRow--
+		} else if ticket.queueRow < target {
+			ticket.queueRow++
+		}
+		target++
+	}
+}
+
+func (model *Model) nextQueueRow() int {
+	next := 0
+	for _, ticket := range model.tickets {
+		if ticket.displayedInQueue() {
+			next = max(next, ticket.queueRow+1)
+		}
+	}
+	return next
+}
+
+func (ticket *ticketView) displayedInQueue() bool {
+	return !ticket.hidden && (ticket.state == ticketQueued || ticket.leaving)
 }
 
 func (model *Model) logf(format string, arguments ...any) {

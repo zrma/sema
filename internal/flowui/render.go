@@ -2,6 +2,7 @@ package flowui
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -27,6 +28,11 @@ type glyphSet struct {
 	separator string
 	spinners  []string
 	border    lipgloss.Border
+}
+
+var unicodeMatchMarkers = [...]string{
+	"①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩",
+	"⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳",
 }
 
 func (model *Model) glyphs() glyphSet {
@@ -341,66 +347,109 @@ func (model *Model) ratingLine(glyphs glyphSet, width int) string {
 }
 
 func (model *Model) waitingLines(glyphs glyphSet, limit int) []string {
-	lines := make([]string, 0, limit)
-	queued := 0
+	if limit <= 0 {
+		return nil
+	}
+	displayed := 0
+	maximumRow := -1
 	for _, identifier := range model.ticketOrder {
 		ticket := model.tickets[identifier]
-		if ticket == nil || ticket.state != ticketQueued {
+		if ticket == nil || !ticket.displayedInQueue() {
 			continue
 		}
-		queued++
-		if len(lines) >= limit {
+		displayed++
+		maximumRow = max(maximumRow, ticket.queueRow)
+	}
+	if displayed == 0 {
+		return []string{model.paint("waiting for scheduled arrivals or returning parties", "#7f8c98")}
+	}
+
+	needsSummary := displayed > limit || maximumRow >= limit
+	ticketSlots := limit
+	if needsSummary {
+		ticketSlots = max(0, limit-1)
+	}
+	lines := make([]string, limit)
+	for index := range lines {
+		lines[index] = " "
+	}
+	rendered := 0
+	for _, identifier := range model.ticketOrder {
+		ticket := model.tickets[identifier]
+		if ticket == nil || !ticket.displayedInQueue() || ticket.queueRow < 0 || ticket.queueRow >= ticketSlots {
 			continue
 		}
-		lane := strings.Repeat(glyphs.dot, ticket.position) + model.partyGlyph(len(ticket.ticket.Players)) +
-			strings.Repeat(glyphs.dot, max(0, 6-ticket.position)) + glyphs.arrow
+		lane := model.waitingLane(ticket, glyphs)
 		wait := max(time.Duration(0), model.now.Sub(ticket.ticket.EnqueuedAt)).Round(100 * time.Millisecond)
-		lines = append(lines, fmt.Sprintf(
-			"%-16s %-11s %5s  r%-4d  %dms",
+		marker := " "
+		if ticket.leaving {
+			marker = matchVisualMarker(ticket.matchVisual, model.options.Unicode)
+		}
+		line := fmt.Sprintf(
+			"%s %s %-11s %5s  r%-4d  %dms",
+			marker,
 			lane,
 			shortID(ticket.ticket.ID),
 			wait,
 			averageSkill(ticket.ticket),
 			maximumLatency(ticket.ticket),
-		))
+		)
+		if ticket.leaving {
+			line = model.paint(line, matchVisualColor(ticket.matchVisual))
+		}
+		lines[ticket.queueRow] = line
+		rendered++
 	}
-	if queued == 0 {
-		return []string{model.paint("waiting for scheduled arrivals or returning parties", "#7f8c98")}
-	}
-	if queued > len(lines) {
-		lines[len(lines)-1] = fmt.Sprintf("%s +%d more waiting tickets", glyphs.ellipsis, queued-len(lines)+1)
+	if hidden := displayed - rendered; hidden > 0 {
+		lines[len(lines)-1] = fmt.Sprintf("%s +%d more waiting tickets", glyphs.ellipsis, hidden)
 	}
 	return lines
+}
+
+func (model *Model) waitingLane(ticket *ticketView, glyphs glyphSet) string {
+	const width = 16
+	var lane string
+	if ticket.leaving {
+		travel := max(0, ticket.selectionFrame-selectionHoldFrames)
+		lane = strings.Repeat(glyphs.dot, 6+travel) + model.partyGlyph(len(ticket.ticket.Players)) + glyphs.arrow
+	} else {
+		lane = strings.Repeat(glyphs.dot, ticket.position) + model.partyGlyph(len(ticket.ticket.Players)) +
+			strings.Repeat(glyphs.dot, max(0, 6-ticket.position)) + glyphs.arrow
+	}
+	lane = ansi.Truncate(lane, width, "")
+	return lane + strings.Repeat(" ", max(0, width-lipgloss.Width(lane)))
 }
 
 func (model *Model) activeLines(glyphs glyphSet, limit int) []string {
 	lines := make([]string, 0, limit)
 	rendered := 0
-	for _, identifier := range model.activeOrder {
+	for _, identifier := range model.activeDisplayOrder() {
 		match := model.active[identifier]
 		if match == nil || len(lines)+4 > limit {
 			continue
 		}
 		rendered++
-		icon, color := stageStyle(match.stage, glyphs)
+		icon, _ := stageStyle(match.stage, glyphs)
 		motion := motionTrack(match.motion, 8, glyphs)
 		stage := strings.ToUpper(string(match.stage))
 		if match.stage == stagePlaying {
 			remaining := max(time.Duration(0), match.endsAt.Sub(model.now)).Round(time.Second)
 			stage += " " + remaining.String()
 		}
-		lines = append(lines, model.paint(fmt.Sprintf("%s %-8s %-15s %s", icon, matchLabel(identifier), stage, motion), color))
+		color := matchVisualColor(match.matchVisual)
+		marker := matchVisualMarker(match.matchVisual, model.options.Unicode)
+		lines = append(lines, model.paint(fmt.Sprintf("%s %s %-8s %-15s %s", marker, icon, matchLabel(identifier), stage, motion), color))
 		for teamIndex, team := range match.proposal.Teams {
-			lines = append(lines, fmt.Sprintf("  %c  %s", 'A'+rune(teamIndex), model.teamGlyph(team, match.partySizes)))
+			lines = append(lines, model.paint(fmt.Sprintf("  %c  %s", 'A'+rune(teamIndex), model.teamGlyph(team, match.partySizes)), color))
 		}
-		lines = append(lines, fmt.Sprintf(
+		lines = append(lines, model.paint(fmt.Sprintf(
 			"  gap %d%smax latency %dms%ssearch %d nodes",
 			match.proposal.Evidence.TeamSkillGap,
 			glyphs.separator,
 			match.proposal.Evidence.MaxLatencyMillis,
 			glyphs.separator,
 			match.proposal.Evidence.SearchNodes,
-		))
+		), color))
 	}
 	if len(lines) == 0 {
 		if len(model.active) > 0 {
@@ -412,6 +461,65 @@ func (model *Model) activeLines(glyphs glyphSet, limit int) []string {
 		lines[len(lines)-1] = fmt.Sprintf("%s +%d more lifecycle matches", glyphs.ellipsis, hidden)
 	}
 	return lines
+}
+
+func (model *Model) activeDisplayOrder() []string {
+	order := make([]string, 0, len(model.activeOrder))
+	for _, identifier := range model.activeOrder {
+		if match := model.active[identifier]; match != nil && match.stage != stagePlaying {
+			order = append(order, identifier)
+		}
+	}
+	for index := len(model.activeOrder) - 1; index >= 0; index-- {
+		identifier := model.activeOrder[index]
+		if match := model.active[identifier]; match != nil && match.stage == stagePlaying {
+			order = append(order, identifier)
+		}
+	}
+	return order
+}
+
+func matchVisualMarker(index int, unicode bool) string {
+	index = max(0, index)
+	if unicode && index < len(unicodeMatchMarkers) {
+		return unicodeMatchMarkers[index]
+	}
+	return fmt.Sprintf("%02d", index+1)
+}
+
+func matchVisualColor(index int) string {
+	const goldenAngle = 137.507764
+	hue := math.Mod(190+float64(max(0, index))*goldenAngle, 360) / 360
+	red, green, blue := hslToRGB(hue, 0.68, 0.58)
+	return fmt.Sprintf("#%02x%02x%02x", red, green, blue)
+}
+
+func hslToRGB(hue, saturation, lightness float64) (uint8, uint8, uint8) {
+	if saturation == 0 {
+		value := uint8(math.Round(lightness * 255))
+		return value, value, value
+	}
+	maximum := lightness * (1 + saturation)
+	if lightness >= 0.5 {
+		maximum = lightness + saturation - lightness*saturation
+	}
+	minimum := 2*lightness - maximum
+	convert := func(offset float64) uint8 {
+		offset = math.Mod(offset+1, 1)
+		var value float64
+		switch {
+		case offset < 1.0/6:
+			value = minimum + (maximum-minimum)*6*offset
+		case offset < 0.5:
+			value = maximum
+		case offset < 2.0/3:
+			value = minimum + (maximum-minimum)*(2.0/3-offset)*6
+		default:
+			value = minimum
+		}
+		return uint8(math.Round(value * 255))
+	}
+	return convert(hue + 1.0/3), convert(hue), convert(hue - 1.0/3)
 }
 
 func (model *Model) historyLines(glyphs glyphSet, limit int) []string {

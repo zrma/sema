@@ -53,6 +53,7 @@
 - `cmd/sema-flow-matrix`가 seed 42/73/101과 planning batch 2/4/8을 비교하고 throughput, wait, queue와 quality min/median/max를 `sema.flow.capacity-matrix.v0alpha2`로 출력한다.
 - wide Flow TUI는 `WAITING POOL | MATCH LIFECYCLE`, `AVERAGE QUEUE WAIT | RATING DENSITY`, `COMPLETED MATCHES | EVENT STREAM`의 세 행을 사용한다.
 - trend는 player-weighted pre-confirm wait와 1500-centered whole-population rating density를 logical time 기준 최근 512 sample로 보여준다.
+- selected party row는 match별 marker/color를 공유해 hold와 horizontal departure를 거친 뒤 제거되며, 남은 waiting row는 frame 단위로 위로 접힌다. reduced-motion은 동일 final state를 즉시 적용한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
 - `alpha` 외 Go package는 `internal/`에 유지하며 stable API와 wire compatibility는 아직 제공하지 않는다.

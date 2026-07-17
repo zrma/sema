@@ -148,4 +148,5 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] player-weighted average queue wait time-series panel
 - [x] 1500 중심 symmetric rating-density time-series panel
 - [x] density glyph/color intensity와 bounded logical-time sampling
+- [x] match별 selection marker, queue departure와 incremental row compaction motion
 - [x] Unicode/color, ASCII, medium/tall/compact terminal regression gate
