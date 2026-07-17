@@ -50,6 +50,7 @@ flowchart LR
 - public `alpha` package는 immutable composition input/output을 internal model과 명시적으로 변환하고 planner만 호출한다. coordinator lifecycle과 internal type은 노출하지 않는다.
 - `internal/durable`은 coordinator mutation과 plan decision을 한 writer에서 직렬화하고 synced journal을 restart recovery와 audit authority로 사용한다.
 - `cmd/sema-server`는 explicit `v0alpha1` DTO를 변환하고 server clock과 durable proposal lookup을 사용한다. client placement는 reserve authority가 아니다.
+- `internal/observability`은 route-pattern metric/trace와 redacted audit만 노출하고 resource identity를 label/span으로 사용하지 않는다.
 
 ## Invariants
 

@@ -17,6 +17,7 @@ import (
 	api "github.com/zrma/sema/internal/api/v0alpha1"
 	"github.com/zrma/sema/internal/durable"
 	"github.com/zrma/sema/internal/httpapi"
+	"github.com/zrma/sema/internal/observability"
 )
 
 var fixtureNow = time.Date(2026, time.July, 17, 12, 0, 0, 0, time.UTC)
@@ -175,6 +176,7 @@ func TestHTTPAPIRejectsMalformedAndConflictingRequests(t *testing.T) {
 		{name: "forged proposal body", method: http.MethodPost, path: "/v0alpha1/reservations/reservation", body: `{"proposal":{}}`, status: 400, code: "InvalidInput"},
 		{name: "unknown endpoint", method: http.MethodGet, path: "/v0alpha1/unknown", status: 404, code: "NotFound"},
 		{name: "wrong method", method: http.MethodPatch, path: "/v0alpha1/plans", status: 405, code: "MethodNotAllowed"},
+		{name: "invalid audit limit", method: http.MethodGet, path: "/v0alpha1/audit?limit=0", status: 400, code: "InvalidInput"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -191,6 +193,9 @@ func TestHTTPAPIRejectsMalformedAndConflictingRequests(t *testing.T) {
 			if envelope.APIVersion != api.Version || envelope.Error == nil || envelope.Error.Code != test.code {
 				t.Fatalf("error envelope = %#v", envelope)
 			}
+			if response.Header().Get("X-Sema-Error-Code") != test.code {
+				t.Fatalf("error code header = %q; want %q", response.Header().Get("X-Sema-Error-Code"), test.code)
+			}
 		})
 	}
 
@@ -199,6 +204,57 @@ func TestHTTPAPIRejectsMalformedAndConflictingRequests(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("oversized request status = %d; want 400", response.Code)
+	}
+}
+
+func TestOperationalEndpointsExposeRedactedAuditMetricsAndTrace(t *testing.T) {
+	runtime := openRuntime(t, filepath.Join(t.TempDir(), "sema.journal"))
+	defer runtime.Close()
+	var traces bytes.Buffer
+	observer := observability.New(&traces, func() time.Time { return fixtureNow })
+	handler := httpapi.NewWithOptions(runtime, httpapi.Options{
+		Now: func() time.Time { return fixtureNow }, Observer: observer,
+	})
+	requestData[api.MutationResult](t, handler, http.MethodGet, "/livez", nil, http.StatusOK)
+	requestData[api.MutationResult](t, handler, http.MethodGet, "/readyz", nil, http.StatusOK)
+	ticket := api.MatchTicket{
+		ID: "private-ticket-id", Revision: 1, EnqueuedAt: fixtureNow,
+		Players: []api.Player{{ID: "private-player-id", Skill: 1000, LatencyMillis: 20}},
+	}
+	requestData[api.MutationResult](
+		t, handler, http.MethodPut, "/v0alpha1/match-tickets/"+ticket.ID, ticket, http.StatusOK,
+	)
+	audit := requestData[api.AuditPage](t, handler, http.MethodGet, "/v0alpha1/audit?after=0&limit=100", nil, http.StatusOK)
+	if len(audit.Records) != 2 || audit.Records[1].Counts["players"] != 1 || audit.NextSequence != 2 {
+		t.Fatalf("audit page = %#v", audit)
+	}
+	encodedAudit, err := json.Marshal(audit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(encodedAudit, []byte(ticket.ID)) || bytes.Contains(encodedAudit, []byte(ticket.Players[0].ID)) {
+		t.Fatalf("audit leaked resource identities: %s", encodedAudit)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	request.Header.Set("traceparent", "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.HasPrefix(
+		response.Header().Get("traceparent"),
+		"00-0123456789abcdef0123456789abcdef-",
+	) {
+		t.Fatalf("ready trace response = %d, %q", response.Code, response.Header().Get("traceparent"))
+	}
+
+	metricsResponse := httptest.NewRecorder()
+	handler.ServeHTTP(metricsResponse, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	metrics := metricsResponse.Body.String()
+	if metricsResponse.Code != http.StatusOK || !strings.Contains(metrics, `route="GET /readyz"`) {
+		t.Fatalf("metrics response = %d:\n%s", metricsResponse.Code, metrics)
+	}
+	if strings.Contains(metrics, ticket.ID) || strings.Contains(traces.String(), ticket.ID) {
+		t.Fatalf("operational output leaked resource identity: metrics=%s traces=%s", metrics, traces.String())
 	}
 }
 
@@ -230,6 +286,9 @@ func requestData[T any](
 	}
 	if response.Header().Get("Content-Type") != "application/json" || response.Header().Get("Cache-Control") != "no-store" {
 		t.Fatalf("response headers = %#v", response.Header())
+	}
+	if len(response.Header().Get("traceparent")) != 55 {
+		t.Fatalf("response traceparent = %q", response.Header().Get("traceparent"))
 	}
 	var wire struct {
 		APIVersion string          `json:"api_version"`

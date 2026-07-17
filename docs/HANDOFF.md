@@ -37,6 +37,7 @@
 - complete plan audit와 snapshot ID idempotency, torn-tail recovery, corruption refusal, fixed TTL과 single-writer lock이 P9 persistence authority를 고정한다.
 - `cmd/sema-server`가 explicit `v0alpha1` DTO로 ingestion부터 assignment poll/ack까지 제공한다.
 - HTTP server clock과 durable proposal ID lookup이 TTL manipulation과 forged placement를 service boundary에서 차단한다.
+- `/metrics`, W3C request trace, liveness/readiness와 redacted paged audit가 bounded operational evidence를 제공한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
 - `alpha` 외 Go package는 `internal/`에 유지하며 stable API와 wire compatibility는 아직 제공하지 않는다.
@@ -45,7 +46,7 @@
 
 ## Current Work
 
-P0 foundation부터 P9 versioned durable service까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 별도 consumer process만 HTTP로 분리했다. 다음 repo-owned 작업은 P10 metrics/traces와 redacted audit exporter이며, 이후 load/soak/failure injection과 deployment gate로 확장한다.
+P0 foundation부터 P9 service와 P10 observability slice까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 별도 consumer process만 HTTP로 분리했다. 다음 repo-owned 작업은 load/soak와 process/disk failure injection이며, 이후 deployment와 numeric gate로 확장한다.
 
 ## Completion Rule
 

@@ -46,6 +46,7 @@ P0 architecture foundation부터 P9 versioned durable service까지 완료되었
 - `docs/releasing.md`: binary/module distribution과 승인 기반 release 절차.
 - `docs/durable-runtime.md`: journal durability, recovery, retry와 audit 계약.
 - `docs/service-api.md`: versioned ingestion, proposal authority와 assignment delivery API.
+- `docs/observability.md`: health, metrics, trace와 redacted audit contract.
 - `docs/decisions/`: 확정된 architecture decision.
 - `docs/todo-*/`: 완료 evidence와 현재 milestone을 담는 작업 계약.
 - `docs/REPO_MANIFEST.yaml`: repository entrypoint와 검증 명령.

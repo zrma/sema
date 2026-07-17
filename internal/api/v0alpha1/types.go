@@ -161,6 +161,20 @@ type MutationResult struct {
 	Status string `json:"status"`
 }
 
+type AuditSummary struct {
+	Sequence uint64          `json:"sequence"`
+	Kind     string          `json:"kind"`
+	Checksum string          `json:"checksum"`
+	Counts   map[string]int  `json:"counts,omitempty"`
+	Flags    map[string]bool `json:"flags,omitempty"`
+	Outcome  string          `json:"outcome,omitempty"`
+}
+
+type AuditPage struct {
+	Records      []AuditSummary `json:"records"`
+	NextSequence uint64         `json:"next_sequence"`
+}
+
 type PlanRequest struct {
 	SnapshotID    string `json:"snapshot_id"`
 	PolicyVersion string `json:"policy_version"`

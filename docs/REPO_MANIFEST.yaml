@@ -18,6 +18,7 @@ releasing: docs/releasing.md
 durable_runtime: docs/durable-runtime.md
 service_api: docs/service-api.md
 service_command: cmd/sema-server
+observability: docs/observability.md
 domain_model: docs/domain-model.md
 lifecycle: docs/lifecycle.md
 reference_scenarios: docs/reference-scenarios.md
@@ -34,6 +35,7 @@ candidate_window_decision: docs/decisions/0008-candidate-window-baseline.md
 alpha_integration_decision: docs/decisions/0009-alpha-integration-release-baseline.md
 durable_journal_decision: docs/decisions/0010-durable-journal-baseline.md
 http_service_decision: docs/decisions/0011-http-service-baseline.md
+observability_decision: docs/decisions/0012-observability-redaction-baseline.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -54,6 +56,7 @@ checks:
   durable_replay_benchmark: go test ./internal/durable -run ^$ -bench ^BenchmarkOpenReplay$ -benchtime=1x
   service_test: go test ./internal/httpapi ./cmd/sema-server
   service_smoke: go run ./cmd/sema-server -version
+  observability_test: go test ./internal/observability ./internal/httpapi ./internal/durable
   planner_large_benchmark: go test ./internal/planner -run ^$ -bench ^BenchmarkPlanLargeQueues$ -benchtime=1x -count=1
   lab_smoke: go run ./cmd/sema-lab
   harness: scripts/check-agent-harness-interface.sh

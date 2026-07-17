@@ -12,6 +12,8 @@ import (
 
 	api "github.com/zrma/sema/internal/api/v0alpha1"
 	"github.com/zrma/sema/internal/domain"
+	"github.com/zrma/sema/internal/durable"
+	"github.com/zrma/sema/internal/observability"
 )
 
 const maxRequestBytes = 1 << 20
@@ -30,16 +32,37 @@ type Runtime interface {
 	CancelReservation(domain.ReservationID, time.Time) (domain.Reservation, error)
 	AcknowledgeAssignment(domain.AssignmentID, domain.AssignmentAcknowledgmentRequest, time.Time) (domain.Assignment, error)
 	Assignment(domain.AssignmentID) (domain.Assignment, bool, error)
+	Ready() error
+	AuditSummaries(uint64, int) ([]durable.AuditSummary, error)
 }
 
 func New(runtime Runtime) http.Handler {
-	return NewWithClock(runtime, time.Now)
+	return NewWithOptions(runtime, Options{})
 }
 
 // NewWithClock constructs the handler with an explicit authoritative clock.
 func NewWithClock(runtime Runtime, now func() time.Time) http.Handler {
-	server := &server{runtime: runtime, now: now}
+	return NewWithOptions(runtime, Options{Now: now})
+}
+
+type Options struct {
+	Now      func() time.Time
+	Observer *observability.Recorder
+}
+
+func NewWithOptions(runtime Runtime, options Options) http.Handler {
+	if options.Now == nil {
+		options.Now = time.Now
+	}
+	if options.Observer == nil {
+		options.Observer = observability.New(nil, options.Now)
+	}
+	server := &server{runtime: runtime, now: options.Now}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /livez", server.live)
+	mux.HandleFunc("GET /readyz", server.ready)
+	mux.Handle("GET /metrics", options.Observer)
+	mux.HandleFunc("GET /v0alpha1/audit", server.getAudit)
 	mux.HandleFunc("PUT /v0alpha1/policies/{version}", server.putPolicy)
 	mux.HandleFunc("GET /v0alpha1/policies/{version}", server.getPolicy)
 	mux.HandleFunc("PUT /v0alpha1/match-tickets/{ticket_id}", server.putMatchTicket)
@@ -61,15 +84,57 @@ func NewWithClock(runtime Runtime, now func() time.Time) http.Handler {
 	mux.HandleFunc("/v0alpha1/reservations/{reservation_id}/cancel", methodNotAllowed("POST"))
 	mux.HandleFunc("/v0alpha1/assignments/{assignment_id}", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha1/assignments/{assignment_id}/acknowledgments", methodNotAllowed("POST"))
+	mux.HandleFunc("/livez", methodNotAllowed("GET"))
+	mux.HandleFunc("/readyz", methodNotAllowed("GET"))
+	mux.HandleFunc("/metrics", methodNotAllowed("GET"))
+	mux.HandleFunc("/v0alpha1/audit", methodNotAllowed("GET"))
 	mux.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writeNotFound(writer, "endpoint")
 	})
-	return recoverPanics(mux)
+	return options.Observer.Middleware(recoverPanics(mux))
 }
 
 type server struct {
 	runtime Runtime
 	now     func() time.Time
+}
+
+func (server *server) live(writer http.ResponseWriter, _ *http.Request) {
+	writeData(writer, http.StatusOK, api.MutationResult{Status: "ok"})
+}
+
+func (server *server) ready(writer http.ResponseWriter, _ *http.Request) {
+	if err := server.runtime.Ready(); err != nil {
+		writeFailure(writer, err)
+		return
+	}
+	writeData(writer, http.StatusOK, api.MutationResult{Status: "ready"})
+}
+
+func (server *server) getAudit(writer http.ResponseWriter, request *http.Request) {
+	after, ok := optionalUint(writer, request, "after", 0, 0, ^uint64(0))
+	if !ok {
+		return
+	}
+	limit, ok := optionalUint(writer, request, "limit", 100, 1, 1000)
+	if !ok {
+		return
+	}
+	summaries, err := server.runtime.AuditSummaries(after, int(limit))
+	if err != nil {
+		writeFailure(writer, err)
+		return
+	}
+	records := make([]api.AuditSummary, len(summaries))
+	next := after
+	for index, summary := range summaries {
+		records[index] = api.AuditSummary{
+			Sequence: summary.Sequence, Kind: summary.Kind, Checksum: summary.Checksum,
+			Counts: summary.Counts, Flags: summary.Flags, Outcome: summary.Outcome,
+		}
+		next = summary.Sequence
+	}
+	writeData(writer, http.StatusOK, api.AuditPage{Records: records, NextSequence: next})
 }
 
 func (server *server) putPolicy(writer http.ResponseWriter, request *http.Request) {
@@ -304,6 +369,32 @@ func queryRevision(writer http.ResponseWriter, request *http.Request, name strin
 	return domain.Revision(parsed), true
 }
 
+func optionalUint(
+	writer http.ResponseWriter,
+	request *http.Request,
+	name string,
+	defaultValue uint64,
+	minimum uint64,
+	maximum uint64,
+) (uint64, bool) {
+	value := request.URL.Query().Get(name)
+	if value == "" {
+		return defaultValue, true
+	}
+	parsed, err := strconv.ParseUint(value, 10, 64)
+	if err != nil || parsed < minimum || parsed > maximum {
+		writeFailure(writer, domain.NewFailure(
+			domain.FailureInvalidInput,
+			"query parameter %s must be an integer between %d and %d",
+			name,
+			minimum,
+			maximum,
+		))
+		return 0, false
+	}
+	return parsed, true
+}
+
 func writeAccepted(writer http.ResponseWriter) {
 	writeData(writer, http.StatusOK, api.MutationResult{Status: "accepted"})
 }
@@ -358,6 +449,9 @@ func writeFailure(writer http.ResponseWriter, err error) {
 }
 
 func writeEnvelope(writer http.ResponseWriter, status int, envelope api.Envelope) {
+	if envelope.Error != nil {
+		writer.Header().Set("X-Sema-Error-Code", envelope.Error.Code)
+	}
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Cache-Control", "no-store")
 	writer.Header().Set("X-Content-Type-Options", "nosniff")

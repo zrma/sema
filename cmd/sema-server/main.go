@@ -15,6 +15,7 @@ import (
 
 	"github.com/zrma/sema/internal/durable"
 	"github.com/zrma/sema/internal/httpapi"
+	"github.com/zrma/sema/internal/observability"
 )
 
 var version = "dev"
@@ -64,7 +65,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) (exitCode
 		return 1
 	}
 	server := &http.Server{
-		Handler:           httpapi.New(runtime),
+		Handler: httpapi.NewWithOptions(runtime, httpapi.Options{
+			Observer: observability.New(stderr, time.Now),
+		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      30 * time.Second,

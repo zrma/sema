@@ -4,6 +4,7 @@ package durable_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -131,6 +132,22 @@ func TestRuntimePersistsOrderedDecisionAudit(t *testing.T) {
 	}
 	if len(records) != len(wantKinds) {
 		t.Fatalf("audit record count = %d; want %d", len(records), len(wantKinds))
+	}
+	summaries, err := runtime.AuditSummaries(0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encodedSummaries, err := json.Marshal(summaries)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, privateValue := range []string{"a-ticket", "a-player", "snapshot-audit", "reservation-audit"} {
+		if bytes.Contains(encodedSummaries, []byte(privateValue)) {
+			t.Fatalf("redacted audit contains %q: %s", privateValue, encodedSummaries)
+		}
+	}
+	if summaries[6].Counts["proposals"] != 1 || summaries[6].Counts["unmatched_tickets"] != 0 {
+		t.Fatalf("plan audit summary = %#v", summaries[6])
 	}
 	for index, record := range records {
 		if record.Sequence != uint64(index+1) || record.Kind != wantKinds[index] || record.Checksum == "" {

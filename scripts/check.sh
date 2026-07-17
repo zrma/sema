@@ -15,6 +15,7 @@ for required_file in \
   examples/compose/main.go \
   internal/api/v0alpha1/types.go \
   internal/httpapi/handler.go \
+  internal/observability/recorder.go \
   docs/agent-harness.md \
   docs/HANDOFF.md \
   docs/status.md \
@@ -33,6 +34,7 @@ for required_file in \
   docs/releasing.md \
   docs/durable-runtime.md \
   docs/service-api.md \
+  docs/observability.md \
   docs/policy-simulation.md \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
@@ -46,6 +48,7 @@ for required_file in \
   docs/decisions/0009-alpha-integration-release-baseline.md \
   docs/decisions/0010-durable-journal-baseline.md \
   docs/decisions/0011-http-service-baseline.md \
+  docs/decisions/0012-observability-redaction-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -66,6 +69,7 @@ for required_file in \
   docs/todo-0015-public-integration/spec.md \
   docs/todo-0016-durable-runtime/spec.md \
   docs/todo-0017-http-service/spec.md \
+  docs/todo-0018-observability/spec.md \
   scripts/build-release.sh \
   scripts/check-release-build.sh \
   go.mod; do

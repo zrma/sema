@@ -296,6 +296,13 @@ func (runtime *Runtime) Assignment(id domain.AssignmentID) (domain.Assignment, b
 	return assignment, exists, nil
 }
 
+// Ready reports whether the runtime can serve reads and durable mutations.
+func (runtime *Runtime) Ready() error {
+	runtime.mu.Lock()
+	defer runtime.mu.Unlock()
+	return runtime.readyLocked()
+}
+
 // Audit returns a defensive, sequence-ordered page after the requested sequence.
 func (runtime *Runtime) Audit(after uint64, limit int) ([]Record, error) {
 	runtime.mu.Lock()

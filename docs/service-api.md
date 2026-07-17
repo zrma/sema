@@ -47,6 +47,9 @@ request JSON은 unknown field를 거부하고 최대 1 MiB다. response는 `appl
 | `POST` | `/v0alpha1/reservations/{reservation_id}/cancel` | active reservation cancel |
 | `GET` | `/v0alpha1/assignments/{assignment_id}` | assignment polling/read model |
 | `POST` | `/v0alpha1/assignments/{assignment_id}/acknowledgments` | terminal complete/cancel/fail acknowledgment |
+| `GET` | `/v0alpha1/audit?after=...&limit=...` | redacted durable decision audit page |
+
+`/livez`, `/readyz`와 `/metrics`는 operational endpoint다. error response는 `X-Sema-Error-Code` header에도 bounded code를 제공한다. 상세 contract는 `docs/observability.md`가 소유한다.
 
 request/response DTO는 `internal/api/v0alpha1`이 소유하고 domain struct를 JSON으로 직접 노출하지 않는다. relaxation duration은 `after_wait_millis`로 표현한다.
 

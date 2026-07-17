@@ -84,7 +84,7 @@
 
 ## P10: Operational Validation
 
-- [ ] metrics, traces와 decision audit exporter
+- [x] metrics, traces와 redacted decision audit exporter
 - [ ] load, soak와 failure-injection validation
 - [ ] container/deployment example과 operations runbook
 - [ ] target hardware의 repeated latency/allocation benchmark history와 numeric SLO
