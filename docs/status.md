@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P11 interactive flow visualization까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P12 closed-loop population simulation까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -53,7 +53,13 @@ P0부터 P11 interactive flow visualization까지 완료되었다. source/servic
 - full/container/performance/recovery/publication 검증을 묶고 현재 v1 stable tag를 차단하는 release admission gate.
 - 실제 loopback HTTP lifecycle을 단계별로 실행하는 deterministic mixed-party Flow simulator.
 - Unicode party movement, proposal/reservation/assignment/departure와 ASCII/reduced-motion fallback을 제공하는 `cmd/sema-tui`.
-- waiting, active와 departed surface를 함께 검증하는 terminal-independent Flow snapshot.
+- waiting, active와 completed surface를 함께 검증하는 terminal-independent Flow snapshot.
+- stable identity를 가진 기본 1,000명 player와 600개 solo/duo/trio party의 closed population registry.
+- empty queue에서 시작하는 deterministic party arrival과 lifecycle 중 계속되는 queue ingestion.
+- matchmaking에 쓰는 visible rating과 seeded hidden true skill의 분리.
+- fixed-duration 5v5 result, logistic outcome draw와 zero-sum team Elo update.
+- completed assignment 뒤 분산 cooldown을 거쳐 revision을 올린 동일 party ticket의 실제 HTTP 복귀.
+- population idle/queue/in-game/cooldown, rating range, percentile, histogram과 누적 result를 표시하는 Flow TUI.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
@@ -67,7 +73,7 @@ P0부터 P11 interactive flow visualization까지 완료되었다. source/servic
 
 ## Not Implemented
 
-- production-calibrated arrival sequence와 rating uncertainty/confidence model.
+- production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index와 full unmatched output pagination.
 - external database, journal compaction와 multi-replica coordination.
 - authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
@@ -85,4 +91,4 @@ P0부터 P11 interactive flow visualization까지 완료되었다. source/servic
 
 ## Next Slice
 
-P11 repository-owned 목표는 완료되었다. 다음 장기 slice는 실제 consumer와 production target이 생겼을 때 authentication/TLS gateway, stable API, production traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 연다. 그 전에는 Flow demo를 production scheduler로, reference SLO를 제품 SLA로 승격하지 않는다.
+P12 repository-owned 목표는 완료되었다. 다음 simulation slice는 uncertainty, 실제 접속률 calibration/영구 churn 또는 party 재편 중 평가할 metric이 생길 때 연다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow demo를 production scheduler나 production MMR로, reference SLO를 제품 SLA로 승격하지 않는다.

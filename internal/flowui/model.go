@@ -12,9 +12,14 @@ import (
 
 	api "github.com/zrma/sema/internal/api/v0alpha1"
 	"github.com/zrma/sema/internal/flow"
+	"github.com/zrma/sema/internal/league"
 )
 
-const frameInterval = 70 * time.Millisecond
+const (
+	frameInterval     = 70 * time.Millisecond
+	maxHistoryEntries = 64
+	maxLogEntries     = 128
+)
 
 type ticketState string
 
@@ -30,7 +35,7 @@ type matchStage string
 const (
 	stageProposed  matchStage = "proposed"
 	stageReserved  matchStage = "reserved"
-	stageConfirmed matchStage = "confirmed"
+	stagePlaying   matchStage = "playing"
 	stageCompleted matchStage = "completed"
 )
 
@@ -68,6 +73,9 @@ type matchView struct {
 	proposal   api.MatchProposal
 	stage      matchStage
 	assignment api.Assignment
+	result     league.Result
+	startedAt  time.Time
+	endsAt     time.Time
 	motion     int
 	partySizes map[string]int
 }
@@ -87,19 +95,25 @@ type Model struct {
 	simulator *flow.Simulator
 	options   Options
 
-	width        int
-	height       int
-	paused       bool
-	inFlight     bool
-	singleStep   bool
-	frame        int
-	nextStepAt   time.Time
-	working      string
-	lastError    error
-	now          time.Time
-	queueTickets int
-	queuePlayers int
-	cycle        int
+	width           int
+	height          int
+	paused          bool
+	inFlight        bool
+	singleStep      bool
+	frame           int
+	nextStepAt      time.Time
+	working         string
+	lastError       error
+	now             time.Time
+	simulatedStep   time.Duration
+	queueTickets    int
+	queuePlayers    int
+	activeMatches   int
+	inGamePlayers   int
+	idlePlayers     int
+	cooldownPlayers int
+	cycle           int
+	population      league.Stats
 
 	tickets     map[string]*ticketView
 	ticketOrder []string
@@ -129,14 +143,34 @@ func New(simulator *flow.Simulator, options Options) *Model {
 	if options.Height <= 0 {
 		options.Height = defaults.Height
 	}
-	return &Model{
-		simulator: simulator,
-		options:   options,
-		width:     options.Width,
-		height:    options.Height,
-		tickets:   make(map[string]*ticketView),
-		active:    make(map[string]*matchView),
+	model := &Model{
+		simulator:     simulator,
+		options:       options,
+		width:         options.Width,
+		height:        options.Height,
+		simulatedStep: time.Second,
+		tickets:       make(map[string]*ticketView),
+		active:        make(map[string]*matchView),
 	}
+	initial := simulator.Snapshot()
+	model.now = initial.Now
+	model.queueTickets = initial.QueueTickets
+	model.queuePlayers = initial.QueuePlayers
+	model.activeMatches = initial.ActiveMatches
+	model.inGamePlayers = initial.InGamePlayers
+	model.idlePlayers = initial.IdlePlayers
+	model.cooldownPlayers = initial.CooldownPlayers
+	model.population = initial.Population
+	for _, ticket := range initial.Tickets {
+		position := 0
+		if options.ReducedMotion {
+			position = 6
+		}
+		copy := ticket
+		model.tickets[ticket.ID] = &ticketView{ticket: copy, state: ticketQueued, position: position}
+		model.ticketOrder = append(model.ticketOrder, ticket.ID)
+	}
+	return model
 }
 
 // Init starts the animation clock and the first real lifecycle operation.
@@ -250,15 +284,23 @@ func (model *Model) advance() tea.Cmd {
 }
 
 func (model *Model) apply(event flow.Event) {
+	if !model.now.IsZero() && event.At.After(model.now) {
+		model.simulatedStep = event.At.Sub(model.now)
+	}
 	model.now = event.At
 	model.queueTickets = event.QueueTickets
 	model.queuePlayers = event.QueuePlayers
+	model.activeMatches = event.ActiveMatches
+	model.inGamePlayers = event.InGamePlayers
+	model.idlePlayers = event.IdlePlayers
+	model.cooldownPlayers = event.CooldownPlayers
+	model.population = event.Population
 	if event.Cycle > 0 {
 		model.cycle = event.Cycle
 	}
 
 	switch event.Kind {
-	case flow.EventTicketAccepted:
+	case flow.EventTicketQueued, flow.EventTicketReturned:
 		if event.Ticket == nil {
 			return
 		}
@@ -269,7 +311,15 @@ func (model *Model) apply(event flow.Event) {
 		}
 		model.tickets[ticket.ID] = &ticketView{ticket: ticket, state: ticketQueued, position: position}
 		model.ticketOrder = append(model.ticketOrder, ticket.ID)
-		model.logf("+ %s %s accepted", shortID(ticket.ID), model.partyGlyph(len(ticket.Players)))
+		if event.Kind == flow.EventTicketReturned {
+			marker := "R"
+			if model.options.Unicode {
+				marker = "↻"
+			}
+			model.logf("%s %s %s returned r%d", marker, shortID(ticket.ID), model.partyGlyph(len(ticket.Players)), ticket.Revision)
+		} else {
+			model.logf("+ %s %s joined queue r%d", shortID(ticket.ID), model.partyGlyph(len(ticket.Players)), ticket.Revision)
+		}
 	case flow.EventPlanCompleted:
 		if event.Batch == nil {
 			return
@@ -314,13 +364,15 @@ func (model *Model) apply(event flow.Event) {
 			return
 		}
 		if match := model.active[event.Proposal.ID]; match != nil {
-			match.stage = stageConfirmed
+			match.stage = stagePlaying
 			match.assignment = *event.Assignment
+			match.startedAt = event.GameStartedAt
+			match.endsAt = event.GameEndsAt
 			match.motion = 0
 			model.setTicketState(match.proposal.Tickets, ticketConfirmed)
 		}
-		model.logf("# %s confirmed", matchLabel(event.Proposal.ID))
-	case flow.EventMatchDeparted:
+		model.logf("# %s started %s game", matchLabel(event.Proposal.ID), event.GameEndsAt.Sub(event.GameStartedAt))
+	case flow.EventMatchCompleted:
 		if event.Proposal == nil || event.Assignment == nil {
 			return
 		}
@@ -330,10 +382,13 @@ func (model *Model) apply(event flow.Event) {
 		}
 		match.stage = stageCompleted
 		match.assignment = *event.Assignment
+		if event.Result != nil {
+			match.result = *event.Result
+		}
 		match.motion = 8
 		model.history = append([]matchView{*match}, model.history...)
-		if len(model.history) > 8 {
-			model.history = model.history[:8]
+		if len(model.history) > maxHistoryEntries {
+			model.history = model.history[:maxHistoryEntries]
 		}
 		delete(model.active, event.Proposal.ID)
 		model.activeOrder = deleteString(model.activeOrder, event.Proposal.ID)
@@ -341,7 +396,19 @@ func (model *Model) apply(event flow.Event) {
 			delete(model.tickets, reference.ID)
 			model.ticketOrder = deleteString(model.ticketOrder, reference.ID)
 		}
-		model.logf("+ %s departed", matchLabel(event.Proposal.ID))
+		winner := match.result.WinnerTeam + 1
+		participants := 0
+		for _, partySize := range match.partySizes {
+			participants += partySize
+		}
+		model.logf(
+			"+ %s team %d won %+d; %d entered cooldown (%d total)",
+			matchLabel(event.Proposal.ID),
+			winner,
+			match.result.RatingDelta[match.result.WinnerTeam],
+			participants,
+			event.CooldownPlayers,
+		)
 	}
 }
 
@@ -387,8 +454,8 @@ func (model *Model) logf(format string, arguments ...any) {
 	timestamp := model.now.Format("15:04:05")
 	entry := timestamp + separator + fmt.Sprintf(format, arguments...)
 	model.logs = append(model.logs, entry)
-	if len(model.logs) > 10 {
-		model.logs = slices.Clone(model.logs[len(model.logs)-10:])
+	if len(model.logs) > maxLogEntries {
+		model.logs = slices.Clone(model.logs[len(model.logs)-maxLogEntries:])
 	}
 }
 

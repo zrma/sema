@@ -7,70 +7,118 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
 	api "github.com/zrma/sema/internal/api/v0alpha1"
 	"github.com/zrma/sema/internal/durable"
 	"github.com/zrma/sema/internal/httpapi"
+	"github.com/zrma/sema/internal/league"
 )
 
 const (
-	defaultTeamCount       = 2
-	defaultTeamSize        = 5
-	defaultMatchesPerCycle = 2
-	defaultReservationTTL  = 30 * time.Second
+	defaultTeamCount            = 2
+	defaultTeamSize             = 5
+	defaultMatchesPerCycle      = 2
+	defaultMaxConcurrentMatches = 8
+	defaultReservationTTL       = 30 * time.Second
+	defaultGameDuration         = 45 * time.Second
+	defaultArrivalInterval      = time.Second
+	defaultPlanningInterval     = 5 * time.Second
+	defaultMaxReturnDelay       = 30 * time.Second
+	defaultTickDuration         = time.Second
+	operationDuration           = time.Second
 )
 
 // EventKind identifies a lifecycle transition rendered by the TUI.
 type EventKind string
 
 const (
-	EventTicketAccepted      EventKind = "ticket_accepted"
+	EventTicketQueued        EventKind = "ticket_queued"
+	EventTicketReturned      EventKind = "ticket_returned"
 	EventPlanCompleted       EventKind = "plan_completed"
 	EventProposalReserved    EventKind = "proposal_reserved"
 	EventAssignmentConfirmed EventKind = "assignment_confirmed"
-	EventMatchDeparted       EventKind = "match_departed"
+	EventTimeAdvanced        EventKind = "time_advanced"
+	EventMatchCompleted      EventKind = "match_completed"
 )
 
 // Config controls the deterministic embedded workload.
 type Config struct {
-	Seed            int64
-	Start           time.Time
-	MatchesPerCycle int
-	ReservationTTL  time.Duration
+	Seed                 int64
+	Start                time.Time
+	PopulationSize       int
+	MatchesPerCycle      int
+	MaxConcurrentMatches int
+	ReservationTTL       time.Duration
+	GameDuration         time.Duration
+	ArrivalInterval      time.Duration
+	PlanningInterval     time.Duration
+	MaxReturnDelay       time.Duration
+	TickDuration         time.Duration
 }
 
-// DefaultConfig returns the reference 5v5 mixed-party demo configuration.
+// DefaultConfig returns the reference 1,000-player 5v5 league configuration.
 func DefaultConfig() Config {
 	return Config{
-		Seed:            42,
-		Start:           time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
-		MatchesPerCycle: defaultMatchesPerCycle,
-		ReservationTTL:  defaultReservationTTL,
+		Seed:                 42,
+		Start:                time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		PopulationSize:       1000,
+		MatchesPerCycle:      defaultMatchesPerCycle,
+		MaxConcurrentMatches: defaultMaxConcurrentMatches,
+		ReservationTTL:       defaultReservationTTL,
+		GameDuration:         defaultGameDuration,
+		ArrivalInterval:      defaultArrivalInterval,
+		PlanningInterval:     defaultPlanningInterval,
+		MaxReturnDelay:       defaultMaxReturnDelay,
+		TickDuration:         defaultTickDuration,
 	}
 }
 
 // Event is a defensive lifecycle result produced by one simulator step.
 type Event struct {
-	Kind           EventKind
-	At             time.Time
-	Cycle          int
-	Ticket         *api.MatchTicket
-	Batch          *api.ProposalBatch
-	Proposal       *api.MatchProposal
-	Reservation    *api.Reservation
-	Assignment     *api.Assignment
-	QueueTickets   int
-	QueuePlayers   int
-	MaxCandidates  int
-	MaxSearchNodes int
+	Kind            EventKind
+	At              time.Time
+	Cycle           int
+	Ticket          *api.MatchTicket
+	Batch           *api.ProposalBatch
+	Proposal        *api.MatchProposal
+	Reservation     *api.Reservation
+	Assignment      *api.Assignment
+	Result          *league.Result
+	GameStartedAt   time.Time
+	GameEndsAt      time.Time
+	QueueTickets    int
+	QueuePlayers    int
+	ActiveMatches   int
+	InGamePlayers   int
+	IdlePlayers     int
+	CooldownPlayers int
+	Population      league.Stats
+	MaxCandidates   int
+	MaxSearchNodes  int
+}
+
+// State is a defensive full read model used to initialize a renderer.
+type State struct {
+	Now             time.Time
+	Tickets         []api.MatchTicket
+	QueueTickets    int
+	QueuePlayers    int
+	ActiveMatches   int
+	InGamePlayers   int
+	IdlePlayers     int
+	CooldownPlayers int
+	Population      league.Stats
 }
 
 type operationKind uint8
@@ -86,12 +134,20 @@ type operation struct {
 	proposalID string
 }
 
+type scheduledArrival struct {
+	ticketID  string
+	at        time.Time
+	returning bool
+}
+
 type lifecycle struct {
 	proposal      api.MatchProposal
 	reservationID string
 	assignmentID  string
 	reservation   api.Reservation
 	assignment    api.Assignment
+	startedAt     time.Time
+	endsAt        time.Time
 }
 
 type demoClock struct {
@@ -112,7 +168,7 @@ func (clock *demoClock) Advance(duration time.Duration) time.Time {
 	return clock.now
 }
 
-// Simulator owns an isolated durable runtime and drives it exclusively through v0alpha1 HTTP.
+// Simulator owns an isolated durable runtime and a closed player population.
 type Simulator struct {
 	mu sync.Mutex
 
@@ -122,22 +178,22 @@ type Simulator struct {
 	runtime       *durable.Runtime
 	server        *httptest.Server
 	client        *http.Client
+	population    *league.Population
 
 	policy        api.MatchmakingPolicy
-	nextTicket    int
-	nextPlayer    int
 	cycle         int
 	queued        map[string]api.MatchTicket
 	queuedPlayers int
 	active        map[string]*lifecycle
 	pending       []operation
+	arrivals      []scheduledArrival
+	nextPlanAt    time.Time
 	arrivalTurn   bool
-	forceArrival  bool
 	closed        bool
 	closeOnce     sync.Once
 }
 
-// Open creates an isolated journal, loopback HTTP server, and registered demo policy.
+// Open creates an isolated journal, loopback HTTP server, and an initially idle population.
 func Open(configuration Config) (*Simulator, error) {
 	normalized, err := normalizeConfig(configuration)
 	if err != nil {
@@ -152,6 +208,15 @@ func Open(configuration Config) (*Simulator, error) {
 		_ = os.RemoveAll(directory)
 		return nil, fmt.Errorf("open flow runtime: %w", err)
 	}
+	populationConfig := league.DefaultConfig()
+	populationConfig.Seed = normalized.Seed
+	populationConfig.PopulationSize = normalized.PopulationSize
+	population, err := league.New(populationConfig)
+	if err != nil {
+		_ = runtime.Close()
+		_ = os.RemoveAll(directory)
+		return nil, fmt.Errorf("create flow population: %w", err)
+	}
 
 	clock := &demoClock{now: normalized.Start}
 	server := httptest.NewServer(httpapi.NewWithClock(runtime, clock.Now))
@@ -162,11 +227,13 @@ func Open(configuration Config) (*Simulator, error) {
 		runtime:       runtime,
 		server:        server,
 		client:        server.Client(),
+		population:    population,
 		queued:        make(map[string]api.MatchTicket),
 		active:        make(map[string]*lifecycle),
+		nextPlanAt:    normalized.Start,
 	}
 	simulator.policy = api.MatchmakingPolicy{
-		Version:                  "flow-policy-v1",
+		Version:                  "flow-league-policy-v1",
 		TeamCount:                defaultTeamCount,
 		TeamSize:                 defaultTeamSize,
 		MaxLatencyMillis:         200,
@@ -174,6 +241,11 @@ func Open(configuration Config) (*Simulator, error) {
 		MaxSearchNodes:           100_000,
 		MaxCandidateTickets:      256,
 		MaxCandidatesPerProposal: 64,
+		RelaxationSteps: []api.RelaxationStep{
+			{AfterWaitMillis: 0, MaxTeamSkillGap: 80},
+			{AfterWaitMillis: 30_000, MaxTeamSkillGap: 200, PrioritizeWait: true},
+			{AfterWaitMillis: 120_000, MaxTeamSkillGap: 400, PrioritizeWait: true},
+		},
 	}
 	if _, err := request[api.PolicyRegistration](
 		context.Background(), simulator.client, http.MethodPut,
@@ -182,6 +254,13 @@ func Open(configuration Config) (*Simulator, error) {
 		_ = simulator.Close()
 		return nil, fmt.Errorf("register flow policy: %w", err)
 	}
+	for index, party := range population.Parties() {
+		simulator.arrivals = append(simulator.arrivals, scheduledArrival{
+			ticketID: party.ID,
+			at:       normalized.Start.Add(time.Duration(index) * normalized.ArrivalInterval),
+		})
+	}
+	simulator.sortArrivals()
 	return simulator, nil
 }
 
@@ -190,14 +269,40 @@ func normalizeConfig(configuration Config) (Config, error) {
 	if configuration.Start.IsZero() {
 		configuration.Start = defaults.Start
 	}
+	if configuration.PopulationSize == 0 {
+		configuration.PopulationSize = defaults.PopulationSize
+	}
 	if configuration.MatchesPerCycle == 0 {
 		configuration.MatchesPerCycle = defaults.MatchesPerCycle
+	}
+	if configuration.MaxConcurrentMatches == 0 {
+		configuration.MaxConcurrentMatches = defaults.MaxConcurrentMatches
 	}
 	if configuration.ReservationTTL == 0 {
 		configuration.ReservationTTL = defaults.ReservationTTL
 	}
-	if configuration.Seed < 0 || configuration.MatchesPerCycle <= 0 || configuration.MatchesPerCycle > 8 || configuration.ReservationTTL <= 0 {
-		return Config{}, fmt.Errorf("flow seed, matches per cycle, or reservation TTL is invalid")
+	if configuration.GameDuration == 0 {
+		configuration.GameDuration = defaults.GameDuration
+	}
+	if configuration.ArrivalInterval == 0 {
+		configuration.ArrivalInterval = defaults.ArrivalInterval
+	}
+	if configuration.PlanningInterval == 0 {
+		configuration.PlanningInterval = defaults.PlanningInterval
+	}
+	if configuration.MaxReturnDelay == 0 {
+		configuration.MaxReturnDelay = defaults.MaxReturnDelay
+	}
+	if configuration.TickDuration == 0 {
+		configuration.TickDuration = defaults.TickDuration
+	}
+	maximumMatches := configuration.PopulationSize / (defaultTeamCount * defaultTeamSize)
+	if configuration.Seed < 0 || configuration.PopulationSize < 10 || configuration.MatchesPerCycle <= 0 ||
+		configuration.MatchesPerCycle > 8 || configuration.MaxConcurrentMatches < configuration.MatchesPerCycle ||
+		configuration.MaxConcurrentMatches > maximumMatches || configuration.ReservationTTL <= 0 ||
+		configuration.GameDuration <= 0 || configuration.ArrivalInterval <= 0 || configuration.PlanningInterval <= 0 ||
+		configuration.MaxReturnDelay < time.Second || configuration.TickDuration <= 0 {
+		return Config{}, fmt.Errorf("flow population, concurrency, timing, or seed configuration is invalid")
 	}
 	return configuration, nil
 }
@@ -220,75 +325,65 @@ func (simulator *Simulator) Seed() int64 {
 	return simulator.configuration.Seed
 }
 
-// Step executes exactly one serialized HTTP lifecycle operation.
+// Snapshot returns the current full waiting population and aggregate state.
+func (simulator *Simulator) Snapshot() State {
+	simulator.mu.Lock()
+	defer simulator.mu.Unlock()
+	state := State{
+		Now:             simulator.clock.Now(),
+		QueueTickets:    len(simulator.queued),
+		QueuePlayers:    simulator.queuedPlayers,
+		Population:      simulator.population.Stats(),
+		ActiveMatches:   simulator.activeGameCount(),
+		InGamePlayers:   simulator.inGamePlayerCount(),
+		IdlePlayers:     simulator.idlePlayerCount(),
+		CooldownPlayers: simulator.cooldownPlayerCount(),
+		Tickets:         make([]api.MatchTicket, 0, len(simulator.queued)),
+	}
+	identifiers := make([]string, 0, len(simulator.queued))
+	for identifier := range simulator.queued {
+		identifiers = append(identifiers, identifier)
+	}
+	slices.Sort(identifiers)
+	for _, identifier := range identifiers {
+		state.Tickets = append(state.Tickets, cloneTicket(simulator.queued[identifier]))
+	}
+	return state
+}
+
+// Step executes one serialized HTTP lifecycle operation or one simulated clock tick.
 func (simulator *Simulator) Step(ctx context.Context) (Event, error) {
 	simulator.mu.Lock()
 	defer simulator.mu.Unlock()
 	if simulator.closed {
 		return Event{}, fmt.Errorf("flow simulator is closed")
 	}
-
+	if proposalID := simulator.nextCompletedGame(); proposalID != "" {
+		return simulator.execute(ctx, operation{kind: operationAcknowledge, proposalID: proposalID})
+	}
 	if len(simulator.pending) > 0 {
-		if simulator.arrivalTurn {
+		if simulator.arrivalTurn && simulator.hasDueArrival() {
 			simulator.arrivalTurn = false
-			return simulator.submitTicket(ctx)
+			return simulator.submitArrival(ctx)
 		}
 		current := simulator.pending[0]
 		simulator.pending = simulator.pending[1:]
 		simulator.arrivalTurn = true
 		return simulator.execute(ctx, current)
 	}
-
-	playersPerCycle := defaultTeamCount * defaultTeamSize * simulator.configuration.MatchesPerCycle
-	if simulator.forceArrival || simulator.queuedPlayers < playersPerCycle {
-		simulator.forceArrival = false
-		return simulator.submitTicket(ctx)
+	if simulator.configuration.MaxConcurrentMatches-len(simulator.active) >= simulator.configuration.MatchesPerCycle &&
+		simulator.queuedPlayers >= defaultTeamCount*defaultTeamSize*simulator.configuration.MatchesPerCycle &&
+		!simulator.clock.Now().Before(simulator.nextPlanAt) {
+		return simulator.plan(ctx)
 	}
-	return simulator.plan(ctx)
-}
-
-func (simulator *Simulator) submitTicket(ctx context.Context) (Event, error) {
-	partyPattern := [...]int{2, 1, 1, 1, 3, 2}
-	partySize := partyPattern[simulator.nextTicket%len(partyPattern)]
-	simulator.nextTicket++
-	now := simulator.clock.Advance(75 * time.Millisecond)
-	ticketID := fmt.Sprintf("flow-ticket-%04d", simulator.nextTicket)
-	ticket := api.MatchTicket{
-		ID:         ticketID,
-		Revision:   1,
-		EnqueuedAt: now,
-		Players:    make([]api.Player, 0, partySize),
+	if simulator.hasDueArrival() {
+		return simulator.submitArrival(ctx)
 	}
-	roles := [...]string{"tank", "damage", "support", "damage", "flex"}
-	for range partySize {
-		simulator.nextPlayer++
-		ordinal := int64(simulator.nextPlayer)
-		ticket.Players = append(ticket.Players, api.Player{
-			ID:            fmt.Sprintf("flow-player-%05d", simulator.nextPlayer),
-			Skill:         950 + deterministic(simulator.configuration.Seed, ordinal*37, 101),
-			Role:          roles[(simulator.nextPlayer-1)%len(roles)],
-			LatencyMillis: 18 + deterministic(simulator.configuration.Seed, ordinal*19, 43),
-		})
-	}
-	if _, err := request[api.MutationResult](
-		ctx, simulator.client, http.MethodPut,
-		simulator.server.URL+"/v0alpha1/match-tickets/"+url.PathEscape(ticket.ID), ticket,
-	); err != nil {
-		return Event{}, fmt.Errorf("submit %s: %w", ticket.ID, err)
-	}
-	simulator.queued[ticket.ID] = ticket
-	simulator.queuedPlayers += len(ticket.Players)
-	copy := ticket
-	return simulator.event(Event{Kind: EventTicketAccepted, At: now, Ticket: &copy}), nil
-}
-
-func deterministic(seed, ordinal int64, modulus int) int {
-	value := (seed*31 + ordinal*17 + 97) % int64(modulus)
-	return int(value)
+	return simulator.advanceTime(), nil
 }
 
 func (simulator *Simulator) plan(ctx context.Context) (Event, error) {
-	now := simulator.clock.Advance(100 * time.Millisecond)
+	now := simulator.clock.Advance(operationDuration)
 	nextCycle := simulator.cycle + 1
 	snapshotID := fmt.Sprintf("flow-snapshot-%04d", nextCycle)
 	batch, err := request[api.ProposalBatch](
@@ -299,6 +394,7 @@ func (simulator *Simulator) plan(ctx context.Context) (Event, error) {
 		return Event{}, fmt.Errorf("plan cycle %d: %w", nextCycle, err)
 	}
 	simulator.cycle = nextCycle
+	simulator.nextPlanAt = now.Add(simulator.configuration.PlanningInterval)
 	for index, proposal := range batch.Proposals {
 		state := &lifecycle{
 			proposal:      proposal,
@@ -311,11 +407,6 @@ func (simulator *Simulator) plan(ctx context.Context) (Event, error) {
 	for _, proposal := range batch.Proposals {
 		simulator.pending = append(simulator.pending, operation{kind: operationConfirm, proposalID: proposal.ID})
 	}
-	for _, proposal := range batch.Proposals {
-		simulator.pending = append(simulator.pending, operation{kind: operationAcknowledge, proposalID: proposal.ID})
-	}
-	simulator.arrivalTurn = len(simulator.pending) > 0
-	simulator.forceArrival = len(batch.Proposals) == 0
 	copy := batch
 	return simulator.event(Event{
 		Kind: EventPlanCompleted, At: now, Cycle: simulator.cycle, Batch: &copy,
@@ -328,7 +419,7 @@ func (simulator *Simulator) execute(ctx context.Context, current operation) (Eve
 	if !exists {
 		return Event{}, fmt.Errorf("flow proposal %q is not active", current.proposalID)
 	}
-	now := simulator.clock.Advance(100 * time.Millisecond)
+	now := simulator.clock.Advance(operationDuration)
 	proposal := state.proposal
 	switch current.kind {
 	case operationReserve:
@@ -355,6 +446,8 @@ func (simulator *Simulator) execute(ctx context.Context, current operation) (Eve
 			return Event{}, fmt.Errorf("confirm %s: %w", proposal.ID, err)
 		}
 		state.assignment = assignment
+		state.startedAt = now
+		state.endsAt = now.Add(simulator.configuration.GameDuration)
 		for _, reference := range proposal.Tickets {
 			if ticket, queued := simulator.queued[reference.ID]; queued {
 				simulator.queuedPlayers -= len(ticket.Players)
@@ -364,33 +457,218 @@ func (simulator *Simulator) execute(ctx context.Context, current operation) (Eve
 		return simulator.event(Event{
 			Kind: EventAssignmentConfirmed, At: now, Cycle: simulator.cycle,
 			Proposal: &proposal, Reservation: &state.reservation, Assignment: &assignment,
+			GameStartedAt: state.startedAt, GameEndsAt: state.endsAt,
 		}), nil
 	case operationAcknowledge:
 		assignment, err := request[api.Assignment](
 			ctx, simulator.client, http.MethodPost,
 			simulator.server.URL+"/v0alpha1/assignments/"+url.PathEscape(state.assignmentID)+"/acknowledgments",
-			api.AcknowledgeAssignmentRequest{
-				OperationID: state.assignmentID + "-completed",
-				Outcome:     "completed",
-			},
+			api.AcknowledgeAssignmentRequest{OperationID: state.assignmentID + "-completed", Outcome: "completed"},
 		)
 		if err != nil {
 			return Event{}, fmt.Errorf("acknowledge %s: %w", proposal.ID, err)
 		}
+		result, err := simulator.play(proposal)
+		if err != nil {
+			return Event{}, fmt.Errorf("resolve %s: %w", proposal.ID, err)
+		}
 		delete(simulator.active, current.proposalID)
+		for _, reference := range proposal.Tickets {
+			party, exists := simulator.population.Party(reference.ID)
+			if !exists {
+				return Event{}, fmt.Errorf("flow party %q does not exist", reference.ID)
+			}
+			simulator.scheduleArrival(scheduledArrival{
+				ticketID:  reference.ID,
+				at:        now.Add(simulator.returnDelay(reference.ID, party.Revision)),
+				returning: true,
+			})
+		}
 		return simulator.event(Event{
-			Kind: EventMatchDeparted, At: now, Cycle: simulator.cycle,
-			Proposal: &proposal, Reservation: &state.reservation, Assignment: &assignment,
+			Kind: EventMatchCompleted, At: now, Cycle: simulator.cycle,
+			Proposal: &proposal, Reservation: &state.reservation, Assignment: &assignment, Result: &result,
+			GameStartedAt: state.startedAt, GameEndsAt: state.endsAt,
 		}), nil
 	default:
 		return Event{}, fmt.Errorf("unknown flow operation %d", current.kind)
 	}
 }
 
+func (simulator *Simulator) submitArrival(ctx context.Context) (Event, error) {
+	arrival := simulator.arrivals[0]
+	simulator.arrivals = simulator.arrivals[1:]
+	party, exists := simulator.population.Party(arrival.ticketID)
+	if !exists {
+		return Event{}, fmt.Errorf("flow party %q does not exist", arrival.ticketID)
+	}
+	now := simulator.clock.Advance(operationDuration)
+	ticket := simulator.ticket(party, now)
+	if _, err := request[api.MutationResult](
+		ctx, simulator.client, http.MethodPut,
+		simulator.server.URL+"/v0alpha1/match-tickets/"+url.PathEscape(ticket.ID), ticket,
+	); err != nil {
+		return Event{}, fmt.Errorf("queue %s: %w", ticket.ID, err)
+	}
+	simulator.queued[ticket.ID] = ticket
+	simulator.queuedPlayers += len(ticket.Players)
+	copy := cloneTicket(ticket)
+	kind := EventTicketQueued
+	if arrival.returning {
+		kind = EventTicketReturned
+	}
+	return simulator.event(Event{Kind: kind, At: now, Cycle: simulator.cycle, Ticket: &copy}), nil
+}
+
+func (simulator *Simulator) hasDueArrival() bool {
+	return len(simulator.arrivals) > 0 && !simulator.arrivals[0].at.After(simulator.clock.Now())
+}
+
+func (simulator *Simulator) scheduleArrival(arrival scheduledArrival) {
+	simulator.arrivals = append(simulator.arrivals, arrival)
+	simulator.sortArrivals()
+}
+
+func (simulator *Simulator) sortArrivals() {
+	slices.SortFunc(simulator.arrivals, func(left, right scheduledArrival) int {
+		if compared := left.at.Compare(right.at); compared != 0 {
+			return compared
+		}
+		return strings.Compare(left.ticketID, right.ticketID)
+	})
+}
+
+func (simulator *Simulator) returnDelay(ticketID string, revision uint64) time.Duration {
+	bucket := stableMetric(simulator.configuration.Seed, fmt.Sprintf("%s-r%d-return-bucket", ticketID, revision), 100)
+	if bucket < 20 {
+		return 0
+	}
+	minimum := 5 * time.Second
+	if bucket >= 70 {
+		minimum = 20 * time.Second
+	}
+	maximum := simulator.configuration.MaxReturnDelay
+	if minimum >= maximum {
+		return maximum
+	}
+	seconds := int((maximum-minimum)/time.Second) + 1
+	offset := stableMetric(simulator.configuration.Seed, fmt.Sprintf("%s-r%d-return-offset", ticketID, revision), seconds)
+	return minimum + time.Duration(offset)*time.Second
+}
+
+func (simulator *Simulator) play(proposal api.MatchProposal) (league.Result, error) {
+	teams := [2][]string{}
+	if len(proposal.Teams) != len(teams) {
+		return league.Result{}, fmt.Errorf("proposal has %d teams; want 2", len(proposal.Teams))
+	}
+	for index, team := range proposal.Teams {
+		for _, reference := range team.Tickets {
+			teams[index] = append(teams[index], reference.ID)
+		}
+	}
+	return simulator.population.Play(proposal.ID, teams)
+}
+
+func (simulator *Simulator) advanceTime() Event {
+	now := simulator.clock.Advance(simulator.configuration.TickDuration)
+	return simulator.event(Event{Kind: EventTimeAdvanced, At: now, Cycle: simulator.cycle})
+}
+
+func (simulator *Simulator) nextCompletedGame() string {
+	now := simulator.clock.Now()
+	identifiers := make([]string, 0, len(simulator.active))
+	for identifier, match := range simulator.active {
+		if !match.endsAt.IsZero() && !match.endsAt.After(now) {
+			identifiers = append(identifiers, identifier)
+		}
+	}
+	slices.Sort(identifiers)
+	if len(identifiers) == 0 {
+		return ""
+	}
+	return identifiers[0]
+}
+
+func (simulator *Simulator) ticket(party league.Party, enqueuedAt time.Time) api.MatchTicket {
+	ticket := api.MatchTicket{ID: party.ID, Revision: party.Revision, EnqueuedAt: enqueuedAt, Players: make([]api.Player, 0, len(party.Players))}
+	roles := [...]string{"tank", "damage", "support", "damage", "flex"}
+	for _, player := range party.Players {
+		roleIndex := stableMetric(simulator.configuration.Seed, player.ID+"-role", len(roles))
+		ticket.Players = append(ticket.Players, api.Player{
+			ID:            player.ID,
+			Skill:         player.Rating,
+			Role:          roles[roleIndex],
+			LatencyMillis: 18 + stableMetric(simulator.configuration.Seed, player.ID+"-latency", 43),
+		})
+	}
+	return ticket
+}
+
+func stableMetric(seed int64, value string, modulus int) int {
+	hash := fnv.New64a()
+	_, _ = fmt.Fprintf(hash, "%d:%s", seed, value)
+	return int(hash.Sum64() % uint64(modulus))
+}
+
+func (simulator *Simulator) activeGameCount() int {
+	count := 0
+	for _, match := range simulator.active {
+		if !match.startedAt.IsZero() {
+			count++
+		}
+	}
+	return count
+}
+
+func (simulator *Simulator) inGamePlayerCount() int {
+	players := 0
+	for _, match := range simulator.active {
+		if match.startedAt.IsZero() {
+			continue
+		}
+		for _, team := range match.proposal.Teams {
+			for _, reference := range team.Tickets {
+				party, exists := simulator.population.Party(reference.ID)
+				if exists {
+					players += len(party.Players)
+				}
+			}
+		}
+	}
+	return players
+}
+
+func (simulator *Simulator) cooldownPlayerCount() int {
+	players := 0
+	for _, arrival := range simulator.arrivals {
+		if !arrival.returning {
+			continue
+		}
+		party, exists := simulator.population.Party(arrival.ticketID)
+		if exists {
+			players += len(party.Players)
+		}
+	}
+	return players
+}
+
+func (simulator *Simulator) idlePlayerCount() int {
+	return max(0, simulator.configuration.PopulationSize-simulator.queuedPlayers-simulator.inGamePlayerCount()-simulator.cooldownPlayerCount())
+}
+
 func (simulator *Simulator) event(event Event) Event {
 	event.QueueTickets = len(simulator.queued)
 	event.QueuePlayers = simulator.queuedPlayers
+	event.ActiveMatches = simulator.activeGameCount()
+	event.InGamePlayers = simulator.inGamePlayerCount()
+	event.IdlePlayers = simulator.idlePlayerCount()
+	event.CooldownPlayers = simulator.cooldownPlayerCount()
+	event.Population = simulator.population.Stats()
 	return event
+}
+
+func cloneTicket(ticket api.MatchTicket) api.MatchTicket {
+	ticket.Players = slices.Clone(ticket.Players)
+	return ticket
 }
 
 func request[T any](ctx context.Context, client *http.Client, method, endpoint string, body any) (T, error) {

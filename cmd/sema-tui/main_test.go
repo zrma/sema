@@ -21,7 +21,11 @@ func TestRunRendersDeterministicASCIISnapshot(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run(
 		context.Background(),
-		[]string{"-snapshot", "-ascii", "-steps", "34", "-width", "110", "-height", "36"},
+		[]string{
+			"-snapshot", "-ascii", "-population", "40", "-concurrent-matches", "4",
+			"-game-duration", "20s", "-arrival-interval", "1s", "-planning-interval", "2s",
+			"-max-return-delay", "10s", "-steps", "80", "-width", "110", "-height", "36",
+		},
 		strings.NewReader(""),
 		&stdout,
 		&stderr,
@@ -29,7 +33,9 @@ func TestRunRendersDeterministicASCIISnapshot(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
 	}
-	for _, expected := range []string{"SEMA FLOW", "WAITING POOL", "MATCH LIFECYCLE", "DEPARTED MATCHES", "[o-o]", "departed"} {
+	for _, expected := range []string{
+		"SEMA FLOW", "idle", "queued", "in-game", "cooldown", "WAITING POOL", "MATCH LIFECYCLE", "COMPLETED MATCHES", "rating", "team", "won",
+	} {
 		if !strings.Contains(stdout.String(), expected) {
 			t.Fatalf("snapshot omitted %q:\n%s", expected, stdout.String())
 		}

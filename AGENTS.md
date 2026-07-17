@@ -48,3 +48,5 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - container deployment는 `docs/operations-runbook.md`의 non-root, host-loopback, replica 1과 offline backup 경계를 약화하지 않는다.
 - performance evidence는 raw CPU/host output을 추적하지 않고 `docs/performance-slo.md`의 sanitized aggregate와 reference budget만 보존한다.
 - v1/stable publication은 `docs/release-admission.md`의 blocker와 machine-readable admission flag가 모두 해소되기 전에는 시도하지 않는다.
+- Flow의 hidden true skill은 synthetic game result에만 사용하고 planner에는 visible rating만 전달한다.
+- closed population, outcome curve와 Elo update는 `docs/sema-flow.md`의 reference simulation이며 production MMR이나 scheduler contract로 승격하지 않는다.

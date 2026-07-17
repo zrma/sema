@@ -22,10 +22,9 @@ type glyphSet struct {
 	proposed  string
 	reserved  string
 	confirmed string
-	departed  string
+	completed string
 	ellipsis  string
 	separator string
-	versus    string
 	spinners  []string
 	border    lipgloss.Border
 }
@@ -34,15 +33,15 @@ func (model *Model) glyphs() glyphSet {
 	if !model.options.Unicode {
 		return glyphSet{
 			player: "o", link: "-", dot: ".", arrow: ">", track: "=", fill: "#", empty: "-",
-			proposed: "o", reserved: "*", confirmed: "+", departed: "OK", ellipsis: "...",
-			separator: " | ", versus: " vs ", spinners: []string{"|", "/", "-", "\\"},
+			proposed: "o", reserved: "*", confirmed: "+", completed: "OK", ellipsis: "...",
+			separator: " | ", spinners: []string{"|", "/", "-", "\\"},
 			border: lipgloss.Border{Top: "-", Bottom: "-", Left: "|", Right: "|", TopLeft: "+", TopRight: "+", BottomLeft: "+", BottomRight: "+"},
 		}
 	}
 	return glyphSet{
 		player: "●", link: "─", dot: "·", arrow: "▷", track: "━", fill: "█", empty: "░",
-		proposed: "◉", reserved: "◆", confirmed: "✓", departed: "✓", ellipsis: "…",
-		separator: " · ", versus: " vs ", spinners: []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
+		proposed: "◉", reserved: "◆", confirmed: "✓", completed: "✓", ellipsis: "…",
+		separator: " · ", spinners: []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
 		border: lipgloss.RoundedBorder(),
 	}
 }
@@ -55,9 +54,14 @@ func (model *Model) render() string {
 	header := model.renderHeader(glyphs, width)
 	status := model.renderStatus(glyphs, width)
 	if height < 30 {
-		return model.renderCompact(glyphs, width, header, status)
+		return model.renderCompact(glyphs, width, height, header, status)
 	}
-	mainHeight := max(8, min(14, height-18))
+	footer := model.paint(
+		"[space] pause  [n] step  [+/-] speed  [u] unicode  [m] motion  [q] quit",
+		"#7f8c98",
+	)
+	panelHeight := height - lineCount(header) - lineCount(status) - lineCount(footer)
+	mainHeight, historyHeight, eventHeight := fullPanelHeights(panelHeight)
 
 	var main string
 	if width >= 96 {
@@ -65,46 +69,85 @@ func (model *Model) render() string {
 		rightWidth := width - leftWidth - 1
 		main = lipgloss.JoinHorizontal(
 			lipgloss.Top,
-			model.panel("WAITING POOL", model.waitingLines(glyphs, mainHeight-3), leftWidth, glyphs),
+			model.panel("WAITING POOL", model.waitingLines(glyphs, mainHeight-3), leftWidth, mainHeight, glyphs),
 			" ",
-			model.panel("MATCH LIFECYCLE", model.activeLines(glyphs, mainHeight-3), rightWidth, glyphs),
+			model.panel("MATCH LIFECYCLE", model.activeLines(glyphs, mainHeight-3), rightWidth, mainHeight, glyphs),
 		)
 	} else {
-		sectionHeight := max(6, mainHeight/2+2)
+		waitingHeight := max(4, mainHeight/3)
+		lifecycleHeight := mainHeight - waitingHeight
 		main = lipgloss.JoinVertical(
 			lipgloss.Left,
-			model.panel("WAITING POOL", model.waitingLines(glyphs, sectionHeight-3), width, glyphs),
-			model.panel("MATCH LIFECYCLE", model.activeLines(glyphs, sectionHeight-3), width, glyphs),
+			model.panel("WAITING POOL", model.waitingLines(glyphs, waitingHeight-3), width, waitingHeight, glyphs),
+			model.panel("MATCH LIFECYCLE", model.activeLines(glyphs, lifecycleHeight-3), width, lifecycleHeight, glyphs),
 		)
 	}
 
-	history := model.panel("DEPARTED MATCHES", model.historyLines(glyphs, 4), width, glyphs)
-	events := model.panel("EVENT STREAM", model.eventLines(glyphs, 5), width, glyphs)
-	footer := model.paint(
-		"[space] pause  [n] step  [+/-] speed  [u] unicode  [m] motion  [q] quit",
-		"#7f8c98",
+	history := model.panel(
+		"COMPLETED MATCHES",
+		model.historyLines(glyphs, historyHeight-3),
+		width,
+		historyHeight,
+		glyphs,
 	)
+	events := model.panel("EVENT STREAM", model.eventLines(glyphs, eventHeight-3), width, eventHeight, glyphs)
 	return strings.Join([]string{header, status, main, history, events, footer}, "\n")
 }
 
-func (model *Model) renderCompact(glyphs glyphSet, width int, header, status string) string {
-	flowLines := []string{model.paint("waiting", "#9ca3af")}
-	flowLines = append(flowLines, model.waitingLines(glyphs, 2)...)
-	flowLines = append(flowLines, model.paint("lifecycle", "#9ca3af"))
-	flowLines = append(flowLines, model.activeLines(glyphs, 4)...)
-	recentLines := model.historyLines(glyphs, 1)
-	recentLines = append(recentLines, model.eventLines(glyphs, 2)...)
+func (model *Model) renderCompact(glyphs glyphSet, width, height int, header, status string) string {
 	footer := "[space] pause  [n] step  [+/-] speed  [u] unicode  [m] motion  [q] quit"
 	if width < 72 {
 		footer = "space pause | n step | +/- speed | q quit"
 	}
+	available := height - lineCount(header) - lineCount(status) - 1
+	flowHeight, recentHeight := compactPanelHeights(available)
+	flowSlots := max(2, flowHeight-5)
+	waitingSlots := max(1, flowSlots/3)
+	lifecycleSlots := max(1, flowSlots-waitingSlots)
+	flowLines := []string{model.paint("waiting", "#9ca3af")}
+	flowLines = append(flowLines, model.waitingLines(glyphs, waitingSlots)...)
+	flowLines = append(flowLines, model.paint("lifecycle", "#9ca3af"))
+	flowLines = append(flowLines, model.activeLines(glyphs, lifecycleSlots)...)
+	recentSlots := max(2, recentHeight-3)
+	historySlots := max(1, recentSlots/2)
+	eventSlots := max(1, recentSlots-historySlots)
+	recentLines := model.historyLines(glyphs, historySlots)
+	recentLines = append(recentLines, model.eventLines(glyphs, eventSlots)...)
 	return strings.Join([]string{
 		header,
 		status,
-		model.panel("FLOW", flowLines, width, glyphs),
-		model.panel("RECENT", recentLines, width, glyphs),
+		model.panel("FLOW", flowLines, width, flowHeight, glyphs),
+		model.panel("RECENT", recentLines, width, recentHeight, glyphs),
 		model.paint(footer, "#7f8c98"),
 	}, "\n")
+}
+
+func fullPanelHeights(available int) (int, int, int) {
+	const (
+		minimumMain    = 8
+		minimumHistory = 5
+		minimumEvents  = 5
+	)
+	extra := max(0, available-minimumMain-minimumHistory-minimumEvents)
+	mainExtra := (extra + 1) / 2
+	remaining := extra - mainExtra
+	historyExtra := remaining / 2
+	eventExtra := remaining - historyExtra
+	return minimumMain + mainExtra, minimumHistory + historyExtra, minimumEvents + eventExtra
+}
+
+func compactPanelHeights(available int) (int, int) {
+	const (
+		minimumFlow   = 8
+		minimumRecent = 5
+	)
+	extra := max(0, available-minimumFlow-minimumRecent)
+	flowExtra := (extra * 2) / 3
+	return minimumFlow + flowExtra, minimumRecent + extra - flowExtra
+}
+
+func lineCount(value string) int {
+	return strings.Count(value, "\n") + 1
 }
 
 func (model *Model) renderHeader(glyphs glyphSet, width int) string {
@@ -125,52 +168,94 @@ func (model *Model) renderHeader(glyphs glyphSet, width int) string {
 		marker = glyphs.spinners[model.frame%len(glyphs.spinners)]
 	}
 	title := model.paint("SEMA FLOW", "#7dd3fc")
-	right := fmt.Sprintf("%s %s  seed %d  step %s", marker, state, model.options.Seed, model.options.StepInterval.Round(time.Millisecond))
+	speed := model.speedLabel()
+	right := fmt.Sprintf(
+		"%s %s  speed %s  seed %d  step %s",
+		marker,
+		state,
+		speed,
+		model.options.Seed,
+		model.options.StepInterval.Round(time.Millisecond),
+	)
 	right = model.paint(right, stateColor)
 	if lipgloss.Width(title)+1+lipgloss.Width(right) > width {
-		right = model.paint(marker+" "+state, stateColor)
+		right = model.paint(fmt.Sprintf("%s %s %s", marker, state, speed), stateColor)
 	}
 	padding := max(1, width-lipgloss.Width(title)-lipgloss.Width(right))
 	return title + strings.Repeat(" ", padding) + right
 }
 
+func (model *Model) speedLabel() string {
+	step := model.simulatedStep
+	if step <= 0 {
+		step = time.Second
+	}
+	multiplier := float64(step) / float64(model.options.StepInterval)
+	switch {
+	case multiplier >= 10:
+		return fmt.Sprintf("%.0f×", multiplier)
+	case multiplier >= 1:
+		return fmt.Sprintf("%.1f×", multiplier)
+	default:
+		return fmt.Sprintf("%.2f×", multiplier)
+	}
+}
+
 func (model *Model) renderStatus(glyphs glyphSet, width int) string {
-	waitingTickets, waitingPlayers := model.waitingCounts()
-	if width < 60 {
-		return fmt.Sprintf(
-			"cycle %d%sq %dt/%dp%sa %d%sout %d",
+	if width < 96 {
+		population := fmt.Sprintf(
+			"sim %s%sc %d%spop %d%sidle %d%sq %dt/%dp",
+			model.now.Format("15:04:05"),
+			glyphs.separator,
 			model.cycle,
 			glyphs.separator,
-			waitingTickets,
-			waitingPlayers,
+			model.population.Players,
 			glyphs.separator,
-			len(model.active),
+			model.idlePlayers,
 			glyphs.separator,
-			len(model.history),
+			model.queueTickets,
+			model.queuePlayers,
 		)
+		activity := fmt.Sprintf(
+			"games %d/%dp%scooldown %d%splayed %d",
+			model.activeMatches,
+			model.inGamePlayers,
+			glyphs.separator,
+			model.cooldownPlayers,
+			glyphs.separator,
+			model.population.GamesPlayed,
+		)
+		return population + "\n" + activity + "\n" + model.ratingLine(glyphs, width)
 	}
 	left := fmt.Sprintf(
-		"cycle %04d%sdemand %dt/%dp%sunbound %dt/%dp%sactive %d%sdeparted %d",
+		"sim %s%scycle %04d%spopulation %d%sidle %d%squeued %dt/%dp%sin-game %dm/%dp%scooldown %d%splayed %d",
+		model.now.Format("15:04:05"),
+		glyphs.separator,
 		model.cycle,
+		glyphs.separator,
+		model.population.Players,
+		glyphs.separator,
+		model.idlePlayers,
 		glyphs.separator,
 		model.queueTickets,
 		model.queuePlayers,
 		glyphs.separator,
-		waitingTickets,
-		waitingPlayers,
+		model.activeMatches,
+		model.inGamePlayers,
 		glyphs.separator,
-		len(model.active),
+		model.cooldownPlayers,
 		glyphs.separator,
-		len(model.history),
+		model.population.GamesPlayed,
 	)
-	if model.lastCandidatesMax == 0 || width < 88 {
-		if model.inFlight && model.working != "" {
-			working := left + glyphs.separator + model.working
-			if lipgloss.Width(working) <= width {
-				left = working
-			}
+	if model.inFlight && model.working != "" {
+		working := left + glyphs.separator + model.working
+		if lipgloss.Width(working) <= width {
+			left = working
 		}
-		return left
+	}
+	lines := []string{left, model.ratingLine(glyphs, width)}
+	if model.lastCandidatesMax == 0 || width < 88 {
+		return strings.Join(lines, "\n")
 	}
 	candidateBar := progressBar(model.lastCandidateTickets, model.lastCandidatesMax, 10, glyphs)
 	searchBar := progressBar(model.lastSearchNodes, model.lastSearchMax, 10, glyphs)
@@ -184,11 +269,32 @@ func (model *Model) renderStatus(glyphs glyphSet, width int) string {
 		model.lastSearchNodes,
 		model.lastSearchMax,
 	)
-	if lipgloss.Width(left)+1+lipgloss.Width(right) > width {
-		return left + "\n" + right
+	lines = append(lines, right)
+	return strings.Join(lines, "\n")
+}
+
+func (model *Model) ratingLine(glyphs glyphSet, width int) string {
+	stats := model.population
+	if stats.Players == 0 {
+		return "rating distribution unavailable"
 	}
-	padding := max(1, width-lipgloss.Width(left)-lipgloss.Width(right))
-	return left + strings.Repeat(" ", padding) + right
+	line := fmt.Sprintf(
+		"rating %d %s %d%sp10 %d%smedian %d%sp90 %d%smean %d%ssd %d",
+		stats.Minimum,
+		ratingHistogram(stats.Histogram, model.options.Unicode),
+		stats.Maximum,
+		glyphs.separator,
+		stats.Percentile10,
+		glyphs.separator,
+		stats.Median,
+		glyphs.separator,
+		stats.Percentile90,
+		glyphs.separator,
+		stats.Mean,
+		glyphs.separator,
+		stats.StdDev,
+	)
+	return ansi.Truncate(line, width, glyphs.ellipsis)
 }
 
 func (model *Model) waitingLines(glyphs glyphSet, limit int) []string {
@@ -207,7 +313,7 @@ func (model *Model) waitingLines(glyphs glyphSet, limit int) []string {
 			strings.Repeat(glyphs.dot, max(0, 6-ticket.position)) + glyphs.arrow
 		wait := max(time.Duration(0), model.now.Sub(ticket.ticket.EnqueuedAt)).Round(100 * time.Millisecond)
 		lines = append(lines, fmt.Sprintf(
-			"%-18s %-12s  wait %-5s  skill %-4d  %dms",
+			"%-16s %-11s %5s  r%-4d  %dms",
 			lane,
 			shortID(ticket.ticket.ID),
 			wait,
@@ -216,7 +322,7 @@ func (model *Model) waitingLines(glyphs glyphSet, limit int) []string {
 		))
 	}
 	if queued == 0 {
-		return []string{model.paint("no unbound tickets; arrivals continue", "#7f8c98")}
+		return []string{model.paint("waiting for scheduled arrivals or returning parties", "#7f8c98")}
 	}
 	if queued > len(lines) {
 		lines[len(lines)-1] = fmt.Sprintf("%s +%d more waiting tickets", glyphs.ellipsis, queued-len(lines)+1)
@@ -235,7 +341,12 @@ func (model *Model) activeLines(glyphs glyphSet, limit int) []string {
 		rendered++
 		icon, color := stageStyle(match.stage, glyphs)
 		motion := motionTrack(match.motion, 8, glyphs)
-		lines = append(lines, model.paint(fmt.Sprintf("%s %-8s %-10s %s", icon, matchLabel(identifier), strings.ToUpper(string(match.stage)), motion), color))
+		stage := strings.ToUpper(string(match.stage))
+		if match.stage == stagePlaying {
+			remaining := max(time.Duration(0), match.endsAt.Sub(model.now)).Round(time.Second)
+			stage += " " + remaining.String()
+		}
+		lines = append(lines, model.paint(fmt.Sprintf("%s %-8s %-15s %s", icon, matchLabel(identifier), stage, motion), color))
 		for teamIndex, team := range match.proposal.Teams {
 			lines = append(lines, fmt.Sprintf("  %c  %s", 'A'+rune(teamIndex), model.teamGlyph(team, match.partySizes)))
 		}
@@ -249,36 +360,34 @@ func (model *Model) activeLines(glyphs glyphSet, limit int) []string {
 		))
 	}
 	if len(lines) == 0 {
+		if len(model.active) > 0 {
+			return []string{fmt.Sprintf("%s %d active lifecycle matches", glyphs.ellipsis, len(model.active))}
+		}
 		return []string{model.paint("waiting for the next proposal batch", "#7f8c98")}
 	}
 	if hidden := len(model.activeOrder) - rendered; hidden > 0 {
-		lines[limit-1] = fmt.Sprintf("%s +%d more lifecycle matches", glyphs.ellipsis, hidden)
+		lines[len(lines)-1] = fmt.Sprintf("%s +%d more lifecycle matches", glyphs.ellipsis, hidden)
 	}
 	return lines
 }
 
 func (model *Model) historyLines(glyphs glyphSet, limit int) []string {
 	if len(model.history) == 0 {
-		return []string{model.paint("confirmed matches will depart through this lane", "#7f8c98")}
+		return []string{model.paint("completed game results will appear here", "#7f8c98")}
 	}
 	lines := make([]string, 0, min(limit, len(model.history)))
 	for _, match := range model.history[:min(limit, len(model.history))] {
-		teamSizes := make([]string, 0, len(match.proposal.Teams))
-		for _, team := range match.proposal.Teams {
-			players := 0
-			for _, reference := range team.Tickets {
-				players += match.partySizes[reference.ID]
-			}
-			teamSizes = append(teamSizes, fmt.Sprint(players))
-		}
+		winner := match.result.WinnerTeam + 1
 		lines = append(lines, model.paint(fmt.Sprintf(
-			"%s %-8s  %s  gap %-4d latency %-3dms  %s",
-			glyphs.departed,
+			"%s %-8s  team %d won  p %.0f%%  rating %d/%d  delta %+d/%+d",
+			glyphs.completed,
 			matchLabel(match.proposal.ID),
-			strings.Join(teamSizes, glyphs.versus),
-			match.proposal.Evidence.TeamSkillGap,
-			match.proposal.Evidence.MaxLatencyMillis,
-			motionTrack(8, 8, glyphs)+" departed",
+			winner,
+			match.result.WinnerProbability*100,
+			match.result.TeamRatingBefore[0],
+			match.result.TeamRatingBefore[1],
+			match.result.RatingDelta[0],
+			match.result.RatingDelta[1],
 		), "#57d38c"))
 	}
 	return lines
@@ -295,17 +404,23 @@ func (model *Model) eventLines(glyphs glyphSet, limit int) []string {
 	return append([]string(nil), model.logs[start:]...)
 }
 
-func (model *Model) panel(title string, lines []string, width int, glyphs glyphSet) string {
+func (model *Model) panel(title string, lines []string, width, height int, glyphs glyphSet) string {
 	contentWidth := max(10, width-4)
+	boxWidth := max(12, width-2)
+	bodyHeight := max(0, height-3)
+	fitted := make([]string, 0, bodyHeight)
+	for _, line := range lines[:min(len(lines), bodyHeight)] {
+		fitted = append(fitted, ansi.Truncate(line, contentWidth, glyphs.ellipsis))
+	}
+	for len(fitted) < bodyHeight {
+		fitted = append(fitted, " ")
+	}
 	title = model.paint(title, "#9ca3af")
-	for index := range lines {
-		lines[index] = ansi.Truncate(lines[index], contentWidth, glyphs.ellipsis)
-	}
 	content := title
-	if len(lines) > 0 {
-		content += "\n" + strings.Join(lines, "\n")
+	if len(fitted) > 0 {
+		content += "\n" + strings.Join(fitted, "\n")
 	}
-	style := lipgloss.NewStyle().Border(glyphs.border, true).Padding(0, 1).Width(contentWidth)
+	style := lipgloss.NewStyle().Border(glyphs.border, true).Padding(0, 1).Width(boxWidth)
 	if model.options.Color {
 		style = style.BorderForeground(lipgloss.Color("#44515c"))
 	}
@@ -343,18 +458,6 @@ func progressBar(value, maximum, width int, glyphs glyphSet) string {
 	return "[" + strings.Repeat(glyphs.fill, filled) + strings.Repeat(glyphs.empty, width-filled) + "]"
 }
 
-func (model *Model) waitingCounts() (int, int) {
-	tickets := 0
-	players := 0
-	for _, ticket := range model.tickets {
-		if ticket.state == ticketQueued {
-			tickets++
-			players += len(ticket.ticket.Players)
-		}
-	}
-	return tickets, players
-}
-
 func motionTrack(value, maximum int, glyphs glyphSet) string {
 	value = min(maximum, max(0, value))
 	return strings.Repeat(glyphs.track, value) + glyphs.arrow + strings.Repeat(glyphs.dot, maximum-value)
@@ -364,11 +467,35 @@ func stageStyle(stage matchStage, glyphs glyphSet) (string, string) {
 	switch stage {
 	case stageReserved:
 		return glyphs.reserved, "#c084fc"
-	case stageConfirmed:
-		return glyphs.confirmed, "#57d38c"
+	case stagePlaying:
+		return glyphs.confirmed, "#f0c36e"
 	default:
 		return glyphs.proposed, "#67e8f9"
 	}
+}
+
+func ratingHistogram(histogram [9]int, unicode bool) string {
+	maximum := 0
+	for _, value := range histogram {
+		maximum = max(maximum, value)
+	}
+	if maximum == 0 {
+		return "........."
+	}
+	levels := []rune(".:-=+*#%@")
+	if unicode {
+		levels = []rune("·▁▂▃▄▅▆▇█")
+	}
+	result := make([]rune, len(histogram))
+	for index, value := range histogram {
+		if value == 0 {
+			result[index] = levels[0]
+			continue
+		}
+		level := max(1, (value*(len(levels)-1)+maximum-1)/maximum)
+		result[index] = levels[min(level, len(levels)-1)]
+	}
+	return string(result)
 }
 
 func averageSkill(ticket api.MatchTicket) int {

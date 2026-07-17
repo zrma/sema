@@ -18,16 +18,22 @@ import (
 var version = "dev"
 
 type config struct {
-	seed            int64
-	interval        time.Duration
-	matchesPerCycle int
-	snapshot        bool
-	steps           int
-	width           int
-	height          int
-	ascii           bool
-	noColor         bool
-	reducedMotion   bool
+	seed             int64
+	interval         time.Duration
+	population       int
+	matchesPerCycle  int
+	concurrent       int
+	gameDuration     time.Duration
+	arrivalInterval  time.Duration
+	planningInterval time.Duration
+	maxReturnDelay   time.Duration
+	snapshot         bool
+	steps            int
+	width            int
+	height           int
+	ascii            bool
+	noColor          bool
+	reducedMotion    bool
 }
 
 func main() {
@@ -46,7 +52,13 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 
 	flowConfiguration := flow.DefaultConfig()
 	flowConfiguration.Seed = configuration.seed
+	flowConfiguration.PopulationSize = configuration.population
 	flowConfiguration.MatchesPerCycle = configuration.matchesPerCycle
+	flowConfiguration.MaxConcurrentMatches = configuration.concurrent
+	flowConfiguration.GameDuration = configuration.gameDuration
+	flowConfiguration.ArrivalInterval = configuration.arrivalInterval
+	flowConfiguration.PlanningInterval = configuration.planningInterval
+	flowConfiguration.MaxReturnDelay = configuration.maxReturnDelay
 	simulator, err := flow.Open(flowConfiguration)
 	if err != nil {
 		fmt.Fprintf(stderr, "sema-tui: open flow simulator: %v\n", err)
@@ -102,9 +114,15 @@ func parseConfig(args []string, stderr io.Writer) (config, bool, error) {
 	flags.SetOutput(stderr)
 	flags.Int64Var(&configuration.seed, "seed", 42, "deterministic workload seed")
 	flags.DurationVar(&configuration.interval, "interval", 220*time.Millisecond, "lifecycle step interval")
+	flags.IntVar(&configuration.population, "population", 1000, "closed player population")
 	flags.IntVar(&configuration.matchesPerCycle, "matches-per-cycle", 2, "5v5 proposals targeted per planning cycle")
+	flags.IntVar(&configuration.concurrent, "concurrent-matches", 8, "maximum reserved or running matches")
+	flags.DurationVar(&configuration.gameDuration, "game-duration", 45*time.Second, "simulated duration of every match")
+	flags.DurationVar(&configuration.arrivalInterval, "arrival-interval", time.Second, "interval between initial party arrivals")
+	flags.DurationVar(&configuration.planningInterval, "planning-interval", 5*time.Second, "minimum interval between planning cycles")
+	flags.DurationVar(&configuration.maxReturnDelay, "max-return-delay", 30*time.Second, "maximum delay before a completed party returns")
 	flags.BoolVar(&configuration.snapshot, "snapshot", false, "render a deterministic non-interactive frame")
-	flags.IntVar(&configuration.steps, "steps", 34, "lifecycle operations executed before snapshot rendering")
+	flags.IntVar(&configuration.steps, "steps", 100, "lifecycle operations executed before snapshot rendering")
 	flags.IntVar(&configuration.width, "width", 120, "initial or snapshot width")
 	flags.IntVar(&configuration.height, "height", 38, "initial or snapshot height")
 	flags.BoolVar(&configuration.ascii, "ascii", false, "use the ASCII compatibility glyph set")
@@ -123,7 +141,10 @@ func parseConfig(args []string, stderr io.Writer) (config, bool, error) {
 		return config{}, false, fmt.Errorf("unexpected positional arguments")
 	}
 	if configuration.seed < 0 || configuration.interval < 50*time.Millisecond || configuration.interval > 2*time.Second ||
-		configuration.matchesPerCycle <= 0 || configuration.matchesPerCycle > 8 || configuration.steps <= 0 ||
+		configuration.population < 10 || configuration.matchesPerCycle <= 0 || configuration.matchesPerCycle > 8 ||
+		configuration.concurrent < configuration.matchesPerCycle || configuration.concurrent > configuration.population/10 ||
+		configuration.gameDuration <= 0 || configuration.arrivalInterval <= 0 || configuration.planningInterval <= 0 ||
+		configuration.maxReturnDelay < time.Second || configuration.steps <= 0 ||
 		configuration.width < 40 || configuration.height < 18 {
 		fmt.Fprintln(stderr, "sema-tui: seed, interval, workload size, steps, width, or height is outside the supported range")
 		return config{}, false, fmt.Errorf("invalid flow configuration")

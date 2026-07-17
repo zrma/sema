@@ -42,8 +42,10 @@
 - `Dockerfile`과 loopback-only Compose example이 non-root/read-only/capability-free single-writer deployment를 제공하고 operations runbook이 offline backup/restore를 고정한다.
 - reference container profile이 repeated service latency/recovery와 planner/engine/replay allocation budget을 검증하고 CI가 redacted aggregate history를 보존한다.
 - release admission은 v0 alpha만 허용하며 stable API/transport/consumer evidence 전에는 v1 tag를 차단한다.
-- `cmd/sema-tui`가 실제 loopback HTTP lifecycle 위에서 mixed-party ticket 유입, proposal/reservation/confirmation과 departure를 Unicode animation으로 보여준다.
+- `cmd/sema-tui`가 실제 loopback HTTP lifecycle 위에서 empty queue로 시작하는 mixed-party arrival, proposal/reservation, concurrent game과 completion을 Unicode animation으로 보여준다.
 - Flow snapshot과 ASCII/reduced-motion fallback이 terminal-independent self-check를 제공하며 demo timing은 production scheduler authority가 아니다.
+- 기본 1,000명 closed population registry가 fixed party로 순차 유입되고 45초 game을 반복하며 hidden true skill 기반 승패 뒤 visible Elo rating을 갱신한다.
+- completed party는 분산 cooldown 뒤 증가한 revision과 새 rating을 가진 동일 ticket으로 실제 HTTP 복귀하고 TUI는 lifecycle population, rating 분포와 최근 result를 표시한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
 - `alpha` 외 Go package는 `internal/`에 유지하며 stable API와 wire compatibility는 아직 제공하지 않는다.
@@ -52,7 +54,7 @@
 
 ## Current Work
 
-P0 foundation부터 P11 interactive flow visualization까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 별도 consumer process만 HTTP로 분리했다. 다음 milestone은 실제 consumer/target input이 생길 때 열며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P12 closed-loop population simulation까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result model은 synthetic reference workload로만 둔다. 다음 milestone은 실제 evaluation metric이나 consumer/target input이 생길 때 열며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

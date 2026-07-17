@@ -97,3 +97,13 @@
 - [x] pause, single-step, speed와 reduced-motion control
 - [x] ASCII compatibility glyph와 deterministic snapshot mode
 - [x] renderer width, lifecycle ordering과 command smoke gate
+
+## P12: Closed-Loop Population Simulation
+
+- [x] stable identity를 가진 기본 1,000명 mixed-party population
+- [x] empty queue에서 시작하는 sequential arrival과 concurrent match flow
+- [x] visible rating과 seeded hidden true skill 분리
+- [x] fixed-duration 5v5 game과 probabilistic result
+- [x] zero-sum Elo update와 분산 cooldown 뒤 revised party ticket return
+- [x] rating range/histogram, idle/queue/in-game/cooldown과 completed result TUI
+- [x] deterministic population, HTTP lifecycle와 terminal snapshot gate

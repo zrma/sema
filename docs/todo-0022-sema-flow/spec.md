@@ -2,6 +2,8 @@
 
 - Status: Complete
 
+P12는 P11의 무한 synthetic producer를 identity/rating을 보존하는 closed population registry와 result/cooldown/return loop로 대체한다. queue는 비어 있는 상태에서 시작해 registry의 party가 순차 유입된다. 이 문서는 renderer와 HTTP lifecycle을 처음 도입한 milestone evidence를 보존한다.
+
 ## Objective
 
 실제 Sema HTTP lifecycle을 deterministic mixed-party workload로 실행하고 ticket 유입, proposal formation, reservation, confirmation과 departure를 Unicode terminal animation으로 설명한다.
