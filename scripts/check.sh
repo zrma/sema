@@ -8,6 +8,10 @@ for required_file in \
   LICENSE \
   README.md \
   AGENTS.md \
+  .github/workflows/release.yml \
+  alpha/compose.go \
+  alpha/types.go \
+  examples/compose/main.go \
   docs/agent-harness.md \
   docs/HANDOFF.md \
   docs/status.md \
@@ -21,6 +25,9 @@ for required_file in \
   docs/workload-evaluation.md \
   docs/evaluation-baseline.md \
   docs/candidate-discovery.md \
+  docs/public-api.md \
+  docs/api-compatibility.md \
+  docs/releasing.md \
   docs/policy-simulation.md \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
@@ -31,6 +38,7 @@ for required_file in \
   docs/decisions/0006-product-development-sequence.md \
   docs/decisions/0007-evaluation-calibration-baseline.md \
   docs/decisions/0008-candidate-window-baseline.md \
+  docs/decisions/0009-alpha-integration-release-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -48,6 +56,9 @@ for required_file in \
   docs/todo-0012-sema-lab/spec.md \
   docs/todo-0013-workload-evaluation/spec.md \
   docs/todo-0014-candidate-discovery/spec.md \
+  docs/todo-0015-public-integration/spec.md \
+  scripts/build-release.sh \
+  scripts/check-release-build.sh \
   go.mod; do
   [ -s "$required_file" ] || {
     printf 'repository check failed: missing or empty %s\n' "$required_file" >&2
@@ -83,6 +94,13 @@ git check-ignore -q .env || {
   exit 1
 }
 
+if grep -R -n -F '"github.com/zrma/sema/internal/' examples; then
+  printf 'repository check failed: public examples must not import internal packages\n' >&2
+  exit 1
+fi
+
+sh -n scripts/build-release.sh scripts/check-release-build.sh
+
 unformatted=$(find . -type f -name '*.go' -not -path './vendor/*' -exec gofmt -l {} +)
 if [ -n "$unformatted" ]; then
   printf 'repository check failed: unformatted Go files\n%s\n' "$unformatted" >&2
@@ -97,6 +115,8 @@ go run ./cmd/sema-lab -list >/dev/null
 go run ./cmd/sema-lab team-2v2-mixed >/dev/null
 go run ./cmd/sema-lab -format json battle-royale-duo >/dev/null
 go run ./cmd/sema-lab -format json diagnostic-bounded-quality-gap diagnostic-candidate-window-gap synthetic-5v5-seeded-queue >/dev/null
+go run ./examples/compose >/dev/null
+scripts/check-release-build.sh
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x
 go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x
 

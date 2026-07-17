@@ -150,3 +150,7 @@ explicit seed와 weighted party/skill/role/latency/wait parameter는 같은 synt
 ## S23: Candidate Window And Large Queue
 
 zero `MaxCandidateTickets`는 unbounded result를 유지하고 positive limit은 canonical queue에서 oldest fitting ticket만 exact placement search에 전달한다. 10K solo queue는 256-ticket window로 exact 5:5 proposal, full unmatched accounting과 truncation evidence를 만든다. 10K/100K benchmark gate는 unbounded/window path를 모두 실행한다. candidate-window diagnostic은 oldest quality gap 1000과 oracle gap 0을 함께 기록하고 fuzz target은 input order/immutability, capacity, disjoint와 ticket coverage invariant를 검증한다.
+
+## S24: Public Alpha Consumer And Release Build
+
+external test package가 `alpha.Compose`만 import해 같은 snapshot의 순서를 뒤집어도 동일한 disjoint multi-match batch를 얻고 invalid input을 typed alpha error로 읽는다. `examples/compose`는 direct `internal/` import 없이 실행된다. host `sema-lab` artifact는 explicit version을 출력하고 생성된 `SHA256SUMS` 검증을 통과한다. 실제 tag, release와 remote push는 이 local scenario의 범위 밖이다.

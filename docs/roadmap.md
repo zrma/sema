@@ -70,10 +70,10 @@
 
 ## P8: Public Integration Contract
 
-- [ ] 실제 reference consumer와 integration example
-- [ ] 최소 `v0alpha` public Go API 또는 versioned schema
-- [ ] compatibility and migration policy
-- [ ] distribution and release workflow
+- [x] repository-owned reference consumer와 integration example
+- [x] 최소 `v0alpha1` public Go composition API
+- [x] compatibility and migration policy
+- [x] distribution build와 release workflow baseline
 
 ## P9: Production Runtime
 

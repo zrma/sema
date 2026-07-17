@@ -11,6 +11,10 @@ lab_guide: docs/sema-lab.md
 workload_evaluation: docs/workload-evaluation.md
 evaluation_baseline: docs/evaluation-baseline.md
 candidate_discovery: docs/candidate-discovery.md
+public_api: alpha
+public_api_guide: docs/public-api.md
+api_compatibility: docs/api-compatibility.md
+releasing: docs/releasing.md
 domain_model: docs/domain-model.md
 lifecycle: docs/lifecycle.md
 reference_scenarios: docs/reference-scenarios.md
@@ -24,6 +28,7 @@ integration_publication_decision: docs/decisions/0005-integration-publication-ba
 development_sequence_decision: docs/decisions/0006-product-development-sequence.md
 evaluation_calibration_decision: docs/decisions/0007-evaluation-calibration-baseline.md
 candidate_window_decision: docs/decisions/0008-candidate-window-baseline.md
+alpha_integration_decision: docs/decisions/0009-alpha-integration-release-baseline.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -37,6 +42,9 @@ checks:
   lab_test: go test ./internal/lab ./cmd/sema-lab
   evaluation_test: go test ./internal/evaluation
   discovery_test: go test ./internal/discovery
+  alpha_test: go test ./alpha
+  example_consumer: go run ./examples/compose
+  release_build: scripts/check-release-build.sh
   planner_large_benchmark: go test ./internal/planner -run ^$ -bench ^BenchmarkPlanLargeQueues$ -benchtime=1x -count=1
   lab_smoke: go run ./cmd/sema-lab
   harness: scripts/check-agent-harness-interface.sh

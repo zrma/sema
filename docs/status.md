@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P7 deterministic evaluation과 scalable candidate discovery baseline이 완료되었다. 현재는 P8 public integration contract를 준비하며 실제 consumer가 생길 때 production-facing boundary와 compatibility를 재평가한다.
+P0부터 P8 public alpha integration과 distribution baseline까지 완료되었다. 현재는 P9 production runtime에서 durable state, restart recovery와 delivery contract를 설계한다.
 
 ## Established
 
@@ -35,7 +35,10 @@ P0부터 P7 deterministic evaluation과 scalable candidate discovery baseline이
 - explicit registration, defensive read와 version conflict를 제공하는 process-local policy catalog.
 - side-effect-free multi-policy simulation과 canonical coverage/quality summary.
 - public repository identity `github.com/zrma/sema`와 Apache-2.0 source license.
-- public source이지만 Go package는 `internal/`에 유지하고 public API compatibility는 아직 약속하지 않는 경계.
+- `github.com/zrma/sema/alpha`의 side-effect-free `Compose`와 explicit public/internal conversion boundary.
+- `internal/`을 직접 import하지 않는 repository-owned `examples/compose` reference consumer.
+- `v0alpha1` compatibility/migration policy와 stable API 진입 gate.
+- versioned `sema-lab` cross-build/checksum script와 verified-tag GitHub Release workflow.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
@@ -52,8 +55,8 @@ P0부터 P7 deterministic evaluation과 scalable candidate discovery baseline이
 - production-calibrated arrival sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index와 full unmatched output pagination.
 - reservation/assignment persistence와 distributed coordination.
-- API/server entrypoint, observability, deployment.
-- import 가능한 public Go SDK와 compatibility/migration policy.
+- ticket/session ingestion server, durable state, observability와 deployment.
+- stable/v1 Go API, production wire protocol과 실제 external consumer evidence.
 
 ## Risks And Decisions Pending
 
@@ -65,4 +68,4 @@ P0부터 P7 deterministic evaluation과 scalable candidate discovery baseline이
 
 ## Next Slice
 
-same-process, producer replay, synchronous acknowledgment와 single-replica baseline을 유지한다. 다음 slice는 P8 실제 reference consumer와 최소 `v0alpha` integration contract다. 외부 consumer가 아직 없으면 먼저 repository-owned example consumer로 package/CLI boundary를 검증하되 stable compatibility나 service transport는 약속하지 않는다.
+public alpha는 immutable composition에만 유지하고 coordinator lifecycle을 확장하지 않는다. 다음 slice는 P9 single-replica durable runtime이다. ticket/session ingestion, reservation/assignment 복구와 retry/audit source of truth를 먼저 고정한 뒤에만 process 분리와 horizontal coordination을 재평가한다.

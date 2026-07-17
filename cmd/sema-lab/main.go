@@ -11,6 +11,8 @@ import (
 	"github.com/zrma/sema/internal/lab"
 )
 
+var version = "dev"
+
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
@@ -20,6 +22,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	flags.SetOutput(stderr)
 	format := flags.String("format", "text", "output format: text or json")
 	list := flags.Bool("list", false, "list built-in workloads")
+	showVersion := flags.Bool("version", false, "print version")
 	details := flags.Bool("details", false, "include proposal and team placement in text output")
 	flags.Usage = func() {
 		fmt.Fprintln(stderr, "usage: sema-lab [flags] [workload ...]")
@@ -27,6 +30,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	if err := flags.Parse(args); err != nil {
 		return 2
+	}
+	if *showVersion {
+		if _, err := fmt.Fprintf(stdout, "sema-lab %s\n", version); err != nil {
+			fmt.Fprintf(stderr, "sema-lab: %v\n", err)
+			return 1
+		}
+		return 0
 	}
 
 	if *list {

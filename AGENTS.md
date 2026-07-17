@@ -6,7 +6,7 @@
 
 - 공통 하네스 인터페이스와 Sema overlay: `docs/agent-harness.md`.
 - 현재 상태와 방향: `docs/HANDOFF.md`, `docs/status.md`, `docs/roadmap.md`.
-- architecture, workload, 현재 작업: `docs/architecture.md`, `docs/reference-workloads.md`, 활성 `docs/todo-*/spec.md`.
+- architecture, public API, 현재 작업: `docs/architecture.md`, `docs/public-api.md`, 활성 `docs/todo-*/spec.md`.
 
 <!-- agent-harness-baseline:start -->
 ## Agent Harness Baseline (GPT-5.6)
@@ -39,3 +39,5 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - 장기 milestone 순서는 ADR 0006을 따르며 현재 executable evidence는 `cmd/sema-lab`에서 확인한다.
 - P6 quality 비교는 `docs/workload-evaluation.md`의 coverage/fairness metric과 bounded oracle 한계를 지킨다.
 - P7 candidate window는 opt-in approximation이며 discovery truncation과 quality gap evidence를 숨기지 않는다.
+- public surface는 `alpha.Compose`의 side-effect-free composition으로 제한하고 internal type alias나 coordinator lifecycle을 노출하지 않는다.
+- release automation은 publication 승인과 local private-inventory gate를 대체하지 않는다.

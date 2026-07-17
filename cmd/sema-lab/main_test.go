@@ -23,6 +23,16 @@ func TestRunListsCanonicalWorkloads(t *testing.T) {
 	}
 }
 
+func TestRunPrintsVersion(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if exitCode := run([]string{"-version"}, &stdout, &stderr); exitCode != 0 {
+		t.Fatalf("exit code = %d, stderr = %q", exitCode, stderr.String())
+	}
+	if stdout.String() != "sema-lab dev\n" {
+		t.Fatalf("version output = %q", stdout.String())
+	}
+}
+
 func TestRunWritesDeterministicTextAndDetails(t *testing.T) {
 	args := []string{"-details", "team-2v2-mixed"}
 	var first, second, stderr bytes.Buffer

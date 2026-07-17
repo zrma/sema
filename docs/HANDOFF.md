@@ -30,15 +30,18 @@
 - `cmd/sema-lab`이 2:2부터 50:50, 100-player battle royale, backfill/no-match와 objective fixture를 실행하고 ticket/player coverage 및 search evidence를 출력한다.
 - P6 evaluation이 seeded synthetic snapshot, coverage basis points, oldest unmatched wait와 12-ticket exhaustive new-match oracle를 제공한다.
 - P7 discovery가 versioned oldest-fitting ticket window, 10K correctness, 10K/100K manual benchmark와 fuzz invariant를 제공한다.
+- public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
+- `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
+- alpha compatibility/migration gate와 versioned `sema-lab` binary/checksum release workflow가 준비되어 있다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
-- Go package는 `internal/`에 유지하며 public API와 compatibility guarantee는 아직 제공하지 않는다.
+- `alpha` 외 Go package는 `internal/`에 유지하며 stable API와 wire compatibility는 아직 제공하지 않는다.
 - numeric SLO, skill metric, role schema, production persistence는 아직 결정하지 않았다.
 - publication class는 `public`이며 push 전 repository gate와 machine-local inventory gate를 모두 통과한다.
 
 ## Current Work
 
-P0 foundation부터 P7 scalable candidate discovery까지 완료되었다. ADR 0006의 engine-first 순서에 따라 다음 repo-owned 작업은 P8 reference consumer와 최소 `v0alpha` integration contract다. production consumer 또는 수치 SLO가 생기기 전에는 protocol, database나 stable SDK compatibility를 추가하지 않는다.
+P0 foundation부터 P8 public alpha integration까지 완료되었다. ADR 0006의 engine-first 순서에 따라 다음 repo-owned 작업은 P9 single-replica durable runtime이다. 먼저 ingestion, restart recovery, retry와 audit authority를 고정하고, process 분리와 horizontal coordination은 failure evidence가 생긴 뒤 재평가한다.
 
 ## Completion Rule
 

@@ -47,6 +47,7 @@ flowchart LR
 - `coordinator`만 reservation과 assignment 상태를 변경하고 revision을 compare-and-swap으로 검증한다.
 - coordinator는 active match ticket의 player ownership index를 함께 갱신해 한 player가 둘 이상의 active ticket에 속하지 않게 한다.
 - `adapters`는 API, queue, database, telemetry를 연결하지만 domain decision을 소유하지 않는다.
+- public `alpha` package는 immutable composition input/output을 internal model과 명시적으로 변환하고 planner만 호출한다. coordinator lifecycle과 internal type은 노출하지 않는다.
 
 ## Invariants
 
@@ -67,6 +68,7 @@ flowchart LR
 - 프로세스 내부 상태가 실행 중 source of truth다.
 - 프로세스 재시작은 모든 미확정 reservation을 폐기하며 producer가 active ticket과 session snapshot을 다시 제출한다.
 - 첫 integration은 same-process `internal/engine` direct call이며 idempotency scope와 assignment read model은 process lifetime에 한정된다.
+- 외부 import baseline은 `alpha.Compose`의 side-effect-free composition에 한정되며 JSON tag는 production wire contract가 아니다.
 - durable recovery가 요구되면 persistence milestone에서 reservation/assignment store와 delivery contract를 별도로 설계한다.
 
 ## Failure Model
@@ -79,7 +81,7 @@ flowchart LR
 ## Initial Non-goals
 
 - planner와 coordinator를 별도 process로 배포하지 않는다.
-- P0에서 durable persistence와 process restart recovery를 제공하지 않는다.
+- P8까지 durable persistence와 process restart recovery를 제공하지 않는다.
 - allocation server hosting, game server lifecycle, identity/auth 전체를 소유하지 않는다.
 - 모든 게임에 공통인 단일 quality formula를 제공하지 않는다.
 - 처음부터 global optimum을 보장하지 않는다. budget과 approximation contract를 명시한다.
