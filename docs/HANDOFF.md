@@ -39,6 +39,7 @@
 - HTTP server clock과 durable proposal ID lookup이 TTL manipulation과 forged placement를 service boundary에서 차단한다.
 - `/metrics`, W3C request trace, liveness/readiness와 redacted paged audit가 bounded operational evidence를 제공한다.
 - `cmd/sema-ops-check`가 실제 HTTP lifecycle 부하, 완료 assignment restart replay와 incomplete journal tail 복구를 격리된 임시 runtime에서 검증한다.
+- `Dockerfile`과 loopback-only Compose example이 non-root/read-only/capability-free single-writer deployment를 제공하고 operations runbook이 offline backup/restore를 고정한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
 - `alpha` 외 Go package는 `internal/`에 유지하며 stable API와 wire compatibility는 아직 제공하지 않는다.
@@ -47,7 +48,7 @@
 
 ## Current Work
 
-P0 foundation부터 P9 service와 P10 operational validation slice까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 별도 consumer process만 HTTP로 분리했다. 다음 repo-owned 작업은 container/deployment example과 operations runbook이며, 이후 repeated numeric gate로 확장한다.
+P0 foundation부터 P9 service와 P10 container operations slice까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 별도 consumer process만 HTTP로 분리했다. 다음 repo-owned 작업은 repeated numeric target-profile gate와 stable release admission이다.
 
 ## Completion Rule
 

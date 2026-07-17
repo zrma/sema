@@ -216,3 +216,5 @@ dist/
 *.journal
 /sema-lab
 /sema-server
+/sema-healthcheck
+/sema-ops-check

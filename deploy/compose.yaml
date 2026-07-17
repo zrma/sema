@@ -1,0 +1,31 @@
+services:
+  sema:
+    build:
+      context: ..
+      args:
+        VERSION: dev
+    image: sema:local
+    command:
+      - -listen
+      - 0.0.0.0:8080
+      - -journal
+      - /var/lib/sema/sema.journal
+      - -reservation-ttl
+      - 30s
+      - -allow-unauthenticated-remote
+    ports:
+      - 127.0.0.1:8080:8080
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    volumes:
+      - sema-data:/var/lib/sema
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+    restart: unless-stopped
+
+volumes:
+  sema-data: {}

@@ -1,0 +1,17 @@
+.git
+.jj
+.env
+.env.*
+.direnv
+.idea
+.vscode
+.local
+bin
+dist
+tmp
+var
+*.journal
+*.prof
+*.trace
+*.test
+coverage.out

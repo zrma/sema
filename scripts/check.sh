@@ -8,11 +8,15 @@ for required_file in \
   LICENSE \
   README.md \
   AGENTS.md \
+  Dockerfile \
+  .dockerignore \
   .github/workflows/release.yml \
   alpha/compose.go \
   alpha/types.go \
   cmd/sema-server/main.go \
+  cmd/sema-healthcheck/main.go \
   cmd/sema-ops-check/main.go \
+  deploy/compose.yaml \
   examples/compose/main.go \
   internal/api/v0alpha1/types.go \
   internal/httpapi/handler.go \
@@ -38,6 +42,7 @@ for required_file in \
   docs/service-api.md \
   docs/observability.md \
   docs/operational-validation.md \
+  docs/operations-runbook.md \
   docs/policy-simulation.md \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
@@ -53,6 +58,7 @@ for required_file in \
   docs/decisions/0011-http-service-baseline.md \
   docs/decisions/0012-observability-redaction-baseline.md \
   docs/decisions/0013-operational-validation-baseline.md \
+  docs/decisions/0014-container-deployment-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -75,7 +81,9 @@ for required_file in \
   docs/todo-0017-http-service/spec.md \
   docs/todo-0018-observability/spec.md \
   docs/todo-0019-operational-validation/spec.md \
+  docs/todo-0020-container-operations/spec.md \
   scripts/build-release.sh \
+  scripts/check-container.sh \
   scripts/check-release-build.sh \
   go.mod; do
   [ -s "$required_file" ] || {
@@ -117,7 +125,17 @@ if grep -R -n -F '"github.com/zrma/sema/internal/' examples; then
   exit 1
 fi
 
-sh -n scripts/build-release.sh scripts/check-release-build.sh
+sh -n scripts/build-release.sh scripts/check-container.sh scripts/check-release-build.sh
+
+grep -Eq '^FROM golang:[^ ]+@sha256:[0-9a-f]{64} AS build$' Dockerfile || {
+  printf 'repository check failed: container builder must use an exact digest\n' >&2
+  exit 1
+}
+
+grep -Fq '127.0.0.1:8080:8080' deploy/compose.yaml || {
+  printf 'repository check failed: unauthenticated deployment must bind host loopback\n' >&2
+  exit 1
+}
 
 unformatted=$(find . -type f -name '*.go' -not -path './vendor/*' -exec gofmt -l {} +)
 if [ -n "$unformatted" ]; then
@@ -135,6 +153,7 @@ go run ./cmd/sema-lab -format json battle-royale-duo >/dev/null
 go run ./cmd/sema-lab -format json diagnostic-bounded-quality-gap diagnostic-candidate-window-gap synthetic-5v5-seeded-queue >/dev/null
 go run ./examples/compose >/dev/null
 go run ./cmd/sema-server -version >/dev/null
+go run ./cmd/sema-healthcheck -version >/dev/null
 go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null
 scripts/check-release-build.sh
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x

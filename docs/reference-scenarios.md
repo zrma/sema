@@ -170,3 +170,7 @@ concrete ticket/player ID가 포함된 ingestion 뒤 liveness/readiness, metrics
 ## S28: Service Load And Failure Recovery
 
 격리된 single-writer runtime에 실제 HTTP로 2x5 solo workload를 여러 cycle 제출한다. 매 cycle의 모든 ticket은 disjoint proposal, reservation, pending assignment와 completed acknowledgment를 거치며 report는 aggregate operation/audit count와 latency distribution만 노출한다. server를 중지한 뒤 같은 journal을 다시 열면 모든 completed assignment와 audit sequence가 복구되어야 한다. 마지막으로 newline 없는 incomplete record를 append해 disk write interruption을 모사하고 재시작하면 complete prefix만 보존한 채 tail을 제거해야 한다. quick repository gate는 한 cycle을 실행하고 장시간 soak는 같은 command의 cycle 수만 늘리며, 측정값 자체는 아직 제품 SLO가 아니다.
+
+## S29: Hardened Container Restart
+
+pinned multi-stage image는 server, readiness probe와 operational validator를 static binary로 포함하고 numeric non-root identity로 실행한다. in-image validator가 full lifecycle/recovery를 통과해야 한다. service container는 read-only root, bounded tmpfs, zero capabilities와 persistent journal volume으로 시작하고 ready 상태가 된 뒤 graceful stop/start를 거쳐 다시 ready가 되어야 한다. Compose example은 unauthenticated service port를 host loopback에만 publish하고 replica 1을 유지한다.

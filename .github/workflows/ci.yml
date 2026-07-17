@@ -17,3 +17,9 @@ jobs:
           go-version-file: go.mod
           cache: false
       - run: scripts/check.sh
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: scripts/check-container.sh

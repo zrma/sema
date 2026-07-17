@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P9 versioned single-writer service runtime과 P10 observability/load/failure validation까지 완료되었다. 현재는 deployment/runbook과 measured production gate를 진행한다.
+P0부터 P9 versioned single-writer service runtime과 P10 observability/load/failure/container operations까지 완료되었다. 현재는 repeated numeric target-profile gate와 stable release admission을 진행한다.
 
 ## Established
 
@@ -48,6 +48,7 @@ P0부터 P9 versioned single-writer service runtime과 P10 observability/load/fa
 - low-cardinality Prometheus metrics, W3C request trace와 liveness/readiness endpoint.
 - raw payload를 제외한 paged durable decision audit summary.
 - 실제 HTTP lifecycle 부하, process restart와 incomplete journal tail 복구를 묶은 격리형 operational validator.
+- pinned non-root `scratch` image, host-loopback Compose example과 single-writer operations runbook.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
@@ -77,4 +78,4 @@ P0부터 P9 versioned single-writer service runtime과 P10 observability/load/fa
 
 ## Next Slice
 
-public alpha와 service `v0alpha1`은 experimental 경계를 유지한다. 다음 slice는 P10 container/deployment example과 operations runbook이다. 그 운영 경계 위에서 반복 측정과 numeric release validation budget을 고정한다.
+public alpha와 service `v0alpha1`은 experimental 경계를 유지한다. 다음 slice는 container target profile의 repeated latency/replay/allocation budget과 stable release admission gate다.
