@@ -5,7 +5,7 @@ package alpha
 
 import "time"
 
-const APIVersion = "v0alpha2"
+const APIVersion = "v0alpha3"
 
 type (
 	PlayerID          string

@@ -201,3 +201,35 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] planner equivalent/dominated/incomparable relation과 dominating witness
 - [x] solo/duo/trio + backfill fixture와 bounded candidate gap diagnostic
 - [x] `sema-lab` experimental `v0alpha5` text/JSON evidence와 regression gate
+
+## P24: Small-Queue Pareto Planning
+
+- [x] default 12-ticket/2-backfill/2-team expanded candidate path
+- [x] distinct ticket-set alternative preservation과 4096 candidate safety bound
+- [x] coverage tier 안의 batch Pareto dominance repair
+- [x] 128-seed mixed-party/backfill exhaustive differential corpus
+- [x] explicit approximation budget와 large/single-select fast path 보존
+
+## P25: Queue Fairness And Starvation
+
+- [ ] feasible demand age/service invariant
+- [ ] sustained-arrival starvation diagnostic와 bounded wait evidence
+- [ ] relaxation, candidate window와 batch ordering의 age contract 정렬
+
+## P26: Backfill Quality Context
+
+- [ ] roster-versioned skill/role/latency summary
+- [ ] new-match와 backfill의 공통 admissibility evidence
+- [ ] stale roster와 quality comparison fixture
+
+## P27: Indexed Candidate Discovery
+
+- [ ] skill/role/latency partition prototype
+- [ ] oldest-prefix fairness와 approximation evidence 보존
+- [ ] small exhaustive와 large deterministic comparison
+
+## P28: Matcher V0 Exit Gate
+
+- [ ] matcher conformance matrix와 property/fuzz gate
+- [ ] algorithm-owned TODO와 calibration-owned decision 분리
+- [ ] persistence/API service productization entry spec

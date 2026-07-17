@@ -186,3 +186,7 @@ pinned Linux builder/runtime image를 2 CPU/2 GiB로 제한한다. planner 50v50
 ## S32: Exhaustive Batch Quality Frontier
 
 최대 12 match ticket, 2 backfill ticket과 2 team인 snapshot에서 모든 exact-capacity candidate와 disjoint batch를 열거한다. solo/duo/trio + one-slot backfill fixture는 backfill 1개와 new match 1개로 11명을 모두 선택하고 planner가 `frontier_equivalent`여야 한다. `MaxBatchCandidates=1`인 four-solo 1:1 fixture는 planner 1 proposal/2 player point가 exhaustive 2 proposal/4 player witness에 `frontier_dominated`여야 한다. input 순서를 뒤집어도 frontier와 relation은 같고 ticket이나 backfill target을 재사용하는 supplied batch는 거부한다.
+
+## S33: Default Small-Queue Pareto Planning
+
+candidate limit을 명시하지 않은 12-ticket/2-backfill/2-team 이하 queue는 서로 다른 ticket-set alternative를 expanded candidate graph에 보존한다. weighted party/skill/role/latency/wait와 even-seed backfill을 포함하는 seed 1..128 corpus에서 planner는 모든 exhaustive batch frontier와 `frontier_equivalent`이고 generation/selection truncation이 없어야 한다. direct selector fixture는 utility 200의 gap 0/100 batch보다 utility 160의 gap 10/10 batch를 선택해 rank 합만 높은 dominated batch를 repair한다. explicit one-candidate fixture와 large/single-select path는 기존 bounded evidence와 performance를 유지한다.

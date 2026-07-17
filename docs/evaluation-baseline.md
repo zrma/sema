@@ -14,6 +14,7 @@
 | `diagnostic-candidate-window-gap` | exactly 5000 bp | 2-ticket truncated window | `oracle_preferred`, planner gap 1000, oracle gap 0 |
 | `batch-frontier-mixed-party-backfill` | exactly 10000 bp | 5 placements, 2 admissible candidates, 4 batches | `frontier_equivalent`, 1 backfill, 2 proposals, 11 players |
 | `diagnostic-batch-frontier-gap` | exactly 5000 bp | generation at most 30 nodes; 12 placements, 6 candidates, 10 batches | `frontier_dominated`, planner 1 proposal/2 players, witness 2 proposals/4 players |
+| default small-queue differential seeds 1..128 | valid batch coverage | no generation/selection truncation | all `frontier_equivalent` |
 
 V1 값은 production SLO가 아니다. 현재 deterministic algorithm의 구조적 regression budget이며 policy, generator 또는 objective를 의도적으로 바꾸면 diff에서 metric tradeoff를 설명하고 이 문서와 test를 같은 change에서 갱신한다.
 
@@ -25,6 +26,6 @@ production cycle p95, allocation ceiling과 capacity target은 실제 consumer w
 
 ## Verification
 
-- deterministic gate: `go test ./internal/lab -run 'TestRunFullCorpusPreservesCoverageAndOrdering|TestRunReportsSyntheticMetricsAndOracleGap|TestRunReportsBatchQualityFrontier'`.
+- deterministic gate: `go test ./internal/lab -run 'TestRunFullCorpusPreservesCoverageAndOrdering|TestRunReportsSyntheticMetricsAndOracleGap|TestRunReportsBatchQualityFrontier'`와 `go test ./internal/evaluation -run '^TestBatchFrontierDefaultBudgetDifferentialCorpus$'`.
 - planner benchmark: `go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x`.
 - engine benchmark: `go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x`.

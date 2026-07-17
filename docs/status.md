@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P23 batch quality frontier까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P24 small-queue Pareto planning까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -38,7 +38,7 @@ P0부터 P23 batch quality frontier까지 완료되었다. source/service는 계
 - side-effect-free multi-policy simulation과 canonical coverage/quality summary.
 - public repository identity `github.com/zrma/sema`와 Apache-2.0 source license.
 - `github.com/zrma/sema/alpha`의 side-effect-free `Compose`와 explicit public/internal conversion boundary.
-- global batch objective와 evidence를 반영한 public Go alpha `v0alpha2` 및 `v0alpha1` migration contract.
+- global batch objective와 small-queue Pareto selection을 반영한 public Go alpha `v0alpha3`, `v0alpha1`부터 이어지는 migration contract.
 - `internal/`을 직접 import하지 않는 repository-owned `examples/compose` reference consumer.
 - `v0alpha1` compatibility/migration policy와 stable API 진입 gate.
 - versioned `sema-lab` cross-build/checksum script와 verified-tag GitHub Release workflow.
@@ -88,6 +88,8 @@ P0부터 P23 batch quality frontier까지 완료되었다. source/service는 계
 - seeded party/skill/role/latency/wait snapshot generator와 player coverage/oldest-unmatched-wait metric.
 - 12 ticket 이하 new-match의 exhaustive single-proposal oracle와 12 match ticket/2 backfill/2 team 이하 global batch Pareto frontier를 제공하는 experimental `v0alpha5` JSON report.
 - coverage/wait와 per-match quality를 scalar calibration 없이 비교하는 planner frontier relation, dominating witness와 deterministic exhaustive counters.
+- default small queue에서 distinct ticket-set candidate를 확장하고 dominated rank-sum batch를 repair하는 Pareto subset selection.
+- weighted mixed-party/skill/role/latency/wait와 optional backfill의 128-seed exhaustive differential corpus.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -115,4 +117,4 @@ P0부터 P23 batch quality frontier까지 완료되었다. source/service는 계
 
 ## Next Slice
 
-P23은 작은 입력에서 candidate graph와 global batch의 approximation gap을 측정하는 evidence를 마련했다. 다음 matcher slice는 frontier diagnostic이 드러낸 candidate coverage gap을 bounded production search에서 줄이되, representative fixture와 search budget을 함께 고정하는 작업이 적합하다. 실제 wait/quality target이나 traffic corpus가 생기면 그 뒤에 rank utility calibration과 region/skill/role candidate index를 비교한다. frontend game-runtime capacity와 allocation backpressure는 Sema planning profile에 다시 섞지 않으며, 현재 frontier를 production quality나 calibrated MMR evidence로 승격하지 않는다.
+P24는 default small queue의 candidate coverage와 dominated rank-sum gap을 128-seed frontier differential로 닫았다. 다음 matcher slice는 지속 유입에서 오래된 feasible demand가 새 demand에 영구히 밀리지 않는 age/service invariant와 starvation diagnostic을 만드는 P25다. 이후 roster-aware backfill quality, indexed candidate discovery와 matcher V0 exit gate를 순서대로 진행하고 `docs/matcher-v0-exit.md`의 service productization entry에서 기존 journal/HTTP prototype을 persistence/API 제품 경계로 재설계한다. 현재 frontier와 synthetic wait를 production SLA나 calibrated MMR evidence로 승격하지 않는다.

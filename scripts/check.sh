@@ -43,6 +43,7 @@ for required_file in \
   docs/sema-lab.md \
   docs/workload-evaluation.md \
   docs/evaluation-baseline.md \
+  docs/matcher-v0-exit.md \
   docs/candidate-discovery.md \
   docs/public-api.md \
   docs/api-compatibility.md \
@@ -75,6 +76,7 @@ for required_file in \
   docs/decisions/0014-container-deployment-baseline.md \
   docs/decisions/0015-performance-release-gate.md \
   docs/migrations/v0alpha1-to-v0alpha2.md \
+  docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -112,6 +114,7 @@ for required_file in \
   docs/todo-0032-flow-lifecycle-entry-motion/spec.md \
   docs/todo-0033-flow-rating-density-scaling/spec.md \
   docs/todo-0034-batch-quality-frontier/spec.md \
+  docs/todo-0035-small-queue-pareto-planning/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \

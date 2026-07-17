@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/zrma/sema/internal/constraint"
@@ -22,6 +23,11 @@ const (
 	defaultMaxCandidatesPerProposal = 64
 	defaultMaxBatchCandidates       = 256
 	defaultMaxBatchSearchNodes      = 100_000
+	// The expanded path shares the exhaustive evaluator's small-snapshot boundary.
+	smallQueueTicketLimit    = 12
+	smallQueueBackfillLimit  = 2
+	smallQueueTeamLimit      = 2
+	smallQueueCandidateLimit = 4_096
 )
 
 // Plan returns a deterministic set of mutually disjoint proposals.
@@ -61,13 +67,26 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 	if maxSearchNodes == 0 {
 		maxSearchNodes = defaultMaxSearchNodes
 	}
+	// Explicit policy limits always win; only zero-value defaults opt into the
+	// wider correctness path for snapshots that remain cheap to compare exhaustively.
+	smallQueueExpandedSearch := snapshot.Policy.MaxCandidatesPerProposal == 0 &&
+		snapshot.Policy.MaxBatchCandidates == 0 &&
+		len(available) <= smallQueueTicketLimit &&
+		len(backfills) <= smallQueueBackfillLimit &&
+		snapshot.Policy.TeamCount <= smallQueueTeamLimit
 	maxCandidates := snapshot.Policy.MaxCandidatesPerProposal
 	if maxCandidates == 0 {
 		maxCandidates = defaultMaxCandidatesPerProposal
+		if smallQueueExpandedSearch {
+			maxCandidates = smallQueueCandidateLimit
+		}
 	}
 	maxBatchCandidates := snapshot.Policy.MaxBatchCandidates
 	if maxBatchCandidates == 0 {
 		maxBatchCandidates = defaultMaxBatchCandidates
+		if smallQueueExpandedSearch {
+			maxBatchCandidates = smallQueueCandidateLimit
+		}
 	}
 	maxBatchSearchNodes := snapshot.Policy.MaxBatchSearchNodes
 	if maxBatchSearchNodes == 0 {
@@ -84,9 +103,10 @@ func Plan(snapshot domain.MatchmakingSnapshot) (domain.ProposalBatch, error) {
 		maxProposals,
 		snapshot.Policy.MaxCandidateTickets,
 		&generationBudget,
+		smallQueueExpandedSearch,
 	)
 	rankCandidateUtilities(generation.candidates, maxProposals)
-	selection := selectProposalBatch(generation.candidates, maxProposals, maxBatchSearchNodes)
+	selection := selectProposalBatch(generation.candidates, maxProposals, maxBatchSearchNodes, smallQueueExpandedSearch)
 
 	batch := domain.ProposalBatch{
 		SnapshotID:      snapshot.ID,
@@ -165,11 +185,16 @@ func generateProposalCandidates(
 	maxSeedProposals int,
 	maxCandidateTickets int,
 	budget *searchBudget,
+	expandShapeAlternatives bool,
 ) candidateGeneration {
 	result := candidateGeneration{}
 	indexes := make(map[string]int)
 	singleSelectFastPath := maxCandidatesPerSearch >= defaultMaxCandidatesPerProposal &&
 		(maxSeedProposals == 1 || len(backfills) == 0 && !canFillMultipleProposals(available, matchSlots(snapshot.Policy)))
+	shapeAlternatives := 1
+	if expandShapeAlternatives && !singleSelectFastPath {
+		shapeAlternatives = maxCandidatesPerSearch
+	}
 	for _, backfill := range backfills {
 		if budget.exhausted || len(result.candidates) >= maxBatchCandidates {
 			result.truncated = true
@@ -181,7 +206,7 @@ func generateProposalCandidates(
 			&result, indexes, window.Tickets, backfill.OpenSlotsByTeam, snapshot,
 			domain.ProposalBackfill, &target, window.Truncated,
 			!singleSelectFastPath,
-			maxCandidatesPerSearch, maxBatchCandidates, budget,
+			maxCandidatesPerSearch, shapeAlternatives, maxBatchCandidates, budget,
 		)
 	}
 
@@ -200,7 +225,7 @@ func generateProposalCandidates(
 			&result, indexes, window.Tickets, newMatchSlots, snapshot,
 			domain.ProposalNewMatch, nil, window.Truncated,
 			true,
-			maxCandidatesPerSearch, maxBatchCandidates, budget,
+			maxCandidatesPerSearch, shapeAlternatives, maxBatchCandidates, budget,
 		)
 	} else if needsBatchAlternatives && len(available) > 0 {
 		result.truncated = true
@@ -233,7 +258,7 @@ func collectGreedyCoverCandidates(
 	for seed := 0; seed < maxSeedProposals && len(result.candidates) < maxBatchCandidates && !budget.exhausted; seed++ {
 		window := discovery.SelectWindow(remaining, slots, maxCandidateTickets)
 		search := findBestPlacement(
-			window.Tickets, slots, snapshot, domain.ProposalNewMatch, "", maxCandidatesPerSearch, budget,
+			window.Tickets, slots, snapshot, domain.ProposalNewMatch, "", maxCandidatesPerSearch, 1, budget,
 		)
 		prepareSearchEvidence(&search, len(window.Tickets), window.Truncated)
 		recordGeneratedCandidate(result, indexes, search, domain.ProposalNewMatch, nil)
@@ -258,6 +283,7 @@ func collectShapeCandidates(
 	windowTruncated bool,
 	includeAnchors bool,
 	maxCandidatesPerSearch int,
+	maxAlternativesPerSearch int,
 	maxBatchCandidates int,
 	budget *searchBudget,
 ) {
@@ -275,10 +301,20 @@ func collectShapeCandidates(
 			return
 		}
 		search := findBestPlacement(
-			tickets, slots, snapshot, kind, anchor, maxCandidatesPerSearch, budget,
+			tickets, slots, snapshot, kind, anchor, maxCandidatesPerSearch,
+			min(maxAlternativesPerSearch, maxBatchCandidates-len(result.candidates)), budget,
 		)
-		prepareSearchEvidence(&search, len(tickets), windowTruncated)
-		recordGeneratedCandidate(result, indexes, search, kind, backfill)
+		alternatives := expandPlacementAlternatives(search)
+		if len(alternatives) == 0 {
+			alternatives = []placementSearch{search}
+		}
+		for _, alternative := range alternatives {
+			prepareSearchEvidence(&alternative, len(tickets), windowTruncated)
+			recordGeneratedCandidate(result, indexes, alternative, kind, backfill)
+			if len(result.candidates) >= maxBatchCandidates {
+				break
+			}
+		}
 	}
 }
 
@@ -386,6 +422,12 @@ type placementSearch struct {
 	candidateWindowTruncated bool
 	sawHardFailure           bool
 	sawQualityFailure        bool
+	alternatives             []placementAlternative
+}
+
+type placementAlternative struct {
+	placement  [][]domain.MatchTicket
+	evaluation objective.Evaluation
 }
 
 func findBestPlacement(
@@ -395,6 +437,7 @@ func findBestPlacement(
 	kind domain.ProposalKind,
 	requiredTicket domain.TicketID,
 	maxCandidates int,
+	maxAlternatives int,
 	budget *searchBudget,
 ) placementSearch {
 	startNodes := budget.used
@@ -430,6 +473,10 @@ func findBestPlacement(
 
 	assigned := make([][]int, len(slots))
 	teamSkills := make([]int, len(slots))
+	var alternativeIndexes map[string]int
+	if maxAlternatives > 1 {
+		alternativeIndexes = make(map[string]int)
+	}
 	var search func(index int, needed int) bool
 	search = func(index int, needed int) bool {
 		if !budget.visit() {
@@ -447,11 +494,17 @@ func findBestPlacement(
 				result.sawHardFailure = true
 			case !evaluation.Admissible:
 				result.sawQualityFailure = true
-			case !result.found || objective.Compare(evaluation, result.evaluation) < 0 ||
-				(objective.Compare(evaluation, result.evaluation) == 0 && comparePlacement(placement, result.placement) < 0):
-				result.placement = placement
-				result.evaluation = evaluation
-				result.found = true
+			default:
+				if maxAlternatives == 1 {
+					if !result.found || objective.Compare(evaluation, result.evaluation) < 0 ||
+						(objective.Compare(evaluation, result.evaluation) == 0 && comparePlacement(placement, result.placement) < 0) {
+						result.placement = placement
+						result.evaluation = evaluation
+						result.found = true
+					}
+				} else {
+					recordPlacementAlternative(&result, alternativeIndexes, placement, evaluation)
+				}
 			}
 			if result.exactCandidates >= maxCandidates {
 				result.truncated = true
@@ -496,10 +549,81 @@ func findBestPlacement(
 
 	search(0, totalNeeded)
 	result.searchNodes = budget.used - startNodes
+	if maxAlternatives > 1 {
+		slices.SortFunc(result.alternatives, comparePlacementAlternative)
+		if len(result.alternatives) > maxAlternatives {
+			result.alternatives = result.alternatives[:maxAlternatives]
+		}
+		if len(result.alternatives) > 0 {
+			result.placement = result.alternatives[0].placement
+			result.evaluation = result.alternatives[0].evaluation
+			result.found = true
+		}
+	}
 	result.evaluation.Evidence.CandidatesEvaluated = result.exactCandidates
 	result.evaluation.Evidence.SearchNodes = result.searchNodes
 	result.evaluation.Evidence.SearchTruncated = result.truncated || budget.exhausted
 	return result
+}
+
+func recordPlacementAlternative(
+	result *placementSearch,
+	indexes map[string]int,
+	placement [][]domain.MatchTicket,
+	evaluation objective.Evaluation,
+) {
+	key := placementTicketKey(placement)
+	if index, exists := indexes[key]; exists {
+		existing := result.alternatives[index]
+		if objective.Compare(evaluation, existing.evaluation) < 0 ||
+			(objective.Compare(evaluation, existing.evaluation) == 0 && comparePlacement(placement, existing.placement) < 0) {
+			result.alternatives[index] = placementAlternative{placement: placement, evaluation: evaluation}
+		}
+		return
+	}
+	indexes[key] = len(result.alternatives)
+	result.alternatives = append(result.alternatives, placementAlternative{placement: placement, evaluation: evaluation})
+}
+
+func comparePlacementAlternative(left, right placementAlternative) int {
+	if result := objective.Compare(left.evaluation, right.evaluation); result != 0 {
+		return result
+	}
+	return comparePlacement(left.placement, right.placement)
+}
+
+func expandPlacementAlternatives(search placementSearch) []placementSearch {
+	expanded := make([]placementSearch, len(search.alternatives))
+	for index, alternative := range search.alternatives {
+		expanded[index] = search
+		expanded[index].placement = alternative.placement
+		expanded[index].evaluation = alternative.evaluation
+		expanded[index].evaluation.Evidence.CandidatesEvaluated = search.exactCandidates
+		expanded[index].evaluation.Evidence.SearchNodes = search.searchNodes
+		expanded[index].evaluation.Evidence.SearchTruncated = search.evaluation.Evidence.SearchTruncated
+		expanded[index].alternatives = nil
+	}
+	return expanded
+}
+
+func placementTicketKey(placement [][]domain.MatchTicket) string {
+	references := make([]domain.TicketRef, 0)
+	for _, team := range placement {
+		for _, ticket := range team {
+			references = append(references, domain.TicketReference(ticket))
+		}
+	}
+	slices.SortFunc(references, func(left, right domain.TicketRef) int {
+		if result := cmp.Compare(left.ID, right.ID); result != 0 {
+			return result
+		}
+		return cmp.Compare(left.Revision, right.Revision)
+	})
+	var builder strings.Builder
+	for _, reference := range references {
+		fmt.Fprintf(&builder, "%s@%d\x00", reference.ID, reference.Revision)
+	}
+	return builder.String()
 }
 
 func placementIncludesIndex(assigned [][]int, required int) bool {

@@ -41,7 +41,7 @@ flowchart LR
 - 초기 discovery는 canonical queue의 oldest fitting ticket prefix를 선택하며 opt-in window truncation을 policy identity와 proposal evidence에 남긴다.
 - `constraints`는 위반 시 후보를 제거하는 boolean contract를 제공한다.
 - `scoring`은 유효 후보를 비교할 objective vector와 explanation을 제공한다.
-- `optimizer`는 admissible candidate graph를 weighted set-packing으로 보고 시간·후보 수 budget 안에서 mutually disjoint proposal set의 총 rank utility를 최대화한다. backfill 수가 먼저이고 `MaxProposals`는 상한이다.
+- `optimizer`는 admissible candidate graph에서 mutually disjoint proposal set을 선택한다. 일반 bounded path는 backfill 수와 총 rank utility를 최적화하고, candidate budget을 생략한 small-queue path는 같은 coverage tier에서 wait/role/skill/latency Pareto dominance로 dominated rank-sum 결과를 repair한다. `MaxProposals`는 상한이다.
 - `policy catalog`는 process lifetime에서 version을 하나의 canonical fingerprint와 defensive rule copy에 묶는다.
 - `simulation`은 immutable scenario corpus에서 여러 registered policy를 planner로만 평가하고 canonical report를 만든다.
 - `coordinator`만 reservation과 assignment 상태를 변경하고 revision을 compare-and-swap으로 검증한다.
@@ -88,4 +88,4 @@ flowchart LR
 - multi-replica durable writer와 distributed coordination을 제공하지 않는다.
 - allocation server hosting, game server lifecycle, identity/auth 전체를 소유하지 않는다.
 - 모든 게임에 공통인 단일 quality formula를 제공하지 않는다.
-- snapshot의 모든 feasible placement를 열거한 global optimum은 보장하지 않는다. bounded candidate graph 안의 exact/best-feasible selection과 generation approximation을 evidence로 구분한다.
+- production snapshot 전체의 모든 feasible placement를 열거한 global optimum은 보장하지 않는다. P23/P24의 명시된 small synthetic boundary와 일반 bounded candidate graph를 구분하고, exact/best-feasible selection과 generation approximation을 evidence로 남긴다.

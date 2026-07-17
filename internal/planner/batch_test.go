@@ -13,7 +13,7 @@ func TestSelectProposalBatchBeatsGreedyWithHigherTotalUtility(t *testing.T) {
 		candidateFixture("c-right", 6, "b", "d"),
 	}
 
-	selection := selectProposalBatch(candidates, 2, 100)
+	selection := selectProposalBatch(candidates, 2, 100, false)
 	if selection.truncated {
 		t.Fatal("exact fixture unexpectedly exhausted the selection budget")
 	}
@@ -52,7 +52,7 @@ func TestSelectProposalBatchTreatsMaximumAsUpperBound(t *testing.T) {
 		candidateFixture("c-right", 4, "b", "d"),
 	}
 
-	selection := selectProposalBatch(candidates, 2, 100)
+	selection := selectProposalBatch(candidates, 2, 100, false)
 	if selection.totalUtility != 10 || len(selection.candidates) != 1 || selection.candidates[0].key != "a-top" {
 		t.Fatalf("selection = %#v; want one higher-utility proposal", selection)
 	}
@@ -64,7 +64,7 @@ func TestSelectProposalBatchPreservesBackfillPriority(t *testing.T) {
 	backfill.backfill = &domain.BackfillTarget{Ticket: domain.TicketRef{ID: "target", Revision: 1}}
 	newMatch := candidateFixture("new-match", 100, "a", "c")
 
-	selection := selectProposalBatch([]proposalCandidate{newMatch, backfill}, 1, 100)
+	selection := selectProposalBatch([]proposalCandidate{newMatch, backfill}, 1, 100, false)
 	if len(selection.candidates) != 1 || selection.candidates[0].key != "backfill" || selection.selectedBackfills != 1 {
 		t.Fatalf("selection = %#v; want the admissible backfill first", selection)
 	}
@@ -77,9 +77,28 @@ func TestSelectProposalBatchReturnsGreedyIncumbentWhenTruncated(t *testing.T) {
 		candidateFixture("c-right", 6, "b", "d"),
 	}
 
-	selection := selectProposalBatch(candidates, 2, 1)
+	selection := selectProposalBatch(candidates, 2, 1, false)
 	if !selection.truncated || len(selection.candidates) == 0 {
 		t.Fatalf("selection = %#v; want an explicit feasible incumbent", selection)
+	}
+}
+
+func TestParetoSelectionRepairsDominatedRankSum(t *testing.T) {
+	candidates := []proposalCandidate{
+		candidateFixture("rank-left", 100, "a", "b"),
+		candidateFixture("rank-right", 100, "c", "d"),
+		candidateFixture("frontier-left", 80, "a", "c"),
+		candidateFixture("frontier-right", 80, "b", "d"),
+	}
+	candidates[0].evaluation.Evidence.TeamSkillGap = 0
+	candidates[1].evaluation.Evidence.TeamSkillGap = 100
+	candidates[2].evaluation.Evidence.TeamSkillGap = 10
+	candidates[3].evaluation.Evidence.TeamSkillGap = 10
+
+	selection := selectProposalBatch(candidates, 2, 100, true)
+	if selection.truncated || len(selection.candidates) != 2 || selection.totalUtility != 160 ||
+		selection.candidates[0].key != "frontier-left" || selection.candidates[1].key != "frontier-right" {
+		t.Fatalf("selection = %#v; want nondominated frontier pair", selection)
 	}
 }
 
@@ -98,7 +117,7 @@ func TestSelectProposalBatchMatchesExhaustiveOracle(t *testing.T) {
 	candidates[6].kind = domain.ProposalBackfill
 	candidates[6].backfill = &domain.BackfillTarget{Ticket: domain.TicketRef{ID: "target", Revision: 1}}
 
-	selection := selectProposalBatch(candidates, 3, 10_000)
+	selection := selectProposalBatch(candidates, 3, 10_000, false)
 	oracleBackfills, oracleUtility, oracleCount := exhaustiveBatchScore(candidates, 3)
 	if selection.truncated {
 		t.Fatal("small exact selection unexpectedly truncated")

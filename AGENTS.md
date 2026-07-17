@@ -60,5 +60,7 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - Flow lifecycle entry는 batch proposal 순서대로 panel 상단에서 stagger되고 기존 block을 아래로 이동시키는 presentation-only motion이다. entry 중에도 최신 reservation/confirmation stage를 렌더링하며 reduced-motion과 snapshot은 최종 layout을 즉시 적용한다.
 - P18 planner는 greedy cover와 anchored search로 admissible candidate graph를 만들고, backfill-first weighted set-packing으로 `MaxProposals` 이하의 total rank utility를 최적화한다. generation/selection budget과 truncation evidence를 숨기거나 rank utility를 실행 간 절대 quality로 해석하지 않는다.
 - P23 batch frontier는 최대 12 match ticket, 2 backfill ticket과 2 team의 evaluation-only exhaustive evidence다. coverage/wait와 per-match quality의 Pareto relation을 production SLA, calibrated utility 또는 planner execution path로 승격하지 않는다.
+- P24 default small-queue expanded path는 candidate budget이 명시되지 않은 P23 boundary에서만 distinct ticket-set alternative와 Pareto repair를 사용한다. explicit approximation, large queue와 single-select fast path의 budget/evidence를 약화하지 않는다.
+- matcher 장기 순서와 V0 service prototype 이후 persistence/API productization 진입 기준은 `docs/matcher-v0-exit.md`를 따른다.
 - Flow의 `matches_per_cycle`은 fixed fill target이 아니라 proposal upper bound다. 5v5 한 match 분량부터 planning하고 기본 32-match burst를 허용하되 synthetic 처리량을 production capacity나 SLA로 승격하지 않는다.
 - selector가 둘 이상의 proposal을 선택할 수 없으면 redundant anchored candidate graph를 만들지 않는다. single-select fast path를 바꿀 때는 P20 reference benchmark와 multi-proposal diversity fixture를 함께 검증한다.

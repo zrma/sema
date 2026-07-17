@@ -15,6 +15,12 @@ planner는 hard constraint로 ticket을 거른 뒤 enqueue time과 ticket ID로 
 
 초기 구현은 already-sorted queue prefix이며 skill/role/region index가 아니다. 이 package boundary는 실제 workload evidence가 생겼을 때 bucket/index 구현을 바꿀 seam이고, 현재는 oldest-demand fairness를 명시적으로 우선한다.
 
+## Default Small-Queue Expansion
+
+hard rejection 뒤 match ticket 12개, backfill 2개, team 2개 이하이고 `MaxCandidatesPerProposal`과 `MaxBatchCandidates`가 모두 0이면 planner는 P23 frontier와 비교 가능한 expanded path를 사용한다. 서로 다른 ticket set의 candidate를 최대 4096개까지 보존하고 feasible subset의 Pareto dominance를 먼저 검사한다. explicit candidate budget, larger queue와 single-select fast path는 기존 bounded behavior를 유지한다.
+
+이 adaptive path는 작은 queue의 algorithmic quality gap을 줄이는 correctness 경계다. `MaxCandidateTickets`가 positive이면 그 window 밖 demand를 다시 포함하지 않으며, 4096 candidate와 global node budget을 production capacity나 full enumeration 보장으로 해석하지 않는다.
+
 ## Discovery And Batch Budgets
 
 | Policy field | Bounded unit | Purpose |
