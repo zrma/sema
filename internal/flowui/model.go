@@ -145,6 +145,9 @@ type Model struct {
 	lastCandidatesMax    int
 	lastSearchNodes      int
 	lastSearchMax        int
+	lastProposals        int
+	lastProposalsMax     int
+	lastPlanningInterval time.Duration
 }
 
 // New creates a TUI model over an already-open simulator.
@@ -362,6 +365,9 @@ func (model *Model) apply(event flow.Event) {
 		model.lastSearchNodes = 0
 		model.lastCandidatesMax = event.MaxCandidates
 		model.lastSearchMax = event.MaxSearchNodes
+		model.lastProposals = len(event.Batch.Proposals)
+		model.lastProposalsMax = event.MaxProposals
+		model.lastPlanningInterval = event.PlanningInterval
 		for _, proposal := range event.Batch.Proposals {
 			proposal := proposal
 			motion := 0

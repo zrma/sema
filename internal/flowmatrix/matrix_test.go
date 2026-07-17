@@ -52,6 +52,14 @@ func TestRunIsDeterministicAcrossWorkerParallelism(t *testing.T) {
 	}
 }
 
+func TestDefaultConfigUsesBatchUpperBoundProfiles(t *testing.T) {
+	configuration := DefaultConfig()
+	want := []Profile{{MatchesPerCycle: 2}, {MatchesPerCycle: 8}, {MatchesPerCycle: 32}}
+	if !reflect.DeepEqual(configuration.Profiles, want) {
+		t.Fatalf("default profiles = %#v; want %#v", configuration.Profiles, want)
+	}
+}
+
 func TestRunPreservesDemandMismatch(t *testing.T) {
 	configuration := DefaultConfig()
 	configuration.Seeds = []int64{42}
@@ -98,7 +106,9 @@ func TestNormalizeRejectsInvalidMatrix(t *testing.T) {
 		{name: "duplicate profile", mutate: func(configuration *Config) {
 			configuration.Profiles = []Profile{{MatchesPerCycle: 1}, {MatchesPerCycle: 1}}
 		}},
-		{name: "invalid profile", mutate: func(configuration *Config) { configuration.Profiles = []Profile{{MatchesPerCycle: 9}} }},
+		{name: "invalid profile", mutate: func(configuration *Config) {
+			configuration.Profiles = []Profile{{MatchesPerCycle: flow.MaximumMatchesPerCycle + 1}}
+		}},
 		{name: "zero parallelism", mutate: func(configuration *Config) { configuration.Parallelism = 0 }},
 	}
 	for _, test := range tests {

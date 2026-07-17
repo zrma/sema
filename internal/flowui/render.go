@@ -308,8 +308,17 @@ func (model *Model) renderStatus(glyphs glyphSet, width int) string {
 	}
 	candidateBar := progressBar(model.lastCandidateTickets, model.lastCandidatesMax, 10, glyphs)
 	searchBar := progressBar(model.lastSearchNodes, model.lastSearchMax, 10, glyphs)
+	limit := "<="
+	if model.options.Unicode {
+		limit = "≤"
+	}
 	right := fmt.Sprintf(
-		"candidates %s %d/%d%ssearch %s %d/%d",
+		"batch %d/%s%d every %s%scandidates %s %d/%d%ssearch %s %d/%d",
+		model.lastProposals,
+		limit,
+		model.lastProposalsMax,
+		formatAxisDuration(model.lastPlanningInterval),
+		glyphs.separator,
 		candidateBar,
 		model.lastCandidateTickets,
 		model.lastCandidatesMax,

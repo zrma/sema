@@ -159,3 +159,12 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] backfill-first, total rank utility와 `MaxProposals` 상한 계약
 - [x] generation/selection budget과 replayable batch evidence
 - [x] greedy-failure fixture, exhaustive small oracle와 Flow regression gate
+
+## P19: Flow Batch Admission
+
+- [x] `matches_per_cycle`을 fixed fill target이 아닌 proposal upper bound로 적용
+- [x] 한 match 분량부터 partial-batch planning 허용
+- [x] 기본 32-match burst와 256-match configuration safety bound
+- [x] backlog에서 한 cycle 32-match 반환 regression
+- [x] 1,000-player 30분 wait/throughput 안정성 검증
+- [x] TUI batch/limit/cadence 관찰값과 report/matrix 기본값 정렬

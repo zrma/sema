@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/zrma/sema/internal/flow"
 	"github.com/zrma/sema/internal/flowmatrix"
 )
 
@@ -25,7 +26,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags.SetOutput(stderr)
 	format := flags.String("format", "text", "output format: text or json")
 	seeds := flags.String("seeds", "42,73,101", "comma-separated deterministic seeds")
-	batches := flags.String("batches", "2,4,8", "comma-separated matches-per-cycle profiles")
+	batches := flags.String("batches", "2,8,32", "comma-separated maximum-proposals-per-cycle profiles")
 	showVersion := flags.Bool("version", false, "print version")
 	flags.DurationVar(&configuration.Duration, "duration", configuration.Duration, "simulated duration per run")
 	flags.IntVar(&configuration.Parallelism, "parallel", configuration.Parallelism, "maximum independent runs executed in parallel")
@@ -113,7 +114,7 @@ func parseBatches(value string) ([]flowmatrix.Profile, error) {
 	seen := make(map[flowmatrix.Profile]struct{}, len(parts))
 	for _, part := range parts {
 		batch, err := strconv.Atoi(strings.TrimSpace(part))
-		if err != nil || batch <= 0 || batch > 8 {
+		if err != nil || batch <= 0 || batch > flow.MaximumMatchesPerCycle {
 			return nil, fmt.Errorf("invalid batch list %q", value)
 		}
 		profile := flowmatrix.Profile{MatchesPerCycle: batch}

@@ -4,7 +4,7 @@
 
 `cmd/sema-flow-matrix`는 같은 simulated duration, population과 timing에 여러 `matches_per_cycle` profile을 적용하고 여러 deterministic seed의 결과를 min/median/max로 집계한다. 각 조합은 독립 Flow runtime이며 wall-clock worker parallelism은 report 순서와 값에 영향을 주지 않는다.
 
-기본 matrix는 10분, seed `42,73,101`과 batch `2,4,8`이다.
+기본 matrix는 10분, seed `42,73,101`과 proposal upper bound `2,8,32`다. 각 값은 채워야 하는 fixed batch가 아니라 한 planning cycle에서 반환할 수 있는 최대 match 수다.
 
 ```sh
 go run ./cmd/sema-flow-matrix
@@ -18,7 +18,7 @@ go run ./cmd/sema-flow-matrix \
   -duration 3m \
   -population 100 \
   -seeds 42,73,101 \
-  -batches 2,4 \
+  -batches 2,8,32 \
   -parallel 2
 ```
 
@@ -34,7 +34,7 @@ go run ./cmd/sema-flow-matrix \
 
 ## Reference Result
 
-P16 기본 3x3 matrix는 모든 run에서 initial ticket 600개, maximum arrival lag 0ms와 final ingress backlog 0을 기록해 `demand_comparable=true`를 만족했다.
+아래 P16 historical 3x3 matrix는 모든 run에서 initial ticket 600개, maximum arrival lag 0ms와 final ingress backlog 0을 기록해 `demand_comparable=true`를 만족했다. P19부터 기본 profile은 2/8/32이며 2는 과거 admission bottleneck을 비교하는 diagnostic profile로만 남는다.
 
 | Profile | Assignment yield | Confirmed throughput | Wait p50 | Wait p90 | Queue mean | Queue p95 | Skill gap p90 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |

@@ -65,7 +65,7 @@ func TestWriteTextReportUsesRangeVocabulary(t *testing.T) {
 }
 
 func TestRunRejectsInvalidLists(t *testing.T) {
-	for _, args := range [][]string{{"-seeds", "42,x"}, {"-seeds", "42,42"}, {"-seeds", "-1"}, {"-batches", "2:x"}, {"-batches", "9"}, {"-batches", "2,2"}, {"-format", "csv"}} {
+	for _, args := range [][]string{{"-seeds", "42,x"}, {"-seeds", "42,42"}, {"-seeds", "-1"}, {"-batches", "2:x"}, {"-batches", "257"}, {"-batches", "2,2"}, {"-format", "csv"}} {
 		var stdout, stderr bytes.Buffer
 		if code := run(context.Background(), args, &stdout, &stderr); code != 2 {
 			t.Fatalf("args=%v exit code=%d stderr=%q", args, code, stderr.String())

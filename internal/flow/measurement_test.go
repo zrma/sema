@@ -43,13 +43,13 @@ func TestMeasureIsDeterministicAndConservesPopulation(t *testing.T) {
 	if first.Queue.MeanPlayers <= 0 || first.Queue.P95Players < first.Queue.MeanPlayers || first.Queue.PeakPlayers < first.Queue.P95Players {
 		t.Fatalf("queue measurement = %#v", first.Queue)
 	}
-	if first.Ingress != (IngressMeasurement{SamplesTickets: 96}) {
+	if first.Ingress != (IngressMeasurement{SamplesTickets: 98}) {
 		t.Fatalf("ingress measurement = %#v", first.Ingress)
 	}
-	if first.Steps != 264 || first.Cycles != 8 || first.QueueEntries != (EntryCounts{Tickets: 96, Players: 160, InitialTickets: 24, ReturnedTickets: 72}) ||
-		first.Assignments != (MatchCounts{Matches: 14, Tickets: 84, Players: 140}) || first.Completions != (MatchCounts{Matches: 12, Tickets: 72, Players: 120}) ||
-		first.AssignmentYieldBasisPoints != 8_750 || first.Wait != (DurationDistribution{SamplesPlayers: 140, P50Millis: 5_000, P90Millis: 12_000, P99Millis: 13_000, MaxMillis: 13_000}) ||
-		first.Queue != (QueueMeasurement{MeanPlayers: 7, P95Players: 20, PeakPlayers: 25, MeanSaturationBasisPoints: 1_866, P95SaturationBasisPoints: 5_000, PeakSaturationBasisPoints: 6_250}) {
+	if first.Steps != 277 || first.Cycles != 16 || first.QueueEntries != (EntryCounts{Tickets: 98, Players: 164, InitialTickets: 24, ReturnedTickets: 74}) ||
+		first.Assignments != (MatchCounts{Matches: 15, Tickets: 90, Players: 150}) || first.Completions != (MatchCounts{Matches: 13, Tickets: 79, Players: 130}) ||
+		first.AssignmentYieldBasisPoints != 9_146 || first.Wait != (DurationDistribution{SamplesPlayers: 150, P50Millis: 4_000, P90Millis: 8_000, P99Millis: 12_000, MaxMillis: 12_000}) ||
+		first.Queue != (QueueMeasurement{MeanPlayers: 5, P95Players: 12, PeakPlayers: 17, MeanSaturationBasisPoints: 1_487, P95SaturationBasisPoints: 3_000, PeakSaturationBasisPoints: 4_250}) {
 		t.Fatalf("reference measurement changed: %#v", first)
 	}
 }

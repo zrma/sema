@@ -39,7 +39,7 @@ func TestSimulatorRunsClosedHTTPLeagueLifecycle(t *testing.T) {
 		sawIdleAndQueue = sawIdleAndQueue || event.IdlePlayers > 0 && event.QueuePlayers > 0
 		sawQueueWhilePlaying = sawQueueWhilePlaying || event.QueuePlayers > 0 && event.InGamePlayers > 0
 		sawCooldown = sawCooldown || event.CooldownPlayers > 0
-		if event.Kind == flow.EventPlanCompleted && (event.Batch == nil || len(event.Batch.Proposals) != 2) {
+		if event.Kind == flow.EventPlanCompleted && (event.Batch == nil || len(event.Batch.Proposals) == 0 || len(event.Batch.Proposals) > 2) {
 			t.Fatalf("plan event = %#v", event)
 		}
 		if event.Kind == flow.EventMatchCompleted {
@@ -128,13 +128,87 @@ func TestSimulatorProcessesDueArrivalWithoutAdvancingClock(t *testing.T) {
 	}
 }
 
+func TestDefaultConfigUsesBulkProposalUpperBound(t *testing.T) {
+	configuration := flow.DefaultConfig()
+	if configuration.MatchesPerCycle != 32 || configuration.PlanningInterval != 5*time.Second {
+		t.Fatalf("default planning admission = %d proposals every %s", configuration.MatchesPerCycle, configuration.PlanningInterval)
+	}
+}
+
 func TestSimulatorRejectsInvalidConfiguration(t *testing.T) {
 	if _, err := flow.Open(flow.Config{Seed: -1}); err == nil {
 		t.Fatal("negative seed was accepted")
 	}
-	if _, err := flow.Open(flow.Config{PopulationSize: 10, MatchesPerCycle: 2}); err == nil {
-		t.Fatal("workload larger than the population was accepted")
+	if _, err := flow.Open(flow.Config{MatchesPerCycle: flow.MaximumMatchesPerCycle + 1}); err == nil {
+		t.Fatal("unbounded planning batch was accepted")
 	}
+}
+
+func TestSimulatorPlansPartialBatchBelowConfiguredLimit(t *testing.T) {
+	configuration := flow.DefaultConfig()
+	configuration.PopulationSize = 40
+	configuration.MatchesPerCycle = 32
+	configuration.ArrivalInterval = 100 * time.Millisecond
+	configuration.PlanningInterval = time.Second
+	configuration.GameDuration = 20 * time.Second
+	configuration.MaxReturnDelay = 10 * time.Second
+	simulator, err := flow.Open(configuration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := simulator.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+
+	for range 200 {
+		event, stepErr := simulator.Step(context.Background())
+		if stepErr != nil {
+			t.Fatal(stepErr)
+		}
+		if event.Kind != flow.EventPlanCompleted {
+			continue
+		}
+		if event.Batch == nil || len(event.Batch.Proposals) == 0 || len(event.Batch.Proposals) >= configuration.MatchesPerCycle {
+			t.Fatalf("partial batch = %#v; want 1..31 proposals", event.Batch)
+		}
+		if event.MaxProposals != 32 || event.PlanningInterval != time.Second {
+			t.Fatalf("planning contract = max %d interval %s", event.MaxProposals, event.PlanningInterval)
+		}
+		return
+	}
+	t.Fatal("simulator never planned a partial batch")
+}
+
+func TestSimulatorPlansDozensOfMatchesFromBacklog(t *testing.T) {
+	configuration := flow.DefaultConfig()
+	configuration.PopulationSize = 400
+	configuration.MatchesPerCycle = 32
+	configuration.ArrivalInterval = time.Millisecond
+	configuration.PlanningInterval = 5 * time.Second
+	simulator := openSimulatorWithConfig(t, configuration)
+
+	for range 1_000 {
+		event, err := simulator.Step(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if event.Kind != flow.EventPlanCompleted {
+			continue
+		}
+		if event.Batch == nil {
+			t.Fatal("backlogged plan omitted its batch")
+		}
+		if len(event.Batch.Proposals) == 1 {
+			continue
+		}
+		if len(event.Batch.Proposals) != configuration.MatchesPerCycle {
+			t.Fatalf("backlogged plan contained %d proposals; want %d", len(event.Batch.Proposals), configuration.MatchesPerCycle)
+		}
+		return
+	}
+	t.Fatal("simulator never planned a full backlogged batch")
 }
 
 func TestSimulatorPlanningContinuesAboveEightActiveGames(t *testing.T) {
@@ -174,9 +248,18 @@ func TestSimulatorPlanningContinuesAboveEightActiveGames(t *testing.T) {
 }
 
 func TestSimulatorOrdersBatchStagesStablyAtOneTimestamp(t *testing.T) {
-	simulator := openSimulator(t, 101)
+	configuration := flow.DefaultConfig()
+	configuration.Seed = 101
+	configuration.PopulationSize = 100
+	configuration.MatchesPerCycle = 8
+	configuration.GameDuration = 20 * time.Second
+	configuration.ArrivalInterval = 100 * time.Millisecond
+	configuration.PlanningInterval = 2 * time.Second
+	configuration.MaxReturnDelay = 10 * time.Second
+	configuration.TickDuration = time.Second
+	simulator := openSimulatorWithConfig(t, configuration)
 	groups := make(map[time.Time][]flow.Event)
-	for range 180 {
+	for range 400 {
 		event, err := simulator.Step(context.Background())
 		if err != nil {
 			t.Fatal(err)
@@ -233,6 +316,11 @@ func openSimulator(t *testing.T, seed int64) *flow.Simulator {
 	configuration.PlanningInterval = 2 * time.Second
 	configuration.MaxReturnDelay = 10 * time.Second
 	configuration.TickDuration = time.Second
+	return openSimulatorWithConfig(t, configuration)
+}
+
+func openSimulatorWithConfig(t *testing.T, configuration flow.Config) *flow.Simulator {
+	t.Helper()
 	simulator, err := flow.Open(configuration)
 	if err != nil {
 		t.Fatal(err)

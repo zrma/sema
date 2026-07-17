@@ -107,6 +107,7 @@ for required_file in \
   docs/todo-0027-unbounded-game-simulation/spec.md \
   docs/todo-0028-flow-trend-panels/spec.md \
   docs/todo-0029-global-proposal-batch-optimization/spec.md \
+  docs/todo-0030-flow-batch-admission/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \

@@ -16,17 +16,17 @@ go run ./cmd/sema-tui
 
 - seed `42`로 생성한 player 1,000명과 stable mixed-party 600개. 시작 시 matchmaking queue는 비어 있다.
 - 모든 player의 초기 visible rating 1500과 서로 다른 hidden true skill.
-- 2x5 team과 cycle당 proposal 2개. 진행 중인 game 수는 planning을 제한하지 않는다.
+- 2x5 team, 5초 planning window와 cycle당 proposal upper bound 32개. 한 match 분량부터 partial batch를 반환하며 진행 중인 game 수는 planning을 제한하지 않는다.
 - party의 최초 queue 유입 간격 1초, planning 간격 5초.
 - simulated game duration 45초, 완료 뒤 최대 복귀 지연 30초, Elo K-factor 32.
 - solo/duo/trio party pattern `[2, 1, 1, 1, 3, 2]`의 반복.
 
-빠르게 여러 rating cycle을 보려면 step interval을 줄이고 cycle당 match 수를 높인다.
+빠르게 여러 rating cycle을 보려면 presentation step interval과 최초 유입 간격을 줄인다. `matches-per-cycle`은 고정 batch 크기가 아니라 한 planning cycle의 proposal 상한이다.
 
 ```sh
 go run ./cmd/sema-tui \
   -interval 50ms \
-  -matches-per-cycle 8 \
+  -matches-per-cycle 32 \
   -arrival-interval 500ms
 ```
 
@@ -37,6 +37,8 @@ go run ./cmd/sema-tui -population 100 -game-duration 30s
 ```
 
 `-arrival-interval`, `-planning-interval`, `-game-duration`, `-max-return-delay`로 각각 최초 유입, planning cadence, 경기 시간과 복귀 대기를 조정한다. `-interval`은 simulated time이 아니라 화면에서 lifecycle step을 진행하는 속도다.
+
+header의 `batch selected/≤limit every interval`은 최근 planning cycle이 반환한 proposal 수, configured upper bound와 snapshot cadence를 나타낸다. 예를 들어 `batch 17/≤32 every 5s`는 32개를 채우지 못해 대기한 것이 아니라 현재 snapshot에서 17개의 admissible disjoint match를 반환했다는 뜻이다.
 
 ## Simulation Model
 

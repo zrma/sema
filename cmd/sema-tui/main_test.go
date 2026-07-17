@@ -5,6 +5,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRunPrintsVersion(t *testing.T) {
@@ -48,6 +49,17 @@ func TestRunRejectsUnsafeSnapshotSize(t *testing.T) {
 	code := run(context.Background(), []string{"-snapshot", "-width", "20"}, strings.NewReader(""), &stdout, &stderr)
 	if code != 2 || !strings.Contains(stderr.String(), "outside the supported range") {
 		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
+	}
+}
+
+func TestParseConfigUsesBulkProposalUpperBound(t *testing.T) {
+	var stderr bytes.Buffer
+	configuration, _, err := parseConfig(nil, &stderr)
+	if err != nil {
+		t.Fatalf("parse config: %v, stderr=%q", err, stderr.String())
+	}
+	if configuration.matchesPerCycle != 32 || configuration.planningInterval != 5*time.Second {
+		t.Fatalf("default planning admission = %d proposals every %s", configuration.matchesPerCycle, configuration.planningInterval)
 	}
 }
 

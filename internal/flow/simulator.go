@@ -28,7 +28,7 @@ import (
 const (
 	defaultTeamCount        = 2
 	defaultTeamSize         = 5
-	defaultMatchesPerCycle  = 2
+	defaultMatchesPerCycle  = 32
 	defaultReservationTTL   = 30 * time.Second
 	defaultGameDuration     = 45 * time.Second
 	defaultArrivalInterval  = time.Second
@@ -36,6 +36,8 @@ const (
 	defaultMaxReturnDelay   = 30 * time.Second
 	defaultTickDuration     = time.Second
 	operationDuration       = time.Second
+	// MaximumMatchesPerCycle bounds Flow configuration without requiring a full batch to plan.
+	MaximumMatchesPerCycle = 256
 )
 
 // EventKind identifies a lifecycle transition rendered by the TUI.
@@ -106,6 +108,8 @@ type Event struct {
 	Population            league.Stats
 	MaxCandidates         int
 	MaxSearchNodes        int
+	MaxProposals          int
+	PlanningInterval      time.Duration
 }
 
 // State is a defensive full read model used to initialize a renderer.
@@ -295,9 +299,8 @@ func normalizeConfig(configuration Config) (Config, error) {
 	if configuration.TickDuration == 0 {
 		configuration.TickDuration = defaults.TickDuration
 	}
-	maximumMatches := configuration.PopulationSize / (defaultTeamCount * defaultTeamSize)
 	if configuration.Seed < 0 || configuration.PopulationSize < 10 || configuration.MatchesPerCycle <= 0 ||
-		configuration.MatchesPerCycle > 8 || configuration.MatchesPerCycle > maximumMatches || configuration.ReservationTTL <= 0 ||
+		configuration.MatchesPerCycle > MaximumMatchesPerCycle || configuration.ReservationTTL <= 0 ||
 		configuration.GameDuration <= 0 || configuration.ArrivalInterval <= 0 || configuration.PlanningInterval <= 0 ||
 		configuration.MaxReturnDelay < time.Second || configuration.TickDuration <= 0 {
 		return Config{}, fmt.Errorf("flow population, batch, timing, or seed configuration is invalid")
@@ -407,6 +410,7 @@ func (simulator *Simulator) plan(ctx context.Context) (Event, error) {
 	return simulator.event(Event{
 		Kind: EventPlanCompleted, At: now, Cycle: simulator.cycle, Batch: &copy,
 		MaxCandidates: simulator.policy.MaxCandidateTickets, MaxSearchNodes: simulator.policy.MaxSearchNodes,
+		MaxProposals: simulator.policy.MaxProposals, PlanningInterval: simulator.configuration.PlanningInterval,
 	}), nil
 }
 
@@ -613,7 +617,7 @@ func (simulator *Simulator) advanceTime() Event {
 }
 
 func (simulator *Simulator) planningDemandReady() bool {
-	return simulator.queuedPlayers >= defaultTeamCount*defaultTeamSize*simulator.configuration.MatchesPerCycle
+	return simulator.queuedPlayers >= defaultTeamCount*defaultTeamSize
 }
 
 func (simulator *Simulator) canPlan(now time.Time) bool {

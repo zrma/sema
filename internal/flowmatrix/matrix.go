@@ -34,7 +34,7 @@ func DefaultConfig() Config {
 		Base:        flow.DefaultConfig(),
 		Duration:    10 * time.Minute,
 		Seeds:       []int64{42, 73, 101},
-		Profiles:    []Profile{{MatchesPerCycle: 2}, {MatchesPerCycle: 4}, {MatchesPerCycle: 8}},
+		Profiles:    []Profile{{MatchesPerCycle: 2}, {MatchesPerCycle: 8}, {MatchesPerCycle: 32}},
 		Parallelism: 3,
 	}
 }
@@ -200,7 +200,7 @@ func normalize(configuration Config) (Config, error) {
 		return left.MatchesPerCycle - right.MatchesPerCycle
 	})
 	for index, profile := range normalized.Profiles {
-		if profile.MatchesPerCycle <= 0 || profile.MatchesPerCycle > 8 {
+		if profile.MatchesPerCycle <= 0 || profile.MatchesPerCycle > flow.MaximumMatchesPerCycle {
 			return Config{}, fmt.Errorf("matrix profile %q is invalid", profile.Label())
 		}
 		if index > 0 && profile == normalized.Profiles[index-1] {
