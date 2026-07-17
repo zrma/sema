@@ -55,6 +55,7 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - Flow capacity 비교는 `docs/sema-flow-capacity-matrix.md`의 동일-demand gate와 min/median/max contract를 지키며 product target 없이 profile 권장이나 production capacity를 선언하지 않는다.
 - Sema의 Flow 책임은 assignment confirm까지다. active game 수는 planning eligibility를 제한하지 않으며 frontend-owned game/result/return 흐름을 보여주는 TUI `MATCH LIFECYCLE` 패널은 관찰 surface로 유지한다.
 - Flow trend panel은 같은 logical timestamp를 합치고 bounded history를 유지한다. queue wait는 pre-confirm ticket을 player-weighted하고 rating density는 measurement schema를 바꾸지 않는 1500-centered TUI read model을 사용한다.
+- Flow rating density의 vertical scaling은 기존 9개 centered histogram bucket을 반복 렌더링하는 presentation-only 확대다. 반복 row를 추가 rating sample이나 더 정밀한 measurement로 해석하지 않는다.
 - Flow queue departure의 selected hold, match marker/color, horizontal travel과 vertical compaction은 presentation-only다. active lifecycle visual slot은 match completion 전 재사용하지 않고 waiting과 lifecycle block 전체가 같은 accent를 유지한다. reduced-motion은 최종 layout을 즉시 적용하며 motion frame이 planner, reservation, confirmation이나 logical clock을 지연시키면 안 된다.
 - Flow lifecycle entry는 batch proposal 순서대로 panel 상단에서 stagger되고 기존 block을 아래로 이동시키는 presentation-only motion이다. entry 중에도 최신 reservation/confirmation stage를 렌더링하며 reduced-motion과 snapshot은 최종 layout을 즉시 적용한다.
 - P18 planner는 greedy cover와 anchored search로 admissible candidate graph를 만들고, backfill-first weighted set-packing으로 `MaxProposals` 이하의 total rank utility를 최적화한다. generation/selection budget과 truncation evidence를 숨기거나 rank utility를 실행 간 절대 quality로 해석하지 않는다.

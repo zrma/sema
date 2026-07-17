@@ -692,8 +692,15 @@ func (model *Model) ratingDensityLines(glyphs glyphSet, width, height int) []str
 	if !model.options.Unicode {
 		axis = "|"
 	}
-	lines := make([]string, 0, bandCount)
-	for _, band := range bands {
+	lines := make([]string, 0, height)
+	for row := range height {
+		bandIndex := min(bandCount-1, row*bandCount/height)
+		band := bands[bandIndex]
+		labelRow := ratingBandLabelRow(bandIndex, bandCount, height)
+		label := ""
+		if row == labelRow {
+			label = band.label
+		}
 		var chart strings.Builder
 		for _, column := range columns {
 			if !column.valid {
@@ -704,12 +711,18 @@ func (model *Model) ratingDensityLines(glyphs glyphSet, width, height int) []str
 			for bucket := band.lower; bucket <= band.upper; bucket++ {
 				players += column.sample.ratingHistogram[bucket]
 			}
-			centered := band.lower <= 4 && band.upper >= 4
+			centered := band.lower <= 4 && band.upper >= 4 && row == labelRow
 			chart.WriteString(model.densityCell(players, column.sample.population, centered))
 		}
-		lines = append(lines, fmt.Sprintf("%5s%s%s", band.label, axis, chart.String()))
+		lines = append(lines, fmt.Sprintf("%5s%s%s", label, axis, chart.String()))
 	}
 	return lines
+}
+
+func ratingBandLabelRow(index, count, height int) int {
+	start := (index*height + count - 1) / count
+	end := ((index+1)*height + count - 1) / count
+	return (start + end - 1) / 2
 }
 
 func trendColumns(samples []trendSample, width int) []trendColumn {

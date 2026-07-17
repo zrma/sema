@@ -110,6 +110,7 @@ for required_file in \
   docs/todo-0030-flow-batch-admission/spec.md \
   docs/todo-0031-single-select-performance/spec.md \
   docs/todo-0032-flow-lifecycle-entry-motion/spec.md \
+  docs/todo-0033-flow-rating-density-scaling/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \
