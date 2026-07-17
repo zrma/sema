@@ -19,6 +19,9 @@ const (
 	frameInterval         = 70 * time.Millisecond
 	selectionHoldFrames   = 4
 	departureTravelFrames = 10
+	lifecycleEntryDelay   = selectionHoldFrames + departureTravelFrames
+	lifecycleEntryFrames  = 4
+	lifecycleEntryStagger = 1
 	maxHistoryEntries     = 64
 	maxLogEntries         = 128
 	maxTrendSamples       = 512
@@ -85,6 +88,7 @@ type matchView struct {
 	startedAt   time.Time
 	endsAt      time.Time
 	motion      int
+	entryFrame  int
 	partySizes  map[string]int
 	matchVisual int
 }
@@ -368,11 +372,14 @@ func (model *Model) apply(event flow.Event) {
 		model.lastProposals = len(event.Batch.Proposals)
 		model.lastProposalsMax = event.MaxProposals
 		model.lastPlanningInterval = event.PlanningInterval
-		for _, proposal := range event.Batch.Proposals {
+		newOrder := make([]string, 0, len(event.Batch.Proposals))
+		for proposalIndex, proposal := range event.Batch.Proposals {
 			proposal := proposal
 			motion := 0
+			entryFrame := -lifecycleEntryDelay - proposalIndex*lifecycleEntryStagger
 			if model.options.ReducedMotion {
 				motion = 8
+				entryFrame = lifecycleEntryFrames
 			}
 			partySizes := make(map[string]int, len(proposal.Tickets))
 			for _, reference := range proposal.Tickets {
@@ -382,15 +389,16 @@ func (model *Model) apply(event flow.Event) {
 			}
 			visual := model.allocateMatchVisual()
 			model.active[proposal.ID] = &matchView{
-				proposal: proposal, stage: stageProposed, motion: motion, partySizes: partySizes,
+				proposal: proposal, stage: stageProposed, motion: motion, entryFrame: entryFrame, partySizes: partySizes,
 				matchVisual: visual,
 			}
-			model.activeOrder = append(model.activeOrder, proposal.ID)
+			newOrder = append(newOrder, proposal.ID)
 			model.lastCandidateTickets = max(model.lastCandidateTickets, proposal.Evidence.CandidateTickets)
 			model.lastSearchNodes += proposal.Evidence.SearchNodes
 			model.setTicketState(proposal.Tickets, ticketProposed)
 			model.beginTicketDeparture(proposal.Tickets, visual)
 		}
+		model.activeOrder = append(newOrder, model.activeOrder...)
 		if model.options.ReducedMotion {
 			model.compactQueueRows(true)
 		}
@@ -562,6 +570,9 @@ func (model *Model) animate() {
 		if match.motion < 8 {
 			match.motion++
 		}
+		if match.entryFrame < lifecycleEntryFrames {
+			match.entryFrame++
+		}
 	}
 	model.compactQueueRows(false)
 }
@@ -576,6 +587,7 @@ func (model *Model) animateToEnd() {
 	}
 	for _, match := range model.active {
 		match.motion = 8
+		match.entryFrame = lifecycleEntryFrames
 	}
 	model.compactQueueRows(true)
 }

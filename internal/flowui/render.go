@@ -431,57 +431,78 @@ func (model *Model) waitingLane(ticket *ticketView, glyphs glyphSet) string {
 
 func (model *Model) activeLines(glyphs glyphSet, limit int) []string {
 	lines := make([]string, 0, limit)
-	rendered := 0
+	hidden := 0
+	animating := false
 	for _, identifier := range model.activeDisplayOrder() {
 		match := model.active[identifier]
-		if match == nil || len(lines)+4 > limit {
+		if match == nil {
 			continue
 		}
-		rendered++
-		icon, _ := stageStyle(match.stage, glyphs)
-		motion := motionTrack(match.motion, 8, glyphs)
-		stage := strings.ToUpper(string(match.stage))
-		if match.stage == stagePlaying {
-			remaining := max(time.Duration(0), match.endsAt.Sub(model.now)).Round(time.Second)
-			stage += " " + remaining.String()
+		block := model.lifecycleBlock(identifier, match, glyphs)
+		visibleRows := lifecycleEntryRows(match.entryFrame, len(block))
+		if visibleRows == 0 {
+			animating = true
+			continue
 		}
-		color := matchVisualColor(match.matchVisual)
-		marker := matchVisualMarker(match.matchVisual, model.options.Unicode)
-		lines = append(lines, model.paint(fmt.Sprintf("%s %s %-8s %-15s %s", marker, icon, matchLabel(identifier), stage, motion), color))
-		for teamIndex, team := range match.proposal.Teams {
-			lines = append(lines, model.paint(fmt.Sprintf("  %c  %s", 'A'+rune(teamIndex), model.teamGlyph(team, match.partySizes)), color))
+		if visibleRows < len(block) {
+			animating = true
 		}
-		lines = append(lines, model.paint(fmt.Sprintf(
-			"  gap %d%smax latency %dms%ssearch %d nodes",
-			match.proposal.Evidence.TeamSkillGap,
-			glyphs.separator,
-			match.proposal.Evidence.MaxLatencyMillis,
-			glyphs.separator,
-			match.proposal.Evidence.SearchNodes,
-		), color))
+		if len(lines)+visibleRows > limit {
+			hidden++
+			continue
+		}
+		lines = append(lines, block[:visibleRows]...)
 	}
 	if len(lines) == 0 {
 		if len(model.active) > 0 {
-			return []string{fmt.Sprintf("%s %d active lifecycle matches", glyphs.ellipsis, len(model.active))}
+			return []string{model.paint("receiving selected matches", "#7f8c98")}
 		}
 		return []string{model.paint("waiting for the next proposal batch", "#7f8c98")}
 	}
-	if hidden := len(model.activeOrder) - rendered; hidden > 0 {
+	if hidden > 0 && !animating {
 		lines[len(lines)-1] = fmt.Sprintf("%s +%d more lifecycle matches", glyphs.ellipsis, hidden)
 	}
 	return lines
 }
 
+func (model *Model) lifecycleBlock(identifier string, match *matchView, glyphs glyphSet) []string {
+	icon, _ := stageStyle(match.stage, glyphs)
+	motion := motionTrack(match.motion, 8, glyphs)
+	stage := strings.ToUpper(string(match.stage))
+	if match.stage == stagePlaying {
+		remaining := max(time.Duration(0), match.endsAt.Sub(model.now)).Round(time.Second)
+		stage += " " + remaining.String()
+	}
+	color := matchVisualColor(match.matchVisual)
+	marker := matchVisualMarker(match.matchVisual, model.options.Unicode)
+	lines := []string{model.paint(fmt.Sprintf("%s %s %-8s %-15s %s", marker, icon, matchLabel(identifier), stage, motion), color)}
+	for teamIndex, team := range match.proposal.Teams {
+		lines = append(lines, model.paint(fmt.Sprintf("  %c  %s", 'A'+rune(teamIndex), model.teamGlyph(team, match.partySizes)), color))
+	}
+	return append(lines, model.paint(fmt.Sprintf(
+		"  gap %d%smax latency %dms%ssearch %d nodes",
+		match.proposal.Evidence.TeamSkillGap,
+		glyphs.separator,
+		match.proposal.Evidence.MaxLatencyMillis,
+		glyphs.separator,
+		match.proposal.Evidence.SearchNodes,
+	), color))
+}
+
+func lifecycleEntryRows(frame, blockHeight int) int {
+	if blockHeight <= 0 || frame <= 0 {
+		return 0
+	}
+	if frame >= lifecycleEntryFrames {
+		return blockHeight
+	}
+	return min(blockHeight, (frame*blockHeight+lifecycleEntryFrames-1)/lifecycleEntryFrames)
+}
+
 func (model *Model) activeDisplayOrder() []string {
 	order := make([]string, 0, len(model.activeOrder))
 	for _, identifier := range model.activeOrder {
-		if match := model.active[identifier]; match != nil && match.stage != stagePlaying {
-			order = append(order, identifier)
-		}
-	}
-	for index := len(model.activeOrder) - 1; index >= 0; index-- {
-		identifier := model.activeOrder[index]
-		if match := model.active[identifier]; match != nil && match.stage == stagePlaying {
+		if model.active[identifier] != nil {
 			order = append(order, identifier)
 		}
 	}

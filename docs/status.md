@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P20 single-select performance까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P21 Flow lifecycle entry motion까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -76,6 +76,7 @@ P0부터 P20 single-select performance까지 완료되었다. source/service는 
 - assignment confirm 전 ticket을 player-weighted한 queue wait history와 1500 exact center symmetric rating-density history.
 - 같은 logical timestamp를 합치고 512 sample로 제한하는 deterministic trend read model과 Unicode/color, ASCII, medium/tall/compact terminal gate.
 - selected party를 match별 color/marker로 묶어 hold 뒤 오른쪽으로 이동시키고 남은 waiting row를 frame 단위로 접는 queue departure motion과 reduced-motion final-state fallback.
+- 새 lifecycle block을 batch 순서대로 panel 상단에서 stagger해 펼치고 기존 block을 아래로 이동시키는 presentation-only entry motion.
 - 한 match 분량부터 partial batch를 계획하고 backlog에서 기본 32 proposals까지 반환하는 Flow admission contract와 256 configuration safety bound.
 - 1,000-player warm-up 이후 20분간 89.9 match/min, 30분 누적 wait p50/p90/p99 5/9/18초를 기록한 synthetic stability evidence.
 - proposal limit/capacity가 하나인 workload에서 redundant anchored search를 생략하고 multi-proposal candidate diversity는 보존하는 planner fast path.
@@ -112,4 +113,4 @@ P0부터 P20 single-select performance까지 완료되었다. source/service는 
 
 ## Next Slice
 
-P20 repository-owned 목표는 완료되었다. 다음 matcher slice는 실제 wait/quality target이나 traffic corpus가 생기면 rank utility를 calibrated utility/frontier로 교체하고 region/skill/role candidate index를 비교한다. frontend game-runtime capacity와 allocation backpressure는 Sema planning profile에 다시 섞지 않는다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow trend를 product SLA나 calibrated MMR evidence로, Flow matrix를 production capacity로 승격하지 않는다.
+P21 repository-owned TUI motion 목표는 완료되었다. 다음 matcher slice는 실제 wait/quality target이나 traffic corpus가 생기면 rank utility를 calibrated utility/frontier로 교체하고 region/skill/role candidate index를 비교한다. frontend game-runtime capacity와 allocation backpressure는 Sema planning profile에 다시 섞지 않는다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow trend를 product SLA나 calibrated MMR evidence로, Flow matrix를 production capacity로 승격하지 않는다.

@@ -54,6 +54,7 @@
 - wide Flow TUI는 `WAITING POOL | MATCH LIFECYCLE`, `AVERAGE QUEUE WAIT | RATING DENSITY`, `COMPLETED MATCHES | EVENT STREAM`의 세 행을 사용한다.
 - trend는 player-weighted pre-confirm wait와 1500-centered whole-population rating density를 logical time 기준 최근 512 sample로 보여준다.
 - selected party row는 match별 marker/color를 공유해 hold와 horizontal departure를 거친 뒤 제거되며, 남은 waiting row는 frame 단위로 위로 접힌다. reduced-motion은 동일 final state를 즉시 적용한다.
+- 새 lifecycle block은 같은 marker/color를 유지한 채 batch 순서대로 panel 상단에서 stagger되어 펼쳐지고, 기존 block은 드러난 row만큼 아래로 이동한다. 이 motion도 presentation-only이며 reduced-motion은 최종 배치를 즉시 표시한다.
 - P18 global selector는 `MaxProposals`를 상한으로 사용하고 candidate/selection budget을 분리하며, best feasible batch와 rank utility/truncation evidence를 public alpha, HTTP DTO와 durable replay에 보존한다.
 - Flow는 5v5 한 match 분량부터 partial batch를 계획하고 backlog가 있으면 기본 32-match upper bound까지 한 cycle에 반환한다. 400-player fixture는 한 cycle 32 proposals를 고정하고 1,000-player 정상상태 구간은 89.9 match/min을 기록했다.
 - selector cardinality가 하나이면 anchored batch alternative를 생략하는 P20 fast path가 50v50, 100K queue와 engine 1,000-ticket을 기존 reference performance budget 안에 유지한다. multi-proposal 또는 backfill 경쟁 경로는 P18 candidate graph를 유지한다.
@@ -65,7 +66,7 @@
 
 ## Current Work
 
-P0 foundation부터 P20 single-select performance까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 matcher milestone은 wait/quality target이나 traffic calibration hypothesis가 생길 때 열며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P21 Flow lifecycle entry motion까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음 matcher milestone은 wait/quality target이나 traffic calibration hypothesis가 생길 때 열며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

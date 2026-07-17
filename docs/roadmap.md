@@ -176,3 +176,11 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] multi-proposal/backfill conflict candidate graph 보존
 - [x] 50v50, 100K queue와 engine 1,000-ticket 기존 budget 복구
 - [x] focused/full/race/container performance와 publication gate
+
+## P21: Flow Lifecycle Entry Motion
+
+- [x] lifecycle block의 initial-frame pop 제거
+- [x] batch proposal 순서의 top-down staggered entry
+- [x] 새 row 진입에 따른 기존 lifecycle block 하향 이동
+- [x] waiting/lifecycle marker와 color mapping 유지
+- [x] reduced-motion final layout과 frame regression gate
