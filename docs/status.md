@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P12 closed-loop population simulation까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P13 Flow measurement baseline까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -60,6 +60,9 @@ P0부터 P12 closed-loop population simulation까지 완료되었다. source/ser
 - fixed-duration 5v5 result, logistic outcome draw와 zero-sum team Elo update.
 - completed assignment 뒤 분산 cooldown을 거쳐 revision을 올린 동일 party ticket의 실제 HTTP 복귀.
 - population idle/queue/in-game/cooldown, rating range, percentile, histogram과 누적 result를 표시하는 Flow TUI.
+- player-weighted queue wait, arrival-to-assignment yield, match throughput과 time-weighted queue saturation을 측정하는 `cmd/sema-flow-report`.
+- versioned deterministic text/JSON aggregate, proposal skill-gap/latency distribution과 final visible-rating summary.
+- due arrival을 presentation step과 분리해 예약된 server-clock 시각에 처리하는 measurement-safe Flow clock.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
@@ -91,4 +94,4 @@ P0부터 P12 closed-loop population simulation까지 완료되었다. source/ser
 
 ## Next Slice
 
-P12 repository-owned 목표는 완료되었다. 다음 simulation slice는 uncertainty, 실제 접속률 calibration/영구 churn 또는 party 재편 중 평가할 metric이 생길 때 연다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow demo를 production scheduler나 production MMR로, reference SLO를 제품 SLA로 승격하지 않는다.
+P13 repository-owned 목표는 완료되었다. 다음 simulation slice는 multi-seed comparison, uncertainty, 실제 접속률 calibration/영구 churn 또는 party 재편 중 비교할 hypothesis가 생길 때 연다. production 장기 slice는 실제 consumer와 target이 생겼을 때 authentication/TLS gateway, stable API, traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 선택한다. 그 전에는 Flow report를 production capacity나 wait SLA로, Flow demo를 production scheduler나 production MMR로 승격하지 않는다.

@@ -107,3 +107,11 @@
 - [x] zero-sum Elo update와 분산 cooldown 뒤 revised party ticket return
 - [x] rating range/histogram, idle/queue/in-game/cooldown과 completed result TUI
 - [x] deterministic population, HTTP lifecycle와 terminal snapshot gate
+
+## P13: Flow Measurement Baseline
+
+- [x] player-weighted queue wait와 arrival-to-assignment yield
+- [x] simulated-minute match throughput과 time-weighted queue saturation
+- [x] proposal skill-gap/latency distribution과 final rating summary
+- [x] versioned deterministic text/JSON report command
+- [x] due arrival server-clock semantics와 closed-loop measurement regression gate

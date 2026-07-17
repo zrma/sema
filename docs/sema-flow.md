@@ -94,6 +94,17 @@ go run ./cmd/sema-tui -snapshot -ascii -population 40 \
 
 snapshot은 color와 staged motion을 끄고 terminal identity가 없는 plain text를 출력한다. 기본 frame에는 waiting population, in-game match, completed result와 벌어진 rating range가 함께 나타난다.
 
+## Measurement
+
+같은 closed loop의 wait, throughput, queue saturation과 proposal quality를 고정된 simulated duration으로 비교하려면 headless report를 사용한다.
+
+```sh
+go run ./cmd/sema-flow-report
+go run ./cmd/sema-flow-report -format json -duration 10m
+```
+
+due arrival은 이미 예약된 server-clock 시각의 event이므로 처리 frame 자체가 simulated queue time을 추가하지 않는다. metric 정의, 기본 30분 aggregate와 JSON truth boundary는 `docs/sema-flow-measurement.md`가 소유한다.
+
 ## Truth Boundary
 
 - 이 workload는 고정된 synthetic population과 deterministic arrival/return schedule이며 arbitrary external producer traffic을 관찰하지 않는다.
@@ -103,5 +114,6 @@ snapshot은 color와 staged motion을 끄고 terminal identity가 없는 plain t
 - embedded demo는 production scheduler, game server, push delivery, authentication 또는 external allocation server가 아니다.
 - raw durable payload와 실제 player identity는 화면이나 tracked fixture에 사용하지 않는다.
 - interactive timing은 presentation control이며 match wait와 game duration은 deterministic server clock이 소유한다.
+- headless aggregate는 synthetic Flow capacity evidence이며 production throughput, queue wait SLA나 traffic calibration이 아니다.
 
 실제 shared server와 game result를 연결하려면 authenticated redacted event stream, external assignment consumer와 versioned result-ingestion contract를 별도로 설계해야 한다.

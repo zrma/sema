@@ -501,7 +501,9 @@ func (simulator *Simulator) submitArrival(ctx context.Context) (Event, error) {
 	if !exists {
 		return Event{}, fmt.Errorf("flow party %q does not exist", arrival.ticketID)
 	}
-	now := simulator.clock.Advance(operationDuration)
+	// A due arrival is already scheduled on the server clock. Processing it is a
+	// lifecycle event for presentation, not additional simulated queue time.
+	now := simulator.clock.Now()
 	ticket := simulator.ticket(party, now)
 	if _, err := request[api.MutationResult](
 		ctx, simulator.client, http.MethodPut,

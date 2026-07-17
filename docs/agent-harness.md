@@ -122,5 +122,6 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Performance and release admission: `docs/todo-0021-performance-release-gate/spec.md`, `docs/performance-slo.md`, `docs/release-admission.md`, `docs/decisions/0015-performance-release-gate.md`.
 - Interactive Flow: `docs/todo-0022-sema-flow/spec.md`, `docs/sema-flow.md`.
 - Closed-loop population simulation: `docs/todo-0023-population-simulation/spec.md`, `internal/league`.
+- Flow measurement baseline: `docs/todo-0024-flow-measurement/spec.md`, `docs/sema-flow-measurement.md`, `cmd/sema-flow-report`.
 - Long-term engine-first sequence: `docs/decisions/0006-product-development-sequence.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

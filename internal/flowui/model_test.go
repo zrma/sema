@@ -88,7 +88,7 @@ func TestCompactSnapshotFitsStandardTerminal(t *testing.T) {
 	options.Width = 80
 	options.Height = 24
 	model := flowui.New(simulator, options)
-	if err := model.RunSteps(context.Background(), 24); err != nil {
+	if err := model.RunSteps(context.Background(), 30); err != nil {
 		t.Fatal(err)
 	}
 	lines := strings.Split(model.Content(), "\n")

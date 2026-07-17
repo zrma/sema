@@ -29,6 +29,8 @@ release_admission: docs/release-admission.md
 flow_tui: cmd/sema-tui
 flow_tui_guide: docs/sema-flow.md
 population_simulation: internal/league
+flow_measurement_command: cmd/sema-flow-report
+flow_measurement_guide: docs/sema-flow-measurement.md
 domain_model: docs/domain-model.md
 lifecycle: docs/lifecycle.md
 reference_scenarios: docs/reference-scenarios.md
@@ -79,6 +81,8 @@ checks:
   release_admission: scripts/check-release-admission.sh v0.0.0-test
   flow_tui_test: go test ./internal/league ./internal/flow ./internal/flowui ./cmd/sema-tui
   flow_tui_snapshot: go run ./cmd/sema-tui -snapshot -steps 100 -width 120 -height 38
+  flow_measurement_test: go test ./internal/flow ./cmd/sema-flow-report
+  flow_measurement_smoke: go run ./cmd/sema-flow-report -duration 60s -population 40 -concurrent-matches 4 -game-duration 20s -max-return-delay 10s -format json
   planner_large_benchmark: go test ./internal/planner -run ^$ -bench ^BenchmarkPlanLargeQueues$ -benchtime=1x -count=1
   lab_smoke: go run ./cmd/sema-lab
   harness: scripts/check-agent-harness-interface.sh

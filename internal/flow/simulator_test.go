@@ -97,6 +97,27 @@ func TestSimulatorMatchSequenceIsDeterministic(t *testing.T) {
 	}
 }
 
+func TestSimulatorProcessesDueArrivalWithoutAdvancingClock(t *testing.T) {
+	configuration := flow.DefaultConfig()
+	simulator, err := flow.Open(configuration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := simulator.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+
+	event, err := simulator.Step(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.Kind != flow.EventTicketQueued || !event.At.Equal(configuration.Start) || event.Ticket == nil || !event.Ticket.EnqueuedAt.Equal(configuration.Start) {
+		t.Fatalf("first scheduled arrival = %#v", event)
+	}
+}
+
 func TestSimulatorRejectsInvalidConfiguration(t *testing.T) {
 	if _, err := flow.Open(flow.Config{Seed: -1}); err == nil {
 		t.Fatal("negative seed was accepted")
