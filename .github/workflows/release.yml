@@ -17,8 +17,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - run: scripts/check.sh
-      - run: scripts/check-container.sh
+      - run: scripts/check-release-admission.sh "$GITHUB_REF_NAME"
       - run: scripts/build-release.sh
         env:
           VERSION: ${{ github.ref_name }}

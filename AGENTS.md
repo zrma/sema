@@ -46,3 +46,5 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - metrics/traces/audit에는 resource ID나 raw durable payload를 넣지 않고 `docs/observability.md`의 cardinality/redaction 경계를 지킨다.
 - operational gate는 외부 service를 변경하지 않는 격리 runtime에서 실행하고 `docs/operational-validation.md`의 workload/recovery 계약을 지킨다.
 - container deployment는 `docs/operations-runbook.md`의 non-root, host-loopback, replica 1과 offline backup 경계를 약화하지 않는다.
+- performance evidence는 raw CPU/host output을 추적하지 않고 `docs/performance-slo.md`의 sanitized aggregate와 reference budget만 보존한다.
+- v1/stable publication은 `docs/release-admission.md`의 blocker와 machine-readable admission flag가 모두 해소되기 전에는 시도하지 않는다.

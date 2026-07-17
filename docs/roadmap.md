@@ -87,5 +87,5 @@
 - [x] metrics, traces와 redacted decision audit exporter
 - [x] load, soak와 failure-injection validation
 - [x] container/deployment example과 operations runbook
-- [ ] target hardware의 repeated latency/allocation benchmark history와 numeric SLO
-- [ ] measured SLO, recovery와 stable release gate
+- [x] reference container target profile의 repeated latency/allocation history와 numeric SLO
+- [x] measured SLO, recovery와 stable release admission gate

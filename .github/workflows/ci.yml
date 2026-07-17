@@ -23,3 +23,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: scripts/check-container.sh
+
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - run: scripts/check-performance.sh "$RUNNER_TEMP/sema-performance"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sema-performance-${{ github.run_id }}
+          path: ${{ runner.temp }}/sema-performance
+          if-no-files-found: error
+          retention-days: 30

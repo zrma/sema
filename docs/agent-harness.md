@@ -89,6 +89,8 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - operational telemetry는 concrete path나 raw journal payload 대신 bounded route pattern과 redacted summary만 사용한다.
 - load/failure validation은 임시 single-writer runtime만 소유하며 external endpoint, durable user data나 machine inventory를 대상으로 실행하지 않는다.
 - container example은 host loopback 밖에 unauthenticated port를 열지 않으며 same journal의 replica 수를 1보다 크게 만들지 않는다.
+- benchmark history는 CPU model, host/path와 raw stdout을 artifact에 넣지 않고 aggregate profile report만 보존한다.
+- stable release tag는 release admission gate와 별도 publication/private-inventory approval을 모두 요구한다.
 
 ## Related Documents
 
@@ -117,5 +119,6 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Observability: `docs/todo-0018-observability/spec.md`, `docs/observability.md`, `docs/decisions/0012-observability-redaction-baseline.md`.
 - Operational validation: `docs/todo-0019-operational-validation/spec.md`, `docs/operational-validation.md`, `docs/decisions/0013-operational-validation-baseline.md`.
 - Container operations: `docs/todo-0020-container-operations/spec.md`, `docs/operations-runbook.md`, `docs/decisions/0014-container-deployment-baseline.md`.
+- Performance and release admission: `docs/todo-0021-performance-release-gate/spec.md`, `docs/performance-slo.md`, `docs/release-admission.md`, `docs/decisions/0015-performance-release-gate.md`.
 - Long-term engine-first sequence: `docs/decisions/0006-product-development-sequence.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

@@ -24,6 +24,8 @@ operational_validation_command: cmd/sema-ops-check
 container: Dockerfile
 deployment_example: deploy/compose.yaml
 operations_runbook: docs/operations-runbook.md
+performance_slo: docs/performance-slo.md
+release_admission: docs/release-admission.md
 domain_model: docs/domain-model.md
 lifecycle: docs/lifecycle.md
 reference_scenarios: docs/reference-scenarios.md
@@ -43,6 +45,7 @@ http_service_decision: docs/decisions/0011-http-service-baseline.md
 observability_decision: docs/decisions/0012-observability-redaction-baseline.md
 operational_validation_decision: docs/decisions/0013-operational-validation-baseline.md
 container_deployment_decision: docs/decisions/0014-container-deployment-baseline.md
+performance_release_decision: docs/decisions/0015-performance-release-gate.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -68,6 +71,9 @@ checks:
   operational_validation_smoke: go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s
   healthcheck_test: go test ./cmd/sema-healthcheck
   container: scripts/check-container.sh
+  performance_unit: go test ./internal/performance ./cmd/sema-benchmark-gate
+  performance: scripts/check-performance.sh
+  release_admission: scripts/check-release-admission.sh v0.0.0-test
   planner_large_benchmark: go test ./internal/planner -run ^$ -bench ^BenchmarkPlanLargeQueues$ -benchtime=1x -count=1
   lab_smoke: go run ./cmd/sema-lab
   harness: scripts/check-agent-harness-interface.sh
@@ -82,3 +88,7 @@ publication:
   class: public
   public_transition_requires_live_visibility_check: true
   public_push_requires_machine_local_inventory_gate: true
+
+release:
+  alpha_admitted: true
+  stable_admitted: false

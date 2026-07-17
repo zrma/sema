@@ -15,6 +15,7 @@ for required_file in \
   alpha/types.go \
   cmd/sema-server/main.go \
   cmd/sema-healthcheck/main.go \
+  cmd/sema-benchmark-gate/main.go \
   cmd/sema-ops-check/main.go \
   deploy/compose.yaml \
   examples/compose/main.go \
@@ -22,6 +23,7 @@ for required_file in \
   internal/httpapi/handler.go \
   internal/observability/recorder.go \
   internal/operational/load.go \
+  internal/performance/report.go \
   docs/agent-harness.md \
   docs/HANDOFF.md \
   docs/status.md \
@@ -43,6 +45,8 @@ for required_file in \
   docs/observability.md \
   docs/operational-validation.md \
   docs/operations-runbook.md \
+  docs/performance-slo.md \
+  docs/release-admission.md \
   docs/policy-simulation.md \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
@@ -59,6 +63,7 @@ for required_file in \
   docs/decisions/0012-observability-redaction-baseline.md \
   docs/decisions/0013-operational-validation-baseline.md \
   docs/decisions/0014-container-deployment-baseline.md \
+  docs/decisions/0015-performance-release-gate.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -82,8 +87,11 @@ for required_file in \
   docs/todo-0018-observability/spec.md \
   docs/todo-0019-operational-validation/spec.md \
   docs/todo-0020-container-operations/spec.md \
+  docs/todo-0021-performance-release-gate/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
+  scripts/check-performance.sh \
+  scripts/check-release-admission.sh \
   scripts/check-release-build.sh \
   go.mod; do
   [ -s "$required_file" ] || {
@@ -94,6 +102,11 @@ done
 
 grep -Fxq 'module github.com/zrma/sema' go.mod || {
   printf 'repository check failed: canonical Go module identity is missing\n' >&2
+  exit 1
+}
+
+grep -Fxq 'go 1.26.0' go.mod && grep -Fq '"go_version":"1.26.0"' scripts/check-performance.sh || {
+  printf 'repository check failed: target profile Go version must match go.mod\n' >&2
   exit 1
 }
 
@@ -125,7 +138,7 @@ if grep -R -n -F '"github.com/zrma/sema/internal/' examples; then
   exit 1
 fi
 
-sh -n scripts/build-release.sh scripts/check-container.sh scripts/check-release-build.sh
+sh -n scripts/build-release.sh scripts/check-container.sh scripts/check-performance.sh scripts/check-release-admission.sh scripts/check-release-build.sh
 
 grep -Eq '^FROM golang:[^ ]+@sha256:[0-9a-f]{64} AS build$' Dockerfile || {
   printf 'repository check failed: container builder must use an exact digest\n' >&2
@@ -154,6 +167,7 @@ go run ./cmd/sema-lab -format json diagnostic-bounded-quality-gap diagnostic-can
 go run ./examples/compose >/dev/null
 go run ./cmd/sema-server -version >/dev/null
 go run ./cmd/sema-healthcheck -version >/dev/null
+go run ./cmd/sema-benchmark-gate -version >/dev/null
 go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null
 scripts/check-release-build.sh
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x

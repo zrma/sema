@@ -174,3 +174,11 @@ concrete ticket/player ID가 포함된 ingestion 뒤 liveness/readiness, metrics
 ## S29: Hardened Container Restart
 
 pinned multi-stage image는 server, readiness probe와 operational validator를 static binary로 포함하고 numeric non-root identity로 실행한다. in-image validator가 full lifecycle/recovery를 통과해야 한다. service container는 read-only root, bounded tmpfs, zero capabilities와 persistent journal volume으로 시작하고 ready 상태가 된 뒤 graceful stop/start를 거쳐 다시 ready가 되어야 한다. Compose example은 unauthenticated service port를 host loopback에만 publish하고 replica 1을 유지한다.
+
+## S30: Repeated Reference Profile
+
+pinned Linux builder/runtime image를 2 CPU/2 GiB로 제한한다. planner 50v50, 100K candidate window, 1000-ticket engine lifecycle과 1002-event durable replay benchmark를 최소 3회 반복하고 각 metric의 최대 ns/op, B/op와 allocs/op가 versioned budget 안에 있어야 한다. 별도로 10-cycle/20-ticket service lifecycle을 persistent local volume에서 3회 실행해 매번 p95 250ms, single request 1s와 whole run 30s 이하이며 restart/torn-tail recovery가 true인지 확인한다. artifact는 aggregate report만 포함하고 raw benchmark host/CPU output은 폐기한다.
+
+## S31: Release Admission
+
+`v0.*` candidate는 full Go, container, repeated performance/recovery, release build와 publication repository gate를 모두 통과해야 admission된다. major version 1 이상은 같은 검증과 별개로 machine-readable `stable_admitted: true`가 필요하다. 현재 stable API, authenticated remote transport와 external consumer evidence가 없으므로 flag는 false이고 v1 admission은 실제 artifact publish 전에 실패해야 한다.

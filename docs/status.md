@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P9 versioned single-writer service runtime과 P10 observability/load/failure/container operations까지 완료되었다. 현재는 repeated numeric target-profile gate와 stable release admission을 진행한다.
+P0부터 P10 reference target profile과 release admission까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -49,6 +49,8 @@ P0부터 P9 versioned single-writer service runtime과 P10 observability/load/fa
 - raw payload를 제외한 paged durable decision audit summary.
 - 실제 HTTP lifecycle 부하, process restart와 incomplete journal tail 복구를 묶은 격리형 operational validator.
 - pinned non-root `scratch` image, host-loopback Compose example과 single-writer operations runbook.
+- 2 CPU/2 GiB reference container의 repeated service SLO와 Go latency/allocation budget, sanitized CI history artifact.
+- full/container/performance/recovery/publication 검증을 묶고 현재 v1 stable tag를 차단하는 release admission gate.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
@@ -65,8 +67,9 @@ P0부터 P9 versioned single-writer service runtime과 P10 observability/load/fa
 - production-calibrated arrival sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index와 full unmatched output pagination.
 - external database, journal compaction와 multi-replica coordination.
-- authentication/TLS/rate limit, telemetry backend/alerts와 deployment.
+- authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
+- stable release 자체; 현재 `stable_admitted: false`다.
 
 ## Risks And Decisions Pending
 
@@ -78,4 +81,4 @@ P0부터 P9 versioned single-writer service runtime과 P10 observability/load/fa
 
 ## Next Slice
 
-public alpha와 service `v0alpha1`은 experimental 경계를 유지한다. 다음 slice는 container target profile의 repeated latency/replay/allocation budget과 stable release admission gate다.
+P10 repository-owned 목표는 완료되었다. 다음 장기 slice는 실제 consumer와 production target이 생겼을 때 authentication/TLS gateway, stable API, production traffic calibration과 external transactional authority 중 필요한 항목을 evidence에 따라 연다. 그 전에는 reference SLO를 제품 SLA로 승격하지 않는다.

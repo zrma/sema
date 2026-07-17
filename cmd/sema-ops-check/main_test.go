@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/zrma/sema/internal/operational"
 )
@@ -61,5 +62,18 @@ func TestRunRejectsInvalidWorkloadBounds(t *testing.T) {
 	code := run(context.Background(), []string{"-tickets-per-cycle", "11"}, &stdout, &stderr)
 	if code != 2 || !strings.Contains(stderr.String(), "outside supported bounds") {
 		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
+	}
+}
+
+func TestCheckBudget(t *testing.T) {
+	report := operational.Report{
+		DurationMillis: 100,
+		Latency:        operational.LatencySummary{P95Millis: 10, MaxMillis: 20},
+	}
+	if err := checkBudget(report, config{maxP95: 11 * time.Millisecond, maxRequest: 21 * time.Millisecond, maxDuration: 101 * time.Millisecond}); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkBudget(report, config{maxP95: 9 * time.Millisecond}); err == nil || !strings.Contains(err.Error(), "p95") {
+		t.Fatalf("error = %v", err)
 	}
 }

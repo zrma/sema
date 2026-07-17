@@ -30,6 +30,10 @@ type config struct {
 	concurrency     int
 	timeout         time.Duration
 	reservationTTL  time.Duration
+	format          string
+	maxP95          time.Duration
+	maxRequest      time.Duration
+	maxDuration     time.Duration
 }
 
 func main() {
@@ -54,9 +58,15 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	encoder := json.NewEncoder(stdout)
-	encoder.SetIndent("", "  ")
+	if configuration.format == "json" {
+		encoder.SetIndent("", "  ")
+	}
 	if err := encoder.Encode(report); err != nil {
 		fmt.Fprintf(stderr, "sema-ops-check: write report: %v\n", err)
+		return 1
+	}
+	if err := checkBudget(report, configuration); err != nil {
+		fmt.Fprintf(stderr, "sema-ops-check: %v\n", err)
 		return 1
 	}
 	return 0
@@ -71,6 +81,10 @@ func parseConfig(args []string, stderr io.Writer) (config, bool, error) {
 	flags.IntVar(&configuration.concurrency, "concurrency", 8, "maximum concurrent HTTP mutations")
 	flags.DurationVar(&configuration.timeout, "timeout", time.Minute, "whole validation timeout")
 	flags.DurationVar(&configuration.reservationTTL, "reservation-ttl", 30*time.Second, "fixed runtime reservation TTL")
+	flags.StringVar(&configuration.format, "format", "json", "report format: json or jsonl")
+	flags.DurationVar(&configuration.maxP95, "max-p95", 0, "maximum p95 request latency; zero disables")
+	flags.DurationVar(&configuration.maxRequest, "max-request", 0, "maximum single request latency; zero disables")
+	flags.DurationVar(&configuration.maxDuration, "max-duration", 0, "maximum whole-run duration; zero disables")
 	showVersion := flags.Bool("version", false, "print version")
 	flags.Usage = func() {
 		fmt.Fprintln(stderr, "usage: sema-ops-check [flags]")
@@ -83,9 +97,14 @@ func parseConfig(args []string, stderr io.Writer) (config, bool, error) {
 		flags.Usage()
 		return config{}, false, fmt.Errorf("unexpected positional arguments")
 	}
-	if configuration.timeout <= 0 || configuration.reservationTTL <= 0 {
-		fmt.Fprintln(stderr, "sema-ops-check: timeout and reservation TTL must be positive")
+	if configuration.timeout <= 0 || configuration.reservationTTL <= 0 ||
+		configuration.maxP95 < 0 || configuration.maxRequest < 0 || configuration.maxDuration < 0 {
+		fmt.Fprintln(stderr, "sema-ops-check: timeout and reservation TTL must be positive and performance budgets non-negative")
 		return config{}, false, fmt.Errorf("invalid duration configuration")
+	}
+	if configuration.format != "json" && configuration.format != "jsonl" {
+		fmt.Fprintln(stderr, "sema-ops-check: format must be json or jsonl")
+		return config{}, false, fmt.Errorf("invalid report format")
 	}
 	if configuration.cycles <= 0 || configuration.cycles > 10_000 ||
 		configuration.ticketsPerCycle <= 0 || configuration.ticketsPerCycle > 250 ||
@@ -95,6 +114,22 @@ func parseConfig(args []string, stderr io.Writer) (config, bool, error) {
 		return config{}, false, fmt.Errorf("invalid workload configuration")
 	}
 	return configuration, *showVersion, nil
+}
+
+func checkBudget(report operational.Report, configuration config) error {
+	p95 := time.Duration(report.Latency.P95Millis * float64(time.Millisecond))
+	maximum := time.Duration(report.Latency.MaxMillis * float64(time.Millisecond))
+	duration := time.Duration(report.DurationMillis * float64(time.Millisecond))
+	if configuration.maxP95 > 0 && p95 > configuration.maxP95 {
+		return fmt.Errorf("p95 request latency %s exceeds %s", p95, configuration.maxP95)
+	}
+	if configuration.maxRequest > 0 && maximum > configuration.maxRequest {
+		return fmt.Errorf("maximum request latency %s exceeds %s", maximum, configuration.maxRequest)
+	}
+	if configuration.maxDuration > 0 && duration > configuration.maxDuration {
+		return fmt.Errorf("run duration %s exceeds %s", duration, configuration.maxDuration)
+	}
+	return nil
 }
 
 func validate(ctx context.Context, configuration config) (operational.Report, error) {
