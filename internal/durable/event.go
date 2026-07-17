@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"slices"
 	"time"
 
 	"github.com/zrma/sema/internal/domain"
@@ -55,13 +57,14 @@ type backfillCancelledEvent struct {
 }
 
 type planCompletedEvent struct {
-	SnapshotID       domain.SnapshotID      `json:"snapshot_id"`
-	Now              time.Time              `json:"now"`
-	PolicyVersion    string                 `json:"policy_version"`
-	Proposals        []domain.MatchProposal `json:"proposals"`
-	UnmatchedTickets int                    `json:"unmatched_tickets"`
-	UnmatchedDigest  string                 `json:"unmatched_digest"`
-	BudgetExhausted  bool                   `json:"budget_exhausted"`
+	SnapshotID       domain.SnapshotID        `json:"snapshot_id"`
+	Now              time.Time                `json:"now"`
+	PolicyVersion    string                   `json:"policy_version"`
+	Proposals        []domain.MatchProposal   `json:"proposals"`
+	Unmatched        []domain.UnmatchedTicket `json:"unmatched"`
+	UnmatchedTickets int                      `json:"unmatched_tickets"`
+	UnmatchedDigest  string                   `json:"unmatched_digest"`
+	BudgetExhausted  bool                     `json:"budget_exhausted"`
 }
 
 type proposalReservedEvent struct {
@@ -126,20 +129,88 @@ func newPlanCompletedEvent(
 	policyVersion string,
 	batch domain.ProposalBatch,
 ) (planCompletedEvent, error) {
-	unmatched, err := json.Marshal(batch.Unmatched)
+	unmatchedDigest, err := digestUnmatched(batch.Unmatched)
 	if err != nil {
-		return planCompletedEvent{}, fmt.Errorf("encode unmatched decision digest: %w", err)
+		return planCompletedEvent{}, err
 	}
-	digest := sha256.Sum256(unmatched)
 	proposals := make([]domain.MatchProposal, len(batch.Proposals))
 	for index, proposal := range batch.Proposals {
 		proposals[index] = domain.CloneProposal(proposal)
 	}
 	return planCompletedEvent{
 		SnapshotID: snapshotID, Now: now, PolicyVersion: policyVersion,
-		Proposals: proposals, UnmatchedTickets: len(batch.Unmatched),
-		UnmatchedDigest: hex.EncodeToString(digest[:]), BudgetExhausted: batch.BudgetExhausted,
+		Proposals: proposals, Unmatched: slices.Clone(batch.Unmatched),
+		UnmatchedTickets: len(batch.Unmatched),
+		UnmatchedDigest:  unmatchedDigest, BudgetExhausted: batch.BudgetExhausted,
 	}, nil
+}
+
+func plansFromRecords(records []Record) (map[domain.SnapshotID]planCompletedEvent, error) {
+	plans := make(map[domain.SnapshotID]planCompletedEvent)
+	for _, record := range records {
+		if eventKind(record.Kind) != eventPlanCompleted {
+			continue
+		}
+		var event planCompletedEvent
+		if err := decodePayload(record, &event); err != nil {
+			return nil, fmt.Errorf("decode plan at event %d: %w", record.Sequence, err)
+		}
+		if event.SnapshotID == "" || len(event.Unmatched) != event.UnmatchedTickets {
+			return nil, fmt.Errorf("plan event %d has incomplete batch content", record.Sequence)
+		}
+		digest, err := digestUnmatched(event.Unmatched)
+		if err != nil {
+			return nil, fmt.Errorf("validate plan event %d unmatched digest: %w", record.Sequence, err)
+		}
+		if digest != event.UnmatchedDigest {
+			return nil, fmt.Errorf("plan event %d has an unmatched digest mismatch", record.Sequence)
+		}
+		if existing, exists := plans[event.SnapshotID]; exists && !reflect.DeepEqual(existing, event) {
+			return nil, fmt.Errorf("snapshot %q has conflicting durable plan content", event.SnapshotID)
+		}
+		plans[event.SnapshotID] = clonePlanEvent(event)
+	}
+	return plans, nil
+}
+
+func digestUnmatched(unmatched []domain.UnmatchedTicket) (string, error) {
+	encoded, err := json.Marshal(unmatched)
+	if err != nil {
+		return "", fmt.Errorf("encode unmatched decision digest: %w", err)
+	}
+	digest := sha256.Sum256(encoded)
+	return hex.EncodeToString(digest[:]), nil
+}
+
+func proposalsFromPlans(plans map[domain.SnapshotID]planCompletedEvent) (map[domain.ProposalID]domain.MatchProposal, error) {
+	proposals := make(map[domain.ProposalID]domain.MatchProposal)
+	for _, event := range plans {
+		for _, proposal := range event.Proposals {
+			if existing, exists := proposals[proposal.ID]; exists && !reflect.DeepEqual(existing, proposal) {
+				return nil, fmt.Errorf("proposal %q has conflicting durable plan content", proposal.ID)
+			}
+			proposals[proposal.ID] = domain.CloneProposal(proposal)
+		}
+	}
+	return proposals, nil
+}
+
+func clonePlanEvent(event planCompletedEvent) planCompletedEvent {
+	proposals := make([]domain.MatchProposal, len(event.Proposals))
+	for index, proposal := range event.Proposals {
+		proposals[index] = domain.CloneProposal(proposal)
+	}
+	event.Proposals = proposals
+	event.Unmatched = slices.Clone(event.Unmatched)
+	return event
+}
+
+func batchFromPlanEvent(event planCompletedEvent) domain.ProposalBatch {
+	cloned := clonePlanEvent(event)
+	return domain.ProposalBatch{
+		SnapshotID: cloned.SnapshotID, Proposals: cloned.Proposals,
+		Unmatched: cloned.Unmatched, BudgetExhausted: cloned.BudgetExhausted,
+	}
 }
 
 func replayRecord(runtime *engine.Engine, record Record) error {

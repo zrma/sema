@@ -49,6 +49,7 @@ flowchart LR
 - `adapters`는 API, queue, database, telemetry를 연결하지만 domain decision을 소유하지 않는다.
 - public `alpha` package는 immutable composition input/output을 internal model과 명시적으로 변환하고 planner만 호출한다. coordinator lifecycle과 internal type은 노출하지 않는다.
 - `internal/durable`은 coordinator mutation과 plan decision을 한 writer에서 직렬화하고 synced journal을 restart recovery와 audit authority로 사용한다.
+- `cmd/sema-server`는 explicit `v0alpha1` DTO를 변환하고 server clock과 durable proposal lookup을 사용한다. client placement는 reserve authority가 아니다.
 
 ## Invariants
 
@@ -71,6 +72,7 @@ flowchart LR
 - 첫 integration은 same-process `internal/engine` direct call이며 idempotency scope와 assignment read model은 process lifetime에 한정된다.
 - 외부 import baseline은 `alpha.Compose`의 side-effect-free composition에 한정되며 JSON tag는 production wire contract가 아니다.
 - durable journal은 fixed reservation TTL과 Darwin/Linux single-writer file lock을 요구하며 horizontal authority는 제공하지 않는다.
+- 별도 consumer process는 HTTP로 분리하지만 planner, coordinator와 journal writer는 같은 deployable에 둔다.
 
 ## Failure Model
 

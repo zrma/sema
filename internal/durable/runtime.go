@@ -23,6 +23,8 @@ type Runtime struct {
 	reservationTTL time.Duration
 	journal        *journal
 	engine         *engine.Engine
+	plans          map[domain.SnapshotID]planCompletedEvent
+	proposals      map[domain.ProposalID]domain.MatchProposal
 	closed         bool
 	poisoned       error
 }
@@ -49,7 +51,19 @@ func Open(path string, reservationTTL time.Duration) (*Runtime, error) {
 		_ = journal.Close()
 		return nil, err
 	}
-	return &Runtime{reservationTTL: reservationTTL, journal: journal, engine: runtime}, nil
+	plans, err := plansFromRecords(records)
+	if err != nil {
+		_ = journal.Close()
+		return nil, err
+	}
+	proposals, err := proposalsFromPlans(plans)
+	if err != nil {
+		_ = journal.Close()
+		return nil, err
+	}
+	return &Runtime{
+		reservationTTL: reservationTTL, journal: journal, engine: runtime, plans: plans, proposals: proposals,
+	}, nil
 }
 
 func (runtime *Runtime) RegisterPolicy(policy domain.MatchmakingPolicy) (domain.PolicyFingerprint, error) {
@@ -145,6 +159,17 @@ func (runtime *Runtime) Plan(
 	if err := runtime.readyLocked(); err != nil {
 		return domain.ProposalBatch{}, err
 	}
+	if existing, exists := runtime.plans[snapshotID]; exists {
+		if existing.PolicyVersion != policyVersion {
+			return domain.ProposalBatch{}, domain.NewFailure(
+				domain.FailureIdempotencyConflict,
+				"snapshot ID %q was planned with policy %q",
+				snapshotID,
+				existing.PolicyVersion,
+			)
+		}
+		return batchFromPlanEvent(existing), nil
+	}
 	batch, err := runtime.engine.Plan(snapshotID, now, policyVersion)
 	if err != nil {
 		return domain.ProposalBatch{}, err
@@ -156,7 +181,25 @@ func (runtime *Runtime) Plan(
 	if err := runtime.persistLocked(eventPlanCompleted, event); err != nil {
 		return domain.ProposalBatch{}, err
 	}
+	runtime.plans[snapshotID] = clonePlanEvent(event)
+	for _, proposal := range batch.Proposals {
+		runtime.proposals[proposal.ID] = domain.CloneProposal(proposal)
+	}
 	return batch, nil
+}
+
+// Proposal returns a defensive copy of an authoritative, durably planned proposal.
+func (runtime *Runtime) Proposal(id domain.ProposalID) (domain.MatchProposal, bool, error) {
+	runtime.mu.Lock()
+	defer runtime.mu.Unlock()
+	if err := runtime.readyLocked(); err != nil {
+		return domain.MatchProposal{}, false, err
+	}
+	proposal, exists := runtime.proposals[id]
+	if !exists {
+		return domain.MatchProposal{}, false, nil
+	}
+	return domain.CloneProposal(proposal), true, nil
 }
 
 func (runtime *Runtime) Reserve(
@@ -302,7 +345,19 @@ func (runtime *Runtime) persistLocked(kind eventKind, event any) error {
 			runtime.poisoned = errors.Join(err, replayErr)
 			return fmt.Errorf("persist %s and replay journal: %w", kind, runtime.poisoned)
 		}
+		plans, planErr := plansFromRecords(records)
+		if planErr != nil {
+			runtime.poisoned = errors.Join(err, planErr)
+			return fmt.Errorf("persist %s and rebuild plan index: %w", kind, runtime.poisoned)
+		}
+		proposals, proposalErr := proposalsFromPlans(plans)
+		if proposalErr != nil {
+			runtime.poisoned = errors.Join(err, proposalErr)
+			return fmt.Errorf("persist %s and rebuild proposal index: %w", kind, runtime.poisoned)
+		}
 		runtime.engine = recovered
+		runtime.plans = plans
+		runtime.proposals = proposals
 		return fmt.Errorf("persist %s: %w", kind, err)
 	}
 	return nil

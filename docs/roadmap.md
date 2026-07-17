@@ -77,10 +77,10 @@
 
 ## P9: Production Runtime
 
-- [ ] ticket/session ingestion API
+- [x] versioned ticket/session ingestion API
 - [x] durable reservation/assignment persistence와 restart recovery
 - [x] restart-safe retry contract와 durable decision audit source of truth
-- [ ] process 분리 여부와 horizontal worker coordination 재평가
+- [x] process 분리 여부와 horizontal worker coordination 재평가
 
 ## P10: Operational Validation
 

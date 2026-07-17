@@ -1,6 +1,6 @@
 # ADR 0005: Initial Integration And Publication Baseline
 
-- Status: Accepted
+- Status: Superseded by ADR 0009 and ADR 0011
 
 ## Context
 

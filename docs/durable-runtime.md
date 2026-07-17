@@ -4,7 +4,7 @@
 
 `internal/durable.Runtime`은 기존 in-memory engine을 single-writer append-only journal로 감싼다. policy, ticket ingestion, planning decision, reservation, assignment와 acknowledgment를 같은 순서로 기록하고 재시작 때 replay한다.
 
-이 package는 P9 service adapter의 state authority이며 public `alpha` API나 production wire protocol이 아니다.
+이 package는 P9 service adapter의 state authority이며 public `alpha` API나 wire DTO 자체가 아니다.
 
 ## Durability Contract
 
@@ -20,7 +20,7 @@
 
 각 record는 schema, monotonic sequence, kind, payload와 SHA-256 checksum을 가진다. `Audit(after, limit)`은 최대 1000개를 defensive copy로 반환한다.
 
-`plan_completed`는 선택된 proposal과 evidence 전문, unmatched ticket count, canonical unmatched digest와 budget outcome을 기록한다. large queue의 unmatched 목록 전체를 cycle마다 journal에 복제하지 않으면서 caller가 받은 batch와 audit을 대조할 수 있는 경계다.
+`plan_completed`는 proposal/evidence와 unmatched 목록을 포함한 batch 전문, canonical unmatched digest와 budget outcome을 기록한다. `snapshot_id`는 durable idempotency key이므로 response가 유실된 뒤 재시작해도 최초 batch를 그대로 반환한다. 이 완전성은 large queue journal growth를 키우므로 pagination/retention은 P10에서 측정해 보완한다.
 
 ## Storage And Ownership
 
@@ -33,14 +33,14 @@
 
 replay는 original event time과 identity를 사용한다. `RegisterPolicy`, ticket upsert, reserve, confirm, cancel과 assignment acknowledgment의 기존 idempotency/CAS contract가 process restart를 넘어 유지된다. active reservation은 저장된 TTL로 동일한 `ExpiresAt`을 다시 계산한다.
 
-side-effect-free plan record는 engine state를 바꾸지 않고 audit에만 복구된다. assignment delivery consumer는 같은 `assignmentID`와 `operationID`를 사용해 pending read model을 조회하고 acknowledgment를 반복해야 한다.
+side-effect-free plan record는 engine state를 바꾸지 않고 audit와 authoritative proposal index에 복구된다. assignment delivery consumer는 같은 `assignmentID`와 `operationID`를 사용해 pending read model을 조회하고 acknowledgment를 반복해야 한다.
 
 ## Current Limits
 
 - single replica와 한 journal writer만 지원한다.
 - journal compaction/snapshot과 online backup은 아직 없다.
 - Darwin/Linux 외 runtime은 지원하지 않는다.
-- authentication, service transport와 assignment polling endpoint는 다음 P9 slice다.
+- authentication, push delivery, multi-replica transport와 remote storage는 아직 없다.
 - replay benchmark는 102/1002 event fixture를 실행하지만 numeric startup SLO는 P10 target hardware evidence 전까지 고정하지 않는다.
 
 ## Verification

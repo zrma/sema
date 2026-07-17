@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P8 public alpha integration까지 완료되었고 P9 single-writer durable runtime foundation이 구현되었다. 현재는 versioned ticket/session ingestion과 assignment delivery API를 설계한다.
+P0부터 P9 versioned single-writer service runtime까지 완료되었다. 현재는 P10 observability, load/failure validation, deployment와 measured production gate를 진행한다.
 
 ## Established
 
@@ -12,7 +12,7 @@ P0부터 P8 public alpha integration까지 완료되었고 P9 single-writer dura
 - reference workloads: 2:2부터 50:50 team match, 총원 100명의 duo/squad battle royale.
 - objective schedule: skill balance와 role composition에서 wait time과 latency 쪽으로 시간 기반 완화.
 - consistency baseline: per-aggregate revision, reserve/commit CAS, in-process coordinator authority.
-- implementation baseline: Go, 하나의 deployable process, 인메모리 상태.
+- implementation baseline: Go, 하나의 deployable process, in-memory core와 durable service journal.
 - canonical entity schema, lifecycle, typed failure contract.
 - immutable snapshot과 party-preserving bounded enumeration.
 - deterministic multi-match와 backfill-first `ProposalBatch`.
@@ -41,7 +41,10 @@ P0부터 P8 public alpha integration까지 완료되었고 P9 single-writer dura
 - versioned `sema-lab` cross-build/checksum script와 verified-tag GitHub Release workflow.
 - checksummed `sema-journal-v1`과 sync-before-success durable runtime.
 - active reservation, assignment, acknowledgment와 policy/ticket restart replay.
-- compact plan decision audit, torn-tail recovery, complete-corruption refusal와 single-writer lock.
+- complete plan decision audit와 snapshot ID idempotency, torn-tail recovery, corruption refusal와 single-writer lock.
+- explicit `v0alpha1` HTTP DTO와 policy/ticket/backfill/plan/reservation/assignment endpoint.
+- server-owned clock, durable proposal ID authority와 restart-safe synchronous/polling delivery.
+- loopback-default `sema-server`, bounded strict JSON, typed failure mapping과 graceful shutdown.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
@@ -58,8 +61,8 @@ P0부터 P8 public alpha integration까지 완료되었고 P9 single-writer dura
 - production-calibrated arrival sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index와 full unmatched output pagination.
 - external database, journal compaction와 multi-replica coordination.
-- ticket/session ingestion server, assignment delivery endpoint, observability와 deployment.
-- stable/v1 Go API, production wire protocol과 실제 external consumer evidence.
+- authentication/TLS/rate limit, observability와 deployment.
+- stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 
 ## Risks And Decisions Pending
 
@@ -71,4 +74,4 @@ P0부터 P8 public alpha integration까지 완료되었고 P9 single-writer dura
 
 ## Next Slice
 
-public alpha는 immutable composition에만 유지한다. 다음 slice는 durable runtime 위의 versioned HTTP ingestion, planning/reservation와 pending assignment polling/acknowledgment API다. authentication과 multi-replica coordination은 포함하지 않고 separate-process failure semantics를 먼저 검증한다.
+public alpha와 service `v0alpha1`은 experimental 경계를 유지한다. 다음 slice는 P10 metrics/traces와 redacted decision audit exporter다. 그 evidence 위에서 load/soak/failure injection, container/runbook과 numeric SLO를 순서대로 고정한다.

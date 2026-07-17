@@ -214,3 +214,5 @@ coverage.out
 bin/
 dist/
 *.journal
+/sema-lab
+/sema-server

@@ -42,3 +42,4 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - public surface는 `alpha.Compose`의 side-effect-free composition으로 제한하고 internal type alias나 coordinator lifecycle을 노출하지 않는다.
 - release automation은 publication 승인과 local private-inventory gate를 대체하지 않는다.
 - P9 durable mutation은 `docs/durable-runtime.md`의 sync-before-success, fixed TTL과 single-writer replay contract를 지킨다.
+- HTTP lifecycle은 `docs/service-api.md`의 server clock, proposal ID authority와 loopback-default boundary를 지킨다.

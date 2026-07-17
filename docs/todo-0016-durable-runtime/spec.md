@@ -12,14 +12,14 @@ single-replica engine의 accepted state와 decision audit을 restart 뒤 복구�
 - file sync completion boundary와 failed-append in-memory rollback/replay.
 - fixed reservation TTL configuration record.
 - policy, ticket, plan, reservation, assignment와 acknowledgment replay.
-- compact plan audit와 paged defensive read.
+- complete plan audit, snapshot ID idempotency와 paged defensive read.
 - Darwin/Linux single-writer lock과 private file permissions.
 
 ## Acceptance
 
 - active reservation이 restart 뒤 ticket을 계속 소유하고 confirm할 수 있다.
 - confirmed/terminal assignment와 same-ID retry가 restart 뒤 동일하다.
-- plan proposal/evidence와 unmatched digest가 ordered audit에 남는다.
+- complete plan batch와 unmatched digest가 ordered audit에 남는다.
 - torn final tail은 복구하고 complete checksum/schema corruption은 startup failure다.
 - concurrent second writer와 TTL drift를 거부한다.
 - focused test/race와 102/1002-event replay benchmark가 실행된다.

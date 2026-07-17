@@ -174,6 +174,21 @@ func TestRuntimePersistsOrderedDecisionAudit(t *testing.T) {
 	if len(recovered) != len(wantKinds) {
 		t.Fatalf("recovered audit count = %d; want %d", len(recovered), len(wantKinds))
 	}
+	proposal, exists, err := runtime.Proposal(batch.Proposals[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !exists || !reflect.DeepEqual(proposal, batch.Proposals[0]) {
+		t.Fatalf("recovered planned proposal = %#v, %t; want %#v", proposal, exists, batch.Proposals[0])
+	}
+	proposal.Teams[0].Tickets[0].ID = "mutated"
+	againProposal, _, err := runtime.Proposal(batch.Proposals[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if againProposal.Teams[0].Tickets[0].ID == "mutated" {
+		t.Fatal("planned proposal mutation leaked into runtime")
+	}
 	closeRuntime(t, runtime)
 }
 
@@ -326,6 +341,50 @@ func TestRuntimeReplaysCancellationEventKinds(t *testing.T) {
 		if !hasRecordKind(records, want) {
 			t.Fatalf("audit omits %q: %#v", want, records)
 		}
+	}
+	closeRuntime(t, runtime)
+}
+
+func TestPlanSnapshotIDIsDurableIdempotencyKey(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "sema.journal")
+	runtime := openRuntime(t, path)
+	policy := testPolicy()
+	if _, err := runtime.RegisterPolicy(policy); err != nil {
+		t.Fatal(err)
+	}
+	for _, ticket := range soloTickets(4) {
+		if err := runtime.SubmitMatchTicket(ticket); err != nil {
+			t.Fatal(err)
+		}
+	}
+	first, err := runtime.Plan("snapshot-idempotent", fixtureNow, policy.Version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := runtime.Audit(0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	closeRuntime(t, runtime)
+
+	runtime = openRuntime(t, path)
+	retried, err := runtime.Plan("snapshot-idempotent", fixtureNow.Add(time.Hour), policy.Version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(retried, first) {
+		t.Fatalf("plan retry changed durable batch: first=%#v retry=%#v", first, retried)
+	}
+	after, err := runtime.Audit(0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(after, before) {
+		t.Fatalf("plan retry appended another decision: before=%d after=%d", len(before), len(after))
+	}
+	_, err = runtime.Plan("snapshot-idempotent", fixtureNow, "different-policy")
+	if code, ok := domain.FailureCodeOf(err); !ok || code != domain.FailureIdempotencyConflict {
+		t.Fatalf("snapshot policy conflict = %v; want %s", err, domain.FailureIdempotencyConflict)
 	}
 	closeRuntime(t, runtime)
 }

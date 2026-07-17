@@ -1,6 +1,6 @@
 # ADR 0002: Same-Process Engine Adapter With Producer Replay
 
-- Status: Accepted
+- Status: Superseded by ADR 0011
 - Decision date: 2026-07-15
 
 ## Context
