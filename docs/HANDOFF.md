@@ -33,15 +33,17 @@
 - public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
 - `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
 - alpha compatibility/migration gate와 versioned `sema-lab` binary/checksum release workflow가 준비되어 있다.
+- `internal/durable`이 checksummed journal sync 뒤 성공을 반환하고 restart 때 reservation/assignment/idempotency를 replay한다.
+- compact plan audit, torn-tail recovery, corruption refusal, fixed TTL과 single-writer file lock이 P9 persistence authority를 고정한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
 - `alpha` 외 Go package는 `internal/`에 유지하며 stable API와 wire compatibility는 아직 제공하지 않는다.
-- numeric SLO, skill metric, role schema, production persistence는 아직 결정하지 않았다.
+- numeric SLO, skill metric, role schema와 multi-replica persistence는 아직 결정하지 않았다.
 - publication class는 `public`이며 push 전 repository gate와 machine-local inventory gate를 모두 통과한다.
 
 ## Current Work
 
-P0 foundation부터 P8 public alpha integration까지 완료되었다. ADR 0006의 engine-first 순서에 따라 다음 repo-owned 작업은 P9 single-replica durable runtime이다. 먼저 ingestion, restart recovery, retry와 audit authority를 고정하고, process 분리와 horizontal coordination은 failure evidence가 생긴 뒤 재평가한다.
+P0 foundation부터 P8 public alpha integration까지 완료되었고 P9 durable runtime foundation도 닫혔다. 다음 repo-owned 작업은 journal authority 위에 versioned ingestion, planning/reservation, assignment polling/acknowledgment HTTP API를 두는 것이다. process 분리와 horizontal coordination은 이 failure evidence 뒤 재평가한다.
 
 ## Completion Rule
 

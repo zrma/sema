@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P8 public alpha integration과 distribution baseline까지 완료되었다. 현재는 P9 production runtime에서 durable state, restart recovery와 delivery contract를 설계한다.
+P0부터 P8 public alpha integration까지 완료되었고 P9 single-writer durable runtime foundation이 구현되었다. 현재는 versioned ticket/session ingestion과 assignment delivery API를 설계한다.
 
 ## Established
 
@@ -39,6 +39,9 @@ P0부터 P8 public alpha integration과 distribution baseline까지 완료되었
 - `internal/`을 직접 import하지 않는 repository-owned `examples/compose` reference consumer.
 - `v0alpha1` compatibility/migration policy와 stable API 진입 gate.
 - versioned `sema-lab` cross-build/checksum script와 verified-tag GitHub Release workflow.
+- checksummed `sema-journal-v1`과 sync-before-success durable runtime.
+- active reservation, assignment, acknowledgment와 policy/ticket restart replay.
+- compact plan decision audit, torn-tail recovery, complete-corruption refusal와 single-writer lock.
 - GPT-5.6 `agent-harness-v1`, local validation, publication boundary contract.
 - built-in team/battle-royale/backfill/no-match/objective corpus를 실행하는 `cmd/sema-lab`.
 - ticket/player coverage, unmatched reason, search evidence와 proposal placement를 제공하는 deterministic text report.
@@ -54,8 +57,8 @@ P0부터 P8 public alpha integration과 distribution baseline까지 완료되었
 
 - production-calibrated arrival sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index와 full unmatched output pagination.
-- reservation/assignment persistence와 distributed coordination.
-- ticket/session ingestion server, durable state, observability와 deployment.
+- external database, journal compaction와 multi-replica coordination.
+- ticket/session ingestion server, assignment delivery endpoint, observability와 deployment.
 - stable/v1 Go API, production wire protocol과 실제 external consumer evidence.
 
 ## Risks And Decisions Pending
@@ -64,8 +67,8 @@ P0부터 P8 public alpha integration과 distribution baseline까지 완료되었
 - skill uncertainty와 team balance metric.
 - role composition의 hard/soft 경계.
 - mixed-party battle royale과 현실적인 existing-roster backfill 분포.
-- 인메모리 baseline은 process restart recovery를 제공하지 않는다.
+- append-only journal에는 아직 compaction, online backup와 numeric recovery SLO가 없다.
 
 ## Next Slice
 
-public alpha는 immutable composition에만 유지하고 coordinator lifecycle을 확장하지 않는다. 다음 slice는 P9 single-replica durable runtime이다. ticket/session ingestion, reservation/assignment 복구와 retry/audit source of truth를 먼저 고정한 뒤에만 process 분리와 horizontal coordination을 재평가한다.
+public alpha는 immutable composition에만 유지한다. 다음 slice는 durable runtime 위의 versioned HTTP ingestion, planning/reservation와 pending assignment polling/acknowledgment API다. authentication과 multi-replica coordination은 포함하지 않고 separate-process failure semantics를 먼저 검증한다.

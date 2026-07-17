@@ -48,6 +48,7 @@ flowchart LR
 - coordinator는 active match ticket의 player ownership index를 함께 갱신해 한 player가 둘 이상의 active ticket에 속하지 않게 한다.
 - `adapters`는 API, queue, database, telemetry를 연결하지만 domain decision을 소유하지 않는다.
 - public `alpha` package는 immutable composition input/output을 internal model과 명시적으로 변환하고 planner만 호출한다. coordinator lifecycle과 internal type은 노출하지 않는다.
+- `internal/durable`은 coordinator mutation과 plan decision을 한 writer에서 직렬화하고 synced journal을 restart recovery와 audit authority로 사용한다.
 
 ## Invariants
 
@@ -65,11 +66,11 @@ flowchart LR
 
 - P0의 `Coordinator`가 reservation authority이며 planner는 외부 상태를 변경하지 않는다.
 - reservation은 opaque `reservationID`를 confirm/cancel token으로 사용하고 fixed TTL을 적용하며 P0에서는 별도 lease owner나 renewal을 지원하지 않는다.
-- 프로세스 내부 상태가 실행 중 source of truth다.
-- 프로세스 재시작은 모든 미확정 reservation을 폐기하며 producer가 active ticket과 session snapshot을 다시 제출한다.
+- raw `internal/engine`에서는 프로세스 내부 상태가 source of truth이고 restart 뒤 producer replay가 필요하다.
+- P9 service runtime에서는 `sema-journal-v1`이 source of truth이며 startup replay가 active reservation과 assignment를 복구한다.
 - 첫 integration은 same-process `internal/engine` direct call이며 idempotency scope와 assignment read model은 process lifetime에 한정된다.
 - 외부 import baseline은 `alpha.Compose`의 side-effect-free composition에 한정되며 JSON tag는 production wire contract가 아니다.
-- durable recovery가 요구되면 persistence milestone에서 reservation/assignment store와 delivery contract를 별도로 설계한다.
+- durable journal은 fixed reservation TTL과 Darwin/Linux single-writer file lock을 요구하며 horizontal authority는 제공하지 않는다.
 
 ## Failure Model
 
@@ -81,7 +82,7 @@ flowchart LR
 ## Initial Non-goals
 
 - planner와 coordinator를 별도 process로 배포하지 않는다.
-- P8까지 durable persistence와 process restart recovery를 제공하지 않는다.
+- multi-replica durable writer와 distributed coordination을 제공하지 않는다.
 - allocation server hosting, game server lifecycle, identity/auth 전체를 소유하지 않는다.
 - 모든 게임에 공통인 단일 quality formula를 제공하지 않는다.
 - 처음부터 global optimum을 보장하지 않는다. budget과 approximation contract를 명시한다.

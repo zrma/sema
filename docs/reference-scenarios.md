@@ -154,3 +154,7 @@ zero `MaxCandidateTickets`는 unbounded result를 유지하고 positive limit은
 ## S24: Public Alpha Consumer And Release Build
 
 external test package가 `alpha.Compose`만 import해 같은 snapshot의 순서를 뒤집어도 동일한 disjoint multi-match batch를 얻고 invalid input을 typed alpha error로 읽는다. `examples/compose`는 direct `internal/` import 없이 실행된다. host `sema-lab` artifact는 explicit version을 출력하고 생성된 `SHA256SUMS` 검증을 통과한다. 실제 tag, release와 remote push는 이 local scenario의 범위 밖이다.
+
+## S25: Durable Restart And Journal Recovery
+
+policy, four-ticket plan과 active reservation을 synced journal에 기록한 뒤 runtime을 다시 열면 같은 policy fingerprint와 reserved ownership이 복구되고 confirm할 수 있다. confirmed assignment와 terminal acknowledgment도 restart 뒤 same-ID retry가 동일한 read model을 반환한다. incomplete final tail은 제거하지만 complete corruption, concurrent second writer와 reservation TTL drift는 startup failure다. ordered audit은 plan proposal/evidence와 unmatched digest를 유지한다.

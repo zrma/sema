@@ -28,6 +28,7 @@ for required_file in \
   docs/public-api.md \
   docs/api-compatibility.md \
   docs/releasing.md \
+  docs/durable-runtime.md \
   docs/policy-simulation.md \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
@@ -39,6 +40,7 @@ for required_file in \
   docs/decisions/0007-evaluation-calibration-baseline.md \
   docs/decisions/0008-candidate-window-baseline.md \
   docs/decisions/0009-alpha-integration-release-baseline.md \
+  docs/decisions/0010-durable-journal-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -57,6 +59,7 @@ for required_file in \
   docs/todo-0013-workload-evaluation/spec.md \
   docs/todo-0014-candidate-discovery/spec.md \
   docs/todo-0015-public-integration/spec.md \
+  docs/todo-0016-durable-runtime/spec.md \
   scripts/build-release.sh \
   scripts/check-release-build.sh \
   go.mod; do
@@ -119,5 +122,6 @@ go run ./examples/compose >/dev/null
 scripts/check-release-build.sh
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x
 go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x
+go test ./internal/durable -run '^$' -bench '^BenchmarkOpenReplay$' -benchtime=1x
 
 printf 'sema repository checks passed\n'
