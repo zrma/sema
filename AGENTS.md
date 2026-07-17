@@ -52,3 +52,4 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - closed population, outcome curve와 Elo update는 `docs/sema-flow.md`의 reference simulation이며 production MMR이나 scheduler contract로 승격하지 않는다.
 - Flow measurement는 `docs/sema-flow-measurement.md`의 player-weighted wait, time-weighted saturation과 fixed-point throughput 계약을 따르며 제품 SLA로 해석하지 않는다.
 - Flow simulation event frame은 logical time을 소유하지 않는다. `docs/todo-0025-discrete-event-scheduler/spec.md`의 due ingress, stable timestamp ordering과 horizon backlog 계약을 유지한다.
+- Flow capacity 비교는 `docs/sema-flow-capacity-matrix.md`의 동일-demand gate와 min/median/max contract를 지키며 product target 없이 profile 권장이나 production capacity를 선언하지 않는다.

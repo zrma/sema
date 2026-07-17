@@ -103,7 +103,7 @@ go run ./cmd/sema-flow-report
 go run ./cmd/sema-flow-report -format json -duration 10m
 ```
 
-due arrival은 이미 예약된 server-clock 시각의 event이므로 처리 frame 자체가 simulated queue time을 추가하지 않는다. scheduler는 다음 arrival, lifecycle stage, game completion과 planning eligibility 중 가장 이른 logical timestamp로 전진하며 같은 timestamp의 여러 event는 여러 TUI frame으로 보여도 clock을 더 전진시키지 않는다. `ready`는 scheduled timestamp가 지난 ingress backlog이고 `cooldown`은 아직 복귀 시각이 오지 않은 player다. metric 정의, 기본 30분 aggregate와 JSON truth boundary는 `docs/sema-flow-measurement.md`가 소유한다.
+due arrival은 이미 예약된 server-clock 시각의 event이므로 처리 frame 자체가 simulated queue time을 추가하지 않는다. scheduler는 다음 arrival, lifecycle stage, game completion과 planning eligibility 중 가장 이른 logical timestamp로 전진하며 같은 timestamp의 여러 event는 여러 TUI frame으로 보여도 clock을 더 전진시키지 않는다. `ready`는 scheduled timestamp가 지난 ingress backlog이고 `cooldown`은 아직 복귀 시각이 오지 않은 player다. metric 정의와 기본 30분 aggregate는 `docs/sema-flow-measurement.md`, multi-seed profile 비교는 `docs/sema-flow-capacity-matrix.md`가 소유한다.
 
 ## Truth Boundary
 

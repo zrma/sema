@@ -19,6 +19,7 @@ for required_file in \
   cmd/sema-ops-check/main.go \
   cmd/sema-tui/main.go \
   cmd/sema-flow-report/main.go \
+  cmd/sema-flow-matrix/main.go \
   deploy/compose.yaml \
   examples/compose/main.go \
   internal/api/v0alpha1/types.go \
@@ -27,6 +28,7 @@ for required_file in \
   internal/operational/load.go \
   internal/performance/report.go \
   internal/flow/simulator.go \
+  internal/flowmatrix/matrix.go \
   internal/flowui/model.go \
   internal/league/population.go \
   docs/agent-harness.md \
@@ -54,6 +56,7 @@ for required_file in \
   docs/release-admission.md \
   docs/sema-flow.md \
   docs/sema-flow-measurement.md \
+  docs/sema-flow-capacity-matrix.md \
   docs/policy-simulation.md \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
@@ -99,6 +102,7 @@ for required_file in \
   docs/todo-0023-population-simulation/spec.md \
   docs/todo-0024-flow-measurement/spec.md \
   docs/todo-0025-discrete-event-scheduler/spec.md \
+  docs/todo-0026-capacity-matrix/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \
@@ -185,6 +189,7 @@ go run ./cmd/sema-tui -version >/dev/null
 go run ./cmd/sema-tui -snapshot -population 40 -concurrent-matches 4 -game-duration 20s -steps 80 -width 100 -height 32 >/dev/null
 go run ./cmd/sema-flow-report -version >/dev/null
 go run ./cmd/sema-flow-report -duration 60s -population 40 -concurrent-matches 4 -game-duration 20s -max-return-delay 10s -format json >/dev/null
+go run ./cmd/sema-flow-matrix -duration 3s -population 40 -seeds 42,43 -profiles 2:2,4:2 -parallel 2 -game-duration 20s -arrival-interval 100ms -planning-interval 1s -max-return-delay 10s -format json >/dev/null
 scripts/check-release-build.sh
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x
 go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x

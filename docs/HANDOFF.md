@@ -49,6 +49,7 @@
 - `cmd/sema-flow-report`가 같은 closed loop를 headless로 실행하고 player-weighted wait, assignment yield, match throughput, time-weighted queue saturation과 proposal quality를 versioned aggregate로 출력한다.
 - Flow scheduler는 presentation frame과 logical clock을 분리하고 due ingress, batch reservation/confirmation, completion과 planning을 deterministic timestamp 순서로 처리한다.
 - `sema.flow.measurement.v0alpha2`가 ingress arrival lag와 horizon backlog를 노출하며 8/16/32 concurrent 10분 fixture는 모두 initial party 600개, lag 0ms, final backlog 0을 유지한다.
+- `cmd/sema-flow-matrix`가 seed 42/73/101과 concurrent/batch 8/2, 16/4, 32/8을 비교하고 throughput, wait, queue와 quality min/median/max를 `sema.flow.capacity-matrix.v0alpha1`로 출력한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
 - `alpha` 외 Go package는 `internal/`에 유지하며 stable API와 wire compatibility는 아직 제공하지 않는다.
@@ -57,7 +58,7 @@
 
 ## Current Work
 
-P0 foundation부터 P14 Flow discrete-event scheduler까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement model은 synthetic reference workload로만 둔다. 다음 repository-owned milestone은 P15 multi-seed capacity matrix이며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P15 multi-seed Flow capacity matrix까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix model은 synthetic reference workload로만 둔다. 다음 simulation milestone은 wait/quality/cost target이나 traffic calibration hypothesis가 생길 때 열며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

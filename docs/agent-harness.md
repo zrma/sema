@@ -124,5 +124,6 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Closed-loop population simulation: `docs/todo-0023-population-simulation/spec.md`, `internal/league`.
 - Flow measurement baseline: `docs/todo-0024-flow-measurement/spec.md`, `docs/sema-flow-measurement.md`, `cmd/sema-flow-report`.
 - Flow discrete-event scheduler: `docs/todo-0025-discrete-event-scheduler/spec.md`, `internal/flow`.
+- Flow capacity matrix: `docs/todo-0026-capacity-matrix/spec.md`, `docs/sema-flow-capacity-matrix.md`, `cmd/sema-flow-matrix`.
 - Long-term engine-first sequence: `docs/decisions/0006-product-development-sequence.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

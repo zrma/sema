@@ -62,6 +62,8 @@ P14의 기본 30분 run은 다음 aggregate를 만든다. 이 값은 regression 
 
 이 표는 동일 수요 분모를 검증하는 deterministic fixture다. 한 seed의 synthetic 결과이므로 confidence interval이나 production capacity frontier가 아니다.
 
+여러 seed의 변동 범위와 자동화된 profile comparison은 `docs/sema-flow-capacity-matrix.md`와 `cmd/sema-flow-matrix`를 사용한다.
+
 ## Determinism And Interpretation
 
 clock은 다음 scheduled arrival, reservation/confirmation stage, game completion, planning eligibility 또는 bounded tick 중 가장 이른 timestamp로만 전진한다. due arrival은 같은 timestamp의 기존 lifecycle transition보다 먼저 처리하고 한 batch의 reservation과 confirmation은 stage별로 같은 timestamp를 공유하며 proposal ID 순서로 방출한다. event를 TUI에서 한 frame씩 보여줘도 같은 timestamp의 frame 수가 queue wait를 늘리지 않는다.
