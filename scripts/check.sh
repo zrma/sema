@@ -78,6 +78,7 @@ for required_file in \
   docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/migrations/v0alpha3-to-v0alpha4.md \
+  docs/migrations/v0alpha4-to-v0alpha5.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -117,6 +118,7 @@ for required_file in \
   docs/todo-0034-batch-quality-frontier/spec.md \
   docs/todo-0035-small-queue-pareto-planning/spec.md \
   docs/todo-0036-queue-fairness-starvation/spec.md \
+  docs/todo-0037-backfill-quality-context/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-performance.sh \

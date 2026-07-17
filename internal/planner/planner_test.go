@@ -253,6 +253,44 @@ func TestPlanPrioritizesBackfill(t *testing.T) {
 	}
 }
 
+func TestPlanBalancesResultingBackfillRoster(t *testing.T) {
+	configured := policy(2, 2)
+	configured.MaxProposals = 1
+	configured.MaxCandidatesPerProposal = 64
+	configured.RoleRequirements = []domain.RoleRequirement{{Role: "healer", MinPerTeam: 1}}
+	configured.RelaxationSteps = []domain.RelaxationStep{{
+		AfterWait: 0, MaxTeamSkillGap: 1_000, MaxRolePenalty: 2,
+	}}
+	tickets := namedSoloTickets([]ticketAttributes{
+		{id: "high-dps", skill: 1_500, role: "dps", wait: 10 * time.Second, latency: 20},
+		{id: "low-healer", skill: 1_000, role: "healer", wait: 10 * time.Second, latency: 30},
+		{id: "mid-dps", skill: 1_250, role: "dps", wait: 10 * time.Second, latency: 20},
+		{id: "mid-healer", skill: 1_250, role: "healer", wait: 10 * time.Second, latency: 30},
+	})
+	snapshot := snapshotWith("roster-aware-backfill", configured, tickets)
+	snapshot.BackfillTickets = []domain.BackfillTicket{{
+		ID: "backfill", Revision: 2, SessionID: "session", RosterVersion: 7,
+		OpenSlotsByTeam: []int{1, 1}, EnqueuedAt: fixtureNow.Add(-time.Minute),
+		ExistingTeams: []domain.RosterTeamSummary{
+			{PlayerCount: 1, SkillTotal: 1_000, RoleCounts: []domain.RoleCount{{Role: "healer", Count: 1}}, MaxLatencyMillis: 40},
+			{PlayerCount: 1, SkillTotal: 1_500, RoleCounts: []domain.RoleCount{{Role: "dps", Count: 1}}, MaxLatencyMillis: 60},
+		},
+	}}
+	batch, err := planner.Plan(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 1 || batch.Proposals[0].Kind != domain.ProposalBackfill ||
+		!proposalHasTickets(batch.Proposals[0], "high-dps", "low-healer") {
+		t.Fatalf("roster-aware proposal = %#v", batch.Proposals)
+	}
+	proposal := batch.Proposals[0]
+	if proposal.Backfill == nil || proposal.Backfill.RosterVersion != 7 || proposal.Evidence.TeamSkillGap != 0 ||
+		proposal.Evidence.RolePenalty != 0 || proposal.Evidence.MaxLatencyMillis != 60 {
+		t.Fatalf("roster-aware evidence = %#v, target=%#v", proposal.Evidence, proposal.Backfill)
+	}
+}
+
 func TestPlanKeepsHardConstraintFailuresUnmatched(t *testing.T) {
 	tickets := partyTickets([]int{3, 1, 1, 1})
 	tickets[len(tickets)-1].Players[0].LatencyMillis = 201

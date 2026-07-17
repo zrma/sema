@@ -16,6 +16,7 @@
 | `diagnostic-batch-frontier-gap` | exactly 5000 bp | generation at most 30 nodes; 12 placements, 6 candidates, 10 batches | `frontier_dominated`, planner 1 proposal/2 players, witness 2 proposals/4 players |
 | default small-queue differential seeds 1..128 | valid batch coverage | no generation/selection truncation | all `frontier_equivalent` |
 | sustained-arrival fairness | fresh pair per 10s cycle | 4-ticket oldest window, no truncation | old pair selected at configured 30s priority boundary |
+| roster-aware backfill | 2 existing + 2 incoming players per team shape | small exhaustive frontier | `frontier_equivalent`, resulting gap 0, role penalty 0, max latency 60 |
 
 V1 값은 production SLO가 아니다. 현재 deterministic algorithm의 구조적 regression budget이며 policy, generator 또는 objective를 의도적으로 바꾸면 diff에서 metric tradeoff를 설명하고 이 문서와 test를 같은 change에서 갱신한다.
 

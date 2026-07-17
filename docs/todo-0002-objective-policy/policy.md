@@ -12,7 +12,7 @@ P1은 rating system 자체가 아니라 이미 계산된 `Player.skill`, `Player
 - `minPerTeam`: 새 match의 각 team에 필요한 최소 인원.
 - `hard`: `true`이면 모든 relaxation 단계에서 반드시 충족하고, `false`이면 부족한 인원 수를 role penalty로 계산한다.
 
-role taxonomy와 한 player의 multi-role 표현은 P1 범위 밖이다. backfill은 기존 roster의 role 정보가 아직 없으므로 P1에서 role/skill quality threshold를 적용하지 않고 새로 들어가는 party의 wait와 latency만 비교한다.
+role taxonomy와 한 player의 multi-role 표현은 P1 범위 밖이다. P1 당시 backfill은 기존 roster의 role 정보가 없어 role/skill quality threshold를 적용하지 않고 새로 들어가는 party의 wait와 latency만 비교했다. P26부터 optional roster-versioned aggregate가 있으면 resulting roster의 role/skill/latency evidence를 같은 objective vocabulary로 평가하고, context가 없을 때만 이 legacy behavior를 유지한다.
 
 ## Relaxation Step
 

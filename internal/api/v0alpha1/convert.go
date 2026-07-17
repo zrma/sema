@@ -21,10 +21,22 @@ func ToDomainMatchTicket(ticket MatchTicket) domain.MatchTicket {
 }
 
 func ToDomainBackfillTicket(ticket BackfillTicket) domain.BackfillTicket {
+	existingTeams := make([]domain.RosterTeamSummary, len(ticket.ExistingTeams))
+	for teamIndex, team := range ticket.ExistingTeams {
+		roles := make([]domain.RoleCount, len(team.RoleCounts))
+		for roleIndex, role := range team.RoleCounts {
+			roles[roleIndex] = domain.RoleCount{Role: role.Role, Count: role.Count}
+		}
+		existingTeams[teamIndex] = domain.RosterTeamSummary{
+			PlayerCount: team.PlayerCount, SkillTotal: team.SkillTotal,
+			RoleCounts: roles, MaxLatencyMillis: team.MaxLatencyMillis,
+		}
+	}
 	return domain.BackfillTicket{
 		ID: domain.TicketID(ticket.ID), Revision: domain.Revision(ticket.Revision),
 		SessionID: domain.SessionID(ticket.SessionID), RosterVersion: domain.Revision(ticket.RosterVersion),
-		OpenSlotsByTeam: append([]int(nil), ticket.OpenSlotsByTeam...), EnqueuedAt: ticket.EnqueuedAt,
+		OpenSlotsByTeam: append([]int(nil), ticket.OpenSlotsByTeam...), ExistingTeams: existingTeams,
+		EnqueuedAt: ticket.EnqueuedAt,
 	}
 }
 

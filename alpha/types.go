@@ -5,7 +5,7 @@ package alpha
 
 import "time"
 
-const APIVersion = "v0alpha4"
+const APIVersion = "v0alpha5"
 
 type (
 	PlayerID          string
@@ -31,13 +31,26 @@ type MatchTicket struct {
 	Players    []Player  `json:"players"`
 }
 
+type RoleCount struct {
+	Role  string `json:"role"`
+	Count int    `json:"count"`
+}
+
+type RosterTeamSummary struct {
+	PlayerCount      int         `json:"player_count"`
+	SkillTotal       int         `json:"skill_total"`
+	RoleCounts       []RoleCount `json:"role_counts,omitempty"`
+	MaxLatencyMillis int         `json:"max_latency_millis"`
+}
+
 type BackfillTicket struct {
-	ID              TicketID  `json:"id"`
-	Revision        Revision  `json:"revision"`
-	SessionID       SessionID `json:"session_id"`
-	RosterVersion   Revision  `json:"roster_version"`
-	OpenSlotsByTeam []int     `json:"open_slots_by_team"`
-	EnqueuedAt      time.Time `json:"enqueued_at"`
+	ID              TicketID            `json:"id"`
+	Revision        Revision            `json:"revision"`
+	SessionID       SessionID           `json:"session_id"`
+	RosterVersion   Revision            `json:"roster_version"`
+	OpenSlotsByTeam []int               `json:"open_slots_by_team"`
+	ExistingTeams   []RosterTeamSummary `json:"existing_teams,omitempty"`
+	EnqueuedAt      time.Time           `json:"enqueued_at"`
 }
 
 type RoleRequirement struct {
@@ -149,6 +162,7 @@ const (
 	UnmatchedQualityThreshold     UnmatchedReason = "quality_threshold"
 	UnmatchedSearchBudget         UnmatchedReason = "search_budget"
 	UnmatchedProposalLimit        UnmatchedReason = "proposal_limit"
+	UnmatchedBatchObjective       UnmatchedReason = "batch_objective"
 )
 
 type UnmatchedTicket struct {

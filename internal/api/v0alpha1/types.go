@@ -31,13 +31,26 @@ type MatchTicket struct {
 	Players    []Player  `json:"players"`
 }
 
+type RoleCount struct {
+	Role  string `json:"role"`
+	Count int    `json:"count"`
+}
+
+type RosterTeamSummary struct {
+	PlayerCount      int         `json:"player_count"`
+	SkillTotal       int         `json:"skill_total"`
+	RoleCounts       []RoleCount `json:"role_counts,omitempty"`
+	MaxLatencyMillis int         `json:"max_latency_millis"`
+}
+
 type BackfillTicket struct {
-	ID              string    `json:"id"`
-	Revision        uint64    `json:"revision"`
-	SessionID       string    `json:"session_id"`
-	RosterVersion   uint64    `json:"roster_version"`
-	OpenSlotsByTeam []int     `json:"open_slots_by_team"`
-	EnqueuedAt      time.Time `json:"enqueued_at"`
+	ID              string              `json:"id"`
+	Revision        uint64              `json:"revision"`
+	SessionID       string              `json:"session_id"`
+	RosterVersion   uint64              `json:"roster_version"`
+	OpenSlotsByTeam []int               `json:"open_slots_by_team"`
+	ExistingTeams   []RosterTeamSummary `json:"existing_teams,omitempty"`
+	EnqueuedAt      time.Time           `json:"enqueued_at"`
 }
 
 type RoleRequirement struct {

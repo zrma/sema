@@ -103,6 +103,29 @@ func ValidateBackfillTicket(ticket BackfillTicket) error {
 	if total == 0 {
 		return NewFailure(FailureInvalidInput, "backfill ticket %q has no vacancy", ticket.ID)
 	}
+	if len(ticket.ExistingTeams) > 0 && len(ticket.ExistingTeams) != len(ticket.OpenSlotsByTeam) {
+		return NewFailure(FailureInvalidInput, "backfill ticket %q roster team count differs from vacancy shape", ticket.ID)
+	}
+	for teamIndex, team := range ticket.ExistingTeams {
+		if team.PlayerCount < 0 || team.SkillTotal < 0 || team.MaxLatencyMillis < 0 {
+			return NewFailure(FailureInvalidInput, "backfill ticket %q team %d has negative roster quality", ticket.ID, teamIndex)
+		}
+		roles := make(map[string]struct{}, len(team.RoleCounts))
+		rolePlayers := 0
+		for _, role := range team.RoleCounts {
+			if role.Role == "" || role.Count < 0 {
+				return NewFailure(FailureInvalidInput, "backfill ticket %q team %d has invalid role count", ticket.ID, teamIndex)
+			}
+			if _, exists := roles[role.Role]; exists {
+				return NewFailure(FailureInvalidInput, "backfill ticket %q team %d repeats role %q", ticket.ID, teamIndex, role.Role)
+			}
+			roles[role.Role] = struct{}{}
+			rolePlayers += role.Count
+		}
+		if rolePlayers > team.PlayerCount {
+			return NewFailure(FailureInvalidInput, "backfill ticket %q team %d role counts exceed players", ticket.ID, teamIndex)
+		}
+	}
 	return nil
 }
 
@@ -143,9 +166,12 @@ func ValidateSnapshot(snapshot MatchmakingSnapshot) error {
 		if len(ticket.OpenSlotsByTeam) != snapshot.Policy.TeamCount {
 			return NewFailure(FailureInvalidInput, "backfill ticket %q team count differs from policy", ticket.ID)
 		}
-		for _, slots := range ticket.OpenSlotsByTeam {
+		for teamIndex, slots := range ticket.OpenSlotsByTeam {
 			if slots > snapshot.Policy.TeamSize {
 				return NewFailure(FailureInvalidInput, "backfill ticket %q vacancy exceeds team capacity", ticket.ID)
+			}
+			if len(ticket.ExistingTeams) > 0 && ticket.ExistingTeams[teamIndex].PlayerCount+slots != snapshot.Policy.TeamSize {
+				return NewFailure(FailureInvalidInput, "backfill ticket %q team %d roster and vacancy do not fill policy capacity", ticket.ID, teamIndex)
 			}
 		}
 		if _, ok := tickets[ticket.ID]; ok {
@@ -212,6 +238,10 @@ func CloneMatchTicket(ticket MatchTicket) MatchTicket {
 
 func CloneBackfillTicket(ticket BackfillTicket) BackfillTicket {
 	ticket.OpenSlotsByTeam = slices.Clone(ticket.OpenSlotsByTeam)
+	ticket.ExistingTeams = slices.Clone(ticket.ExistingTeams)
+	for index := range ticket.ExistingTeams {
+		ticket.ExistingTeams[index].RoleCounts = slices.Clone(ticket.ExistingTeams[index].RoleCounts)
+	}
 	return ticket
 }
 

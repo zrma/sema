@@ -80,6 +80,23 @@ func TestValidatePolicyRejectsNegativeCandidateTicketWindow(t *testing.T) {
 	assertFailureCode(t, domain.ValidatePolicy(policy), domain.FailureInvalidInput)
 }
 
+func TestValidateSnapshotRequiresRosterContextToMatchCapacity(t *testing.T) {
+	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	snapshot := domain.MatchmakingSnapshot{
+		ID: "invalid-roster-context", Now: now,
+		Policy: domain.MatchmakingPolicy{Version: "policy-v1", TeamCount: 2, TeamSize: 2, MaxLatencyMillis: 200},
+		BackfillTickets: []domain.BackfillTicket{{
+			ID: "backfill", Revision: 1, SessionID: "session", RosterVersion: 1,
+			OpenSlotsByTeam: []int{1, 1}, EnqueuedAt: now.Add(-time.Second),
+			ExistingTeams: []domain.RosterTeamSummary{
+				{PlayerCount: 2, SkillTotal: 2_000},
+				{PlayerCount: 1, SkillTotal: 1_000},
+			},
+		}},
+	}
+	assertFailureCode(t, domain.ValidateSnapshot(snapshot), domain.FailureInvalidInput)
+}
+
 func assertFailureCode(t *testing.T, err error, expected domain.FailureCode) {
 	t.Helper()
 	code, ok := domain.FailureCodeOf(err)

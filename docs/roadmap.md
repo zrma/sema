@@ -218,9 +218,9 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 
 ## P26: Backfill Quality Context
 
-- [ ] roster-versioned skill/role/latency summary
-- [ ] new-match와 backfill의 공통 admissibility evidence
-- [ ] stale roster와 quality comparison fixture
+- [x] roster-versioned skill/role/latency summary
+- [x] new-match와 backfill의 공통 admissibility evidence
+- [x] stale roster와 quality comparison fixture
 
 ## P27: Indexed Candidate Discovery
 

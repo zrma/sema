@@ -41,6 +41,25 @@ func TestEvaluateBackfillDefersRosterQuality(t *testing.T) {
 	}
 }
 
+func TestEvaluateBackfillUsesResultingRosterQuality(t *testing.T) {
+	policy := referencePolicy(false)
+	policy.RelaxationSteps[0].MaxTeamSkillGap = 1_000
+	policy.RelaxationSteps[0].MaxRolePenalty = 2
+	teams := [][]domain.MatchTicket{
+		{{ID: "incoming-high", EnqueuedAt: fixtureNow.Add(-time.Second), Players: []domain.Player{{ID: "high", Skill: 1_500, Role: "dps", LatencyMillis: 20}}}},
+		{{ID: "incoming-low", EnqueuedAt: fixtureNow.Add(-time.Second), Players: []domain.Player{{ID: "low", Skill: 1_000, Role: "healer", LatencyMillis: 30}}}},
+	}
+	existing := []domain.RosterTeamSummary{
+		{PlayerCount: 1, SkillTotal: 1_000, RoleCounts: []domain.RoleCount{{Role: "healer", Count: 1}}, MaxLatencyMillis: 40},
+		{PlayerCount: 1, SkillTotal: 1_500, RoleCounts: []domain.RoleCount{{Role: "dps", Count: 1}}, MaxLatencyMillis: 60},
+	}
+	evaluation := objective.EvaluateBackfill(fixtureNow, teams, policy, existing, fixtureNow.Add(-time.Second))
+	if !evaluation.Admissible || evaluation.Evidence.TeamSkillGap != 0 ||
+		evaluation.Evidence.RolePenalty != 0 || evaluation.Evidence.MaxLatencyMillis != 60 {
+		t.Fatalf("roster-aware evaluation = %#v", evaluation)
+	}
+}
+
 func TestCompareSwitchesFromQualityToWait(t *testing.T) {
 	quality := objective.Evaluation{Admissible: true, Evidence: domain.ScoreEvidence{
 		RolePenalty:      0,

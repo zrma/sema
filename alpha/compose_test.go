@@ -11,9 +11,42 @@ import (
 
 var fixtureNow = time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 
-func TestAPIVersionMarksQueueFairnessMigration(t *testing.T) {
-	if alpha.APIVersion != "v0alpha4" {
-		t.Fatalf("APIVersion = %q; want v0alpha4", alpha.APIVersion)
+func TestAPIVersionMarksRosterAwareBackfillMigration(t *testing.T) {
+	if alpha.APIVersion != "v0alpha5" {
+		t.Fatalf("APIVersion = %q; want v0alpha5", alpha.APIVersion)
+	}
+}
+
+func TestComposeUsesRosterVersionedBackfillQuality(t *testing.T) {
+	snapshot := alpha.Snapshot{
+		ID: "external-roster-backfill", Now: fixtureNow,
+		Policy: alpha.MatchmakingPolicy{
+			Version: "external-roster-v1", TeamCount: 2, TeamSize: 2, MaxLatencyMillis: 200,
+			MaxProposals:     1,
+			RoleRequirements: []alpha.RoleRequirement{{Role: "healer", MinPerTeam: 1}},
+			RelaxationSteps:  []alpha.RelaxationStep{{MaxTeamSkillGap: 1_000, MaxRolePenalty: 2}},
+		},
+		MatchTickets: []alpha.MatchTicket{
+			{ID: "high-dps", Revision: 1, EnqueuedAt: fixtureNow.Add(-time.Second), Players: []alpha.Player{{ID: "p-high", Skill: 1_500, Role: "dps", LatencyMillis: 20}}},
+			{ID: "low-healer", Revision: 1, EnqueuedAt: fixtureNow.Add(-time.Second), Players: []alpha.Player{{ID: "p-low", Skill: 1_000, Role: "healer", LatencyMillis: 30}}},
+		},
+		BackfillTickets: []alpha.BackfillTicket{{
+			ID: "backfill", Revision: 1, SessionID: "session", RosterVersion: 7,
+			OpenSlotsByTeam: []int{1, 1}, EnqueuedAt: fixtureNow.Add(-time.Minute),
+			ExistingTeams: []alpha.RosterTeamSummary{
+				{PlayerCount: 1, SkillTotal: 1_000, RoleCounts: []alpha.RoleCount{{Role: "healer", Count: 1}}, MaxLatencyMillis: 40},
+				{PlayerCount: 1, SkillTotal: 1_500, RoleCounts: []alpha.RoleCount{{Role: "dps", Count: 1}}, MaxLatencyMillis: 60},
+			},
+		}},
+	}
+	batch, err := alpha.Compose(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Proposals) != 1 || batch.Proposals[0].Backfill == nil ||
+		batch.Proposals[0].Backfill.RosterVersion != 7 || batch.Proposals[0].Evidence.TeamSkillGap != 0 ||
+		batch.Proposals[0].Evidence.RolePenalty != 0 || batch.Proposals[0].Evidence.MaxLatencyMillis != 60 {
+		t.Fatalf("public roster-aware batch = %#v", batch)
 	}
 }
 

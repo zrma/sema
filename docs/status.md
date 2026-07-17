@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P25 queue fairness/starvation까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P26 roster-aware backfill quality까지 완료되었다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -38,7 +38,7 @@ P0부터 P25 queue fairness/starvation까지 완료되었다. source/service는 
 - side-effect-free multi-policy simulation과 canonical coverage/quality summary.
 - public repository identity `github.com/zrma/sema`와 Apache-2.0 source license.
 - `github.com/zrma/sema/alpha`의 side-effect-free `Compose`와 explicit public/internal conversion boundary.
-- global batch objective, small-queue Pareto와 wait-priority service를 반영한 public Go alpha `v0alpha4`, `v0alpha1`부터 이어지는 migration contract.
+- global batch objective, small-queue Pareto, wait-priority service와 roster-aware backfill을 반영한 public Go alpha `v0alpha5`, `v0alpha1`부터 이어지는 migration contract.
 - `internal/`을 직접 import하지 않는 repository-owned `examples/compose` reference consumer.
 - `v0alpha1` compatibility/migration policy와 stable API 진입 gate.
 - versioned `sema-lab` cross-build/checksum script와 verified-tag GitHub Release workflow.
@@ -92,6 +92,8 @@ P0부터 P25 queue fairness/starvation까지 완료되었다. source/service는 
 - weighted mixed-party/skill/role/latency/wait와 optional backfill의 128-seed exhaustive differential corpus.
 - sustained fresh arrival 중 configured priority boundary에서 oldest feasible pair를 service하는 deterministic starvation regression.
 - candidate graph의 wait-priority eligible/selected demand 수와 oldest eligible/selected wait evidence.
+- backfill ticket revision/roster version에 묶인 optional existing-team player/skill/role/latency aggregate.
+- incoming placement 뒤 resulting roster quality를 planner와 exhaustive frontier가 함께 비교하는 regression.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -119,4 +121,4 @@ P0부터 P25 queue fairness/starvation까지 완료되었다. source/service는 
 
 ## Next Slice
 
-P25는 backfill tier 안에서 oldest wait-priority demand를 batch utility보다 먼저 service하고 sustained-arrival fixture가 configured 30초 경계에서 오래된 pair를 선택하도록 고정했다. 다음 matcher slice는 roster-aware backfill quality와 freshness evidence를 다루는 P26이다. 이후 indexed candidate discovery와 matcher V0 exit gate를 순서대로 진행하고 `docs/matcher-v0-exit.md`의 service productization entry에서 기존 journal/HTTP prototype을 persistence/API 제품 경계로 재설계한다. 현재 frontier와 synthetic wait를 production SLA나 calibrated MMR evidence로 승격하지 않는다.
+P26은 optional roster-versioned aggregate로 backfill resulting skill/role/latency를 평가하고 stale freshness를 거부한다. 다음 matcher slice는 oldest-prefix contract를 보존하면서 large queue candidate cost를 줄이는 P27 indexed discovery다. 이후 matcher V0 exit gate를 진행하고 `docs/matcher-v0-exit.md`의 service productization entry에서 기존 journal/HTTP prototype을 persistence/API 제품 경계로 재설계한다. 현재 aggregate와 synthetic fixture를 production MMR schema나 SLA로 승격하지 않는다.

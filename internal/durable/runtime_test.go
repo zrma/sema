@@ -309,6 +309,10 @@ func TestRuntimeReplaysCancellationEventKinds(t *testing.T) {
 	backfill := domain.BackfillTicket{
 		ID: "cancelled-backfill", Revision: 1, SessionID: "cancelled-session", RosterVersion: 7,
 		OpenSlotsByTeam: []int{1, 1}, EnqueuedAt: fixtureNow.Add(-time.Minute),
+		ExistingTeams: []domain.RosterTeamSummary{
+			{PlayerCount: 1, SkillTotal: 1_000, RoleCounts: []domain.RoleCount{{Role: "healer", Count: 1}}, MaxLatencyMillis: 40},
+			{PlayerCount: 1, SkillTotal: 1_000, RoleCounts: []domain.RoleCount{{Role: "dps", Count: 1}}, MaxLatencyMillis: 50},
+		},
 	}
 	if err := runtime.SubmitBackfillTicket(backfill); err != nil {
 		t.Fatal(err)

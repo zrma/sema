@@ -190,7 +190,11 @@ func TestReserveRejectsStaleBackfillRoster(t *testing.T) {
 		SessionID:       "session-1",
 		RosterVersion:   7,
 		OpenSlotsByTeam: []int{1, 1},
-		EnqueuedAt:      fixtureNow.Add(-time.Minute),
+		ExistingTeams: []domain.RosterTeamSummary{
+			{PlayerCount: 1, SkillTotal: 1_000},
+			{PlayerCount: 1, SkillTotal: 1_000},
+		},
+		EnqueuedAt: fixtureNow.Add(-time.Minute),
 	}
 	if err := owner.UpsertBackfillTicket(backfill); err != nil {
 		t.Fatal(err)
@@ -202,6 +206,7 @@ func TestReserveRejectsStaleBackfillRoster(t *testing.T) {
 
 	backfill.Revision = 2
 	backfill.RosterVersion = 8
+	backfill.ExistingTeams[0].SkillTotal = 1_500
 	if err := owner.UpsertBackfillTicket(backfill); err != nil {
 		t.Fatal(err)
 	}

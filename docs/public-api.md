@@ -26,8 +26,8 @@ go run ./examples/compose
 
 ## Contract
 
-- input은 `Snapshot`, `MatchTicket`, optional `BackfillTicket`과 `MatchmakingPolicy`의 independent public copy다.
-- output은 `APIVersion: v0alpha4`, proposal/team placement, policy fingerprint, score/search/batch-selection evidence와 unmatched records다.
+- input은 `Snapshot`, `MatchTicket`, optional roster-aware `BackfillTicket`과 `MatchmakingPolicy`의 independent public copy다.
+- output은 `APIVersion: v0alpha5`, proposal/team placement, policy fingerprint, score/search/batch-selection evidence와 unmatched records다.
 - input slice와 player data를 internal planner에 직접 alias하지 않고 conversion boundary에서 복사한다.
 - 같은 snapshot/policy는 internal deterministic contract와 같은 ordered batch를 만든다.
 - invalid input은 public `*alpha.Error`이며 `alpha.ErrorCodeOf`로 stable alpha error code를 읽는다.
@@ -39,6 +39,8 @@ candidate limit을 명시하지 않은 최대 12 match ticket, 2 backfill, 2 tea
 `MaxProposals`는 exact count가 아니라 상한이다. 개별 admissibility를 통과한 후보 중 서로 ticket/backfill target이 겹치지 않는 집합의 total rank utility를 최대화하므로, 반환 수는 `0..MaxProposals`다. utility의 admission baseline은 가능한 유효 match 수를 먼저 보존하고 같은 수 안에서 quality rank를 비교한다. 이 값은 해당 candidate graph 내부의 상대값이며 실행 간 절대 quality metric이 아니다.
 
 backfill 수를 먼저 보존한 뒤, 각 ticket 또는 backfill demand가 자기 wait 기준으로 active `PrioritizeWait` relaxation step에 들어가면 oldest eligible demand를 포함한 batch가 rank utility보다 우선한다. oldest wait가 같으면 더 많은 priority demand를 service한다. `BatchScoreEvidence`의 `WaitPriorityEligibleDemands`, `WaitPrioritySelectedDemands`, `OldestWaitPriorityMillis`, `OldestSelectedPriorityMillis`는 bounded candidate graph 안에서 이 결정을 설명한다. `BudgetExhausted`가 true이면 window/generation/selection 밖 demand까지 포함한 fairness 보장은 아니다.
+
+`BackfillTicket.ExistingTeams`는 optional `RosterTeamSummary` 목록이다. 제공할 때 team 수는 vacancy shape와 같고 `PlayerCount + OpenSlotsByTeam`은 policy team size여야 한다. planner는 기존 `SkillTotal`, `RoleCounts`, `MaxLatencyMillis`에 incoming players를 합쳐 resulting team average skill gap, role penalty와 maximum latency를 계산한다. context와 proposal target은 같은 backfill ticket revision 및 `RosterVersion`에 묶인다. 빈 목록은 migration을 위한 legacy vacancy-only evaluation이다.
 
 ## Non-Goals
 

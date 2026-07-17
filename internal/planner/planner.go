@@ -210,7 +210,7 @@ func generateProposalCandidates(
 		target := domain.BackfillReference(backfill)
 		collectShapeCandidates(
 			&result, indexes, window.Tickets, backfill.OpenSlotsByTeam, snapshot,
-			domain.ProposalBackfill, &target, backfill.EnqueuedAt, window.Truncated,
+			domain.ProposalBackfill, &target, backfill.ExistingTeams, backfill.EnqueuedAt, window.Truncated,
 			!singleSelectFastPath,
 			maxCandidatesPerSearch, shapeAlternatives, maxBatchCandidates, budget,
 		)
@@ -229,7 +229,7 @@ func generateProposalCandidates(
 		window := discovery.SelectWindow(available, newMatchSlots, maxCandidateTickets)
 		collectShapeCandidates(
 			&result, indexes, window.Tickets, newMatchSlots, snapshot,
-			domain.ProposalNewMatch, nil, time.Time{}, window.Truncated,
+			domain.ProposalNewMatch, nil, nil, time.Time{}, window.Truncated,
 			true,
 			maxCandidatesPerSearch, shapeAlternatives, maxBatchCandidates, budget,
 		)
@@ -264,7 +264,7 @@ func collectGreedyCoverCandidates(
 	for seed := 0; seed < maxSeedProposals && len(result.candidates) < maxBatchCandidates && !budget.exhausted; seed++ {
 		window := discovery.SelectWindow(remaining, slots, maxCandidateTickets)
 		search := findBestPlacement(
-			window.Tickets, slots, snapshot, domain.ProposalNewMatch, "", maxCandidatesPerSearch, 1, budget,
+			window.Tickets, slots, snapshot, domain.ProposalNewMatch, nil, time.Time{}, "", maxCandidatesPerSearch, 1, budget,
 		)
 		prepareSearchEvidence(&search, len(window.Tickets), window.Truncated)
 		recordGeneratedCandidate(result, indexes, search, snapshot, domain.ProposalNewMatch, nil, time.Time{})
@@ -286,6 +286,7 @@ func collectShapeCandidates(
 	snapshot domain.MatchmakingSnapshot,
 	kind domain.ProposalKind,
 	backfill *domain.BackfillTarget,
+	existingTeams []domain.RosterTeamSummary,
 	backfillEnqueuedAt time.Time,
 	windowTruncated bool,
 	includeAnchors bool,
@@ -308,7 +309,7 @@ func collectShapeCandidates(
 			return
 		}
 		search := findBestPlacement(
-			tickets, slots, snapshot, kind, anchor, maxCandidatesPerSearch,
+			tickets, slots, snapshot, kind, existingTeams, backfillEnqueuedAt, anchor, maxCandidatesPerSearch,
 			min(maxAlternativesPerSearch, maxBatchCandidates-len(result.candidates)), budget,
 		)
 		alternatives := expandPlacementAlternatives(search)
@@ -373,10 +374,7 @@ func recordGeneratedCandidate(
 	}
 	if backfill != nil {
 		priority, waitMillis := objective.TicketWaitPriority(snapshot.Now, backfillEnqueuedAt, snapshot.Policy)
-		candidate.evaluation.Evidence.OldestWaitMillis = max(candidate.evaluation.Evidence.OldestWaitMillis, waitMillis)
-		candidate.evaluation.Evidence.TotalWaitMillis += waitMillis
 		if priority {
-			candidate.evaluation.Evidence.WaitPriority = true
 			candidate.priorityDemands = append(candidate.priorityDemands, priorityDemand{
 				key: "backfill:" + string(backfill.Ticket.ID), waitMillis: waitMillis,
 			})
@@ -473,6 +471,8 @@ func findBestPlacement(
 	slots []int,
 	snapshot domain.MatchmakingSnapshot,
 	kind domain.ProposalKind,
+	existingTeams []domain.RosterTeamSummary,
+	backfillEnqueuedAt time.Time,
 	requiredTicket domain.TicketID,
 	maxCandidates int,
 	maxAlternatives int,
@@ -526,6 +526,11 @@ func findBestPlacement(
 			}
 			placement := materializePlacement(tickets, assigned)
 			evaluation := objective.Evaluate(snapshot.Now, placement, snapshot.Policy, kind)
+			if kind == domain.ProposalBackfill {
+				evaluation = objective.EvaluateBackfill(
+					snapshot.Now, placement, snapshot.Policy, existingTeams, backfillEnqueuedAt,
+				)
+			}
 			result.exactCandidates++
 			switch {
 			case evaluation.HardViolation:

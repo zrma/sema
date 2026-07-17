@@ -200,6 +200,12 @@ func enumerateFrontierCandidates(
 	record := func(kind domain.ProposalKind, backfillIndex int, placement [][]domain.MatchTicket, mask uint16, players int) {
 		placementsEvaluated++
 		evaluation := objective.Evaluate(snapshot.Now, placement, snapshot.Policy, kind)
+		if backfillIndex >= 0 {
+			backfill := backfills[backfillIndex]
+			evaluation = objective.EvaluateBackfill(
+				snapshot.Now, placement, snapshot.Policy, backfill.ExistingTeams, backfill.EnqueuedAt,
+			)
+		}
 		if !evaluation.Admissible {
 			return
 		}
@@ -581,6 +587,11 @@ func plannerBatchQuality(snapshot domain.MatchmakingSnapshot, batch domain.Propo
 			}
 		}
 		evaluation := objective.Evaluate(snapshot.Now, placement, snapshot.Policy, proposal.Kind)
+		if targetBackfill != nil {
+			evaluation = objective.EvaluateBackfill(
+				snapshot.Now, placement, snapshot.Policy, targetBackfill.ExistingTeams, targetBackfill.EnqueuedAt,
+			)
+		}
 		if !evaluation.Admissible {
 			return BatchQuality{}, domain.NewFailure(domain.FailureInvalidInput, "proposal %q is not admissible", proposal.ID)
 		}

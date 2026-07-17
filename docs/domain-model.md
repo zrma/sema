@@ -43,9 +43,12 @@ coordinator는 active ticket과 함께 player ownership을 유지한다. higher 
 - `ticketID`, `revision`: backfill 수요 자체의 identity와 freshness.
 - `sessionID`, `rosterVersion`: 대상 세션과 roster snapshot의 freshness.
 - `openSlotsByTeam`: team index별 정확한 빈자리 수.
+- optional `existingTeams`: 같은 `rosterVersion`의 team별 `playerCount`, `skillTotal`, role별 count와 `maxLatencyMillis` aggregate.
 - `enqueuedAt`: backfill 수요가 생성된 시각.
 
-`openSlotsByTeam`의 모든 값은 음수가 아니며 합계가 1 이상이어야 한다. P0 planner는 현재 roster의 skill과 role을 직접 최적화하지 않고 빈자리 capacity만 사용한다.
+`openSlotsByTeam`의 모든 값은 음수가 아니며 합계가 1 이상이어야 한다. `existingTeams`를 제공하면 team 수가 vacancy shape와 같고 각 team의 existing player와 open slot 합이 policy team size여야 한다. role count는 existing player 수를 넘을 수 없고 role 이름은 team 안에서 유일하다. planner는 incoming placement를 이 aggregate에 합쳐 resulting roster의 skill gap, role deficit와 maximum latency를 평가한다. 빈 context는 기존 vacancy-only contract를 유지한다.
+
+같은 backfill ticket revision과 `rosterVersion`에서는 context가 immutable해야 한다. context를 바꾸는 producer는 ticket revision과 실제 roster가 바뀌면 `rosterVersion`도 전진시켜야 한다. proposal은 두 freshness 값을 함께 참조하고 reserve가 달라진 값을 관측하면 전체 proposal을 stale로 거부한다.
 
 ### `MatchmakingPolicy`
 

@@ -26,9 +26,42 @@ func Evaluate(
 	policy domain.MatchmakingPolicy,
 	kind domain.ProposalKind,
 ) Evaluation {
+	return evaluate(now, teams, policy, kind, nil)
+}
+
+// EvaluateBackfill evaluates incoming placement against a roster-versioned team summary.
+func EvaluateBackfill(
+	now time.Time,
+	teams [][]domain.MatchTicket,
+	policy domain.MatchmakingPolicy,
+	existing []domain.RosterTeamSummary,
+	backfillEnqueuedAt time.Time,
+) Evaluation {
+	evaluation := evaluate(now, teams, policy, domain.ProposalBackfill, existing)
+	priority, waitMillis := TicketWaitPriority(now, backfillEnqueuedAt, policy)
+	evaluation.Evidence.OldestWaitMillis = max(evaluation.Evidence.OldestWaitMillis, waitMillis)
+	evaluation.Evidence.TotalWaitMillis += waitMillis
+	if priority {
+		evaluation.Evidence.WaitPriority = true
+		evaluation.PriorityWaitMillis = append(evaluation.PriorityWaitMillis, waitMillis)
+		slices.SortFunc(evaluation.PriorityWaitMillis, func(left, right int64) int {
+			return cmp.Compare(right, left)
+		})
+	}
+	return evaluation
+}
+
+func evaluate(
+	now time.Time,
+	teams [][]domain.MatchTicket,
+	policy domain.MatchmakingPolicy,
+	kind domain.ProposalKind,
+	existing []domain.RosterTeamSummary,
+) Evaluation {
 	evaluation := Evaluation{Admissible: true, HardViolation: constraint.HardViolation(teams, policy, kind)}
 	var roleCounts []map[string]int
-	if kind == domain.ProposalNewMatch && len(policy.RoleRequirements) > 0 {
+	qualityContext := kind == domain.ProposalNewMatch || len(existing) > 0
+	if qualityContext && len(policy.RoleRequirements) > 0 {
 		roleCounts = make([]map[string]int, len(teams))
 	}
 	minimumAverage, maximumAverage := 0, 0
@@ -38,10 +71,20 @@ func Evaluate(
 	})
 
 	for team, tickets := range teams {
+		teamSkill, teamPlayers := 0, 0
+		if len(existing) > 0 {
+			teamSkill = existing[team].SkillTotal
+			teamPlayers = existing[team].PlayerCount
+			evaluation.Evidence.MaxLatencyMillis = max(evaluation.Evidence.MaxLatencyMillis, existing[team].MaxLatencyMillis)
+		}
 		if roleCounts != nil {
 			roleCounts[team] = make(map[string]int)
+			if len(existing) > 0 {
+				for _, role := range existing[team].RoleCounts {
+					roleCounts[team][role.Role] = role.Count
+				}
+			}
 		}
-		teamSkill, teamPlayers := 0, 0
 		for _, ticket := range tickets {
 			waitMillis := max(int64(0), now.Sub(ticket.EnqueuedAt).Milliseconds())
 			if hasWaitPriority {
@@ -64,7 +107,7 @@ func Evaluate(
 				}
 			}
 		}
-		if kind == domain.ProposalBackfill || teamPlayers == 0 {
+		if !qualityContext || teamPlayers == 0 {
 			continue
 		}
 		average := teamSkill / teamPlayers
@@ -77,7 +120,7 @@ func Evaluate(
 		hasAverage = true
 	}
 
-	if kind == domain.ProposalNewMatch {
+	if qualityContext {
 		evaluation.Evidence.TeamSkillGap = maximumAverage - minimumAverage
 		for _, requirement := range policy.RoleRequirements {
 			for team := range teams {
@@ -86,6 +129,7 @@ func Evaluate(
 					continue
 				}
 				if requirement.Hard {
+					evaluation.HardViolation = true
 					continue
 				}
 				evaluation.Evidence.RolePenalty += deficit

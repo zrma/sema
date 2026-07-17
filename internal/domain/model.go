@@ -31,6 +31,19 @@ type MatchTicket struct {
 	Players    []Player
 }
 
+type RoleCount struct {
+	Role  string
+	Count int
+}
+
+// RosterTeamSummary is the roster-versioned quality context for one existing team.
+type RosterTeamSummary struct {
+	PlayerCount      int
+	SkillTotal       int
+	RoleCounts       []RoleCount
+	MaxLatencyMillis int
+}
+
 // BackfillTicket describes exact vacancies in an existing session roster.
 type BackfillTicket struct {
 	ID              TicketID
@@ -38,6 +51,7 @@ type BackfillTicket struct {
 	SessionID       SessionID
 	RosterVersion   Revision
 	OpenSlotsByTeam []int
+	ExistingTeams   []RosterTeamSummary
 	EnqueuedAt      time.Time
 }
 

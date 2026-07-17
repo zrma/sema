@@ -42,6 +42,7 @@ flowchart LR
 - 초기 discovery는 canonical queue의 oldest fitting ticket prefix를 선택하며 opt-in window truncation을 policy identity와 proposal evidence에 남긴다.
 - `constraints`는 위반 시 후보를 제거하는 boolean contract를 제공한다.
 - `scoring`은 유효 후보를 비교할 objective vector와 explanation을 제공한다.
+- roster-aware backfill scoring은 `rosterVersion`에 묶인 team aggregate와 incoming placement의 resulting skill/role/latency를 평가하며 vacancy-only input은 legacy mode로 명시한다.
 - `optimizer`는 admissible candidate graph에서 mutually disjoint proposal set을 선택한다. backfill 수, oldest wait-priority service를 먼저 보존한 뒤 일반 bounded path는 총 rank utility를 최적화하고, candidate budget을 생략한 small-queue path는 같은 coverage tier에서 wait/role/skill/latency Pareto dominance로 dominated rank-sum 결과를 repair한다. `MaxProposals`는 상한이다.
 - `policy catalog`는 process lifetime에서 version을 하나의 canonical fingerprint와 defensive rule copy에 묶는다.
 - `simulation`은 immutable scenario corpus에서 여러 registered policy를 planner로만 평가하고 canonical report를 만든다.

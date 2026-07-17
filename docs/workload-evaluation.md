@@ -67,6 +67,8 @@ P24부터 candidate budget을 명시하지 않은 같은 small boundary는 expan
 
 P25 sustained-arrival diagnostic은 quality-first 구간에 오래된 불균형 pair를 남겨 둔 채 매 10초마다 새로운 균형 pair를 추가한다. 30초 `PrioritizeWait` 경계 전에는 fresh quality를 선택하지만, 경계에 도달한 첫 cycle에는 oldest pair와 evidence의 eligible/selected 2개를 반드시 service한다. 이 30초는 fixture policy 값이지 production wait SLA가 아니다.
 
+P26 roster-aware backfill fixture는 기존 team skill total 1000/1500과 healer/dps role count에 두 incoming player를 배치한다. planner와 exhaustive frontier는 high-dps를 낮은 team에, low-healer를 높은 team에 넣어 resulting skill gap 0, role penalty 0과 max latency 60을 만드는 point에서 equivalent여야 한다. context가 없는 기존 frontier corpus는 vacancy-only baseline을 계속 검증한다.
+
 ## Reference Evidence
 
 - `synthetic-5v5-seeded-queue`: weighted party/skill/role/latency/wait distribution의 multi-proposal coverage와 queue evidence.

@@ -53,6 +53,44 @@ func TestBatchFrontierMatchesMixedPartyAndBackfillBatch(t *testing.T) {
 	}
 }
 
+func TestBatchFrontierUsesRosterAwareBackfillQuality(t *testing.T) {
+	snapshot := domain.MatchmakingSnapshot{
+		ID: "frontier-roster-backfill", Now: fixtureNow,
+		Policy: domain.MatchmakingPolicy{
+			Version: "frontier-roster-v1", TeamCount: 2, TeamSize: 2, MaxLatencyMillis: 200,
+			MaxProposals: 1, MaxSearchNodes: 100_000,
+			RoleRequirements: []domain.RoleRequirement{{Role: "healer", MinPerTeam: 1}},
+			RelaxationSteps:  []domain.RelaxationStep{{MaxTeamSkillGap: 1_000, MaxRolePenalty: 2}},
+		},
+		MatchTickets: []domain.MatchTicket{
+			{ID: "high-dps", Revision: 1, EnqueuedAt: fixtureNow.Add(-time.Second), Players: []domain.Player{{ID: "p-high", Skill: 1_500, Role: "dps", LatencyMillis: 20}}},
+			{ID: "low-healer", Revision: 1, EnqueuedAt: fixtureNow.Add(-time.Second), Players: []domain.Player{{ID: "p-low", Skill: 1_000, Role: "healer", LatencyMillis: 30}}},
+			{ID: "mid-dps", Revision: 1, EnqueuedAt: fixtureNow.Add(-time.Second), Players: []domain.Player{{ID: "p-mid-dps", Skill: 1_250, Role: "dps", LatencyMillis: 20}}},
+			{ID: "mid-healer", Revision: 1, EnqueuedAt: fixtureNow.Add(-time.Second), Players: []domain.Player{{ID: "p-mid-healer", Skill: 1_250, Role: "healer", LatencyMillis: 30}}},
+		},
+		BackfillTickets: []domain.BackfillTicket{{
+			ID: "backfill", Revision: 1, SessionID: "session", RosterVersion: 7,
+			OpenSlotsByTeam: []int{1, 1}, EnqueuedAt: fixtureNow.Add(-time.Minute),
+			ExistingTeams: []domain.RosterTeamSummary{
+				{PlayerCount: 1, SkillTotal: 1_000, RoleCounts: []domain.RoleCount{{Role: "healer", Count: 1}}, MaxLatencyMillis: 40},
+				{PlayerCount: 1, SkillTotal: 1_500, RoleCounts: []domain.RoleCount{{Role: "dps", Count: 1}}, MaxLatencyMillis: 60},
+			},
+		}},
+	}
+	batch, err := planner.Plan(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	comparison, err := evaluation.CompareBatchFrontier(snapshot, batch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if comparison.Relation != evaluation.BatchFrontierEquivalent || comparison.Planner.SelectedBackfills != 1 ||
+		comparison.Planner.MaxTeamSkillGap != 0 || comparison.Planner.MaxRolePenalty != 0 || comparison.Planner.MaxLatencyMillis != 60 {
+		t.Fatalf("roster-aware comparison = %#v", comparison)
+	}
+}
+
 func TestBatchFrontierIsInvariantToInputPermutation(t *testing.T) {
 	snapshot := mixedBatchFrontierSnapshot()
 	snapshot.BackfillTickets = append(snapshot.BackfillTickets, domain.BackfillTicket{

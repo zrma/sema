@@ -146,6 +146,10 @@ func TestHTTPAPIBackfillIngestionAndCancellation(t *testing.T) {
 	ticket := api.BackfillTicket{
 		ID: "backfill-http", Revision: 1, SessionID: "session-http", RosterVersion: 7,
 		OpenSlotsByTeam: []int{1, 1}, EnqueuedAt: fixtureNow,
+		ExistingTeams: []api.RosterTeamSummary{
+			{PlayerCount: 1, SkillTotal: 1_000, RoleCounts: []api.RoleCount{{Role: "healer", Count: 1}}, MaxLatencyMillis: 40},
+			{PlayerCount: 1, SkillTotal: 1_000, RoleCounts: []api.RoleCount{{Role: "dps", Count: 1}}, MaxLatencyMillis: 50},
+		},
 	}
 	requestData[api.MutationResult](
 		t, handler, http.MethodPut, "/v0alpha1/backfill-tickets/"+ticket.ID, ticket, http.StatusOK,
