@@ -44,3 +44,4 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - P9 durable mutation은 `docs/durable-runtime.md`의 sync-before-success, fixed TTL과 single-writer replay contract를 지킨다.
 - HTTP lifecycle은 `docs/service-api.md`의 server clock, proposal ID authority와 loopback-default boundary를 지킨다.
 - metrics/traces/audit에는 resource ID나 raw durable payload를 넣지 않고 `docs/observability.md`의 cardinality/redaction 경계를 지킨다.
+- operational gate는 외부 service를 변경하지 않는 격리 runtime에서 실행하고 `docs/operational-validation.md`의 workload/recovery 계약을 지킨다.

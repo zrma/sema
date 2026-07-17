@@ -12,10 +12,12 @@ for required_file in \
   alpha/compose.go \
   alpha/types.go \
   cmd/sema-server/main.go \
+  cmd/sema-ops-check/main.go \
   examples/compose/main.go \
   internal/api/v0alpha1/types.go \
   internal/httpapi/handler.go \
   internal/observability/recorder.go \
+  internal/operational/load.go \
   docs/agent-harness.md \
   docs/HANDOFF.md \
   docs/status.md \
@@ -35,6 +37,7 @@ for required_file in \
   docs/durable-runtime.md \
   docs/service-api.md \
   docs/observability.md \
+  docs/operational-validation.md \
   docs/policy-simulation.md \
   docs/runtime-validation.md \
   docs/decisions/0001-implementation-baseline.md \
@@ -49,6 +52,7 @@ for required_file in \
   docs/decisions/0010-durable-journal-baseline.md \
   docs/decisions/0011-http-service-baseline.md \
   docs/decisions/0012-observability-redaction-baseline.md \
+  docs/decisions/0013-operational-validation-baseline.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \
@@ -70,6 +74,7 @@ for required_file in \
   docs/todo-0016-durable-runtime/spec.md \
   docs/todo-0017-http-service/spec.md \
   docs/todo-0018-observability/spec.md \
+  docs/todo-0019-operational-validation/spec.md \
   scripts/build-release.sh \
   scripts/check-release-build.sh \
   go.mod; do
@@ -130,6 +135,7 @@ go run ./cmd/sema-lab -format json battle-royale-duo >/dev/null
 go run ./cmd/sema-lab -format json diagnostic-bounded-quality-gap diagnostic-candidate-window-gap synthetic-5v5-seeded-queue >/dev/null
 go run ./examples/compose >/dev/null
 go run ./cmd/sema-server -version >/dev/null
+go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null
 scripts/check-release-build.sh
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x
 go test ./internal/engine -run '^$' -bench '^BenchmarkEngine' -benchtime=1x
