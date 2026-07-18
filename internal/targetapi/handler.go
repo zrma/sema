@@ -69,9 +69,14 @@ func New(
 	if err != nil {
 		return nil, err
 	}
+	assignments, err := service.NewAssignments(owner, options.Now)
+	if err != nil {
+		return nil, err
+	}
 	server := &server{
 		authenticator: authenticator, tickets: tickets, backfills: backfills,
-		policies: policies, planningRuns: planningRuns, reservations: reservations, cursors: codec,
+		policies: policies, planningRuns: planningRuns, reservations: reservations,
+		assignments: assignments, cursors: codec,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v0alpha2/match-tickets", server.listMatchTickets)
@@ -93,6 +98,10 @@ func New(
 	mux.HandleFunc("GET /v0alpha2/reservations/{reservation_id}", server.getReservation)
 	mux.HandleFunc("GET /v0alpha2/reservations", server.listReservations)
 	mux.HandleFunc("POST /v0alpha2/reservations/{reservation_id}/cancel", server.cancelReservation)
+	mux.HandleFunc("POST /v0alpha2/reservations/{reservation_id}/confirm", server.confirmReservation)
+	mux.HandleFunc("GET /v0alpha2/assignments/{assignment_id}", server.getAssignment)
+	mux.HandleFunc("GET /v0alpha2/assignments", server.listAssignments)
+	mux.HandleFunc("POST /v0alpha2/assignments/{assignment_id}/acknowledgments", server.acknowledgeAssignment)
 	mux.HandleFunc("/v0alpha2/match-tickets", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/match-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
 	mux.HandleFunc("/v0alpha2/backfill-tickets", methodNotAllowed("GET"))
@@ -105,6 +114,10 @@ func New(
 	mux.HandleFunc("/v0alpha2/reservations", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/reservations/{reservation_id}", methodNotAllowed("GET, POST"))
 	mux.HandleFunc("/v0alpha2/reservations/{reservation_id}/cancel", methodNotAllowed("POST"))
+	mux.HandleFunc("/v0alpha2/reservations/{reservation_id}/confirm", methodNotAllowed("POST"))
+	mux.HandleFunc("/v0alpha2/assignments", methodNotAllowed("GET"))
+	mux.HandleFunc("/v0alpha2/assignments/{assignment_id}", methodNotAllowed("GET"))
+	mux.HandleFunc("/v0alpha2/assignments/{assignment_id}/acknowledgments", methodNotAllowed("POST"))
 	mux.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writeError(writer, apiError{status: http.StatusNotFound, code: "NotFound", message: "endpoint was not found"})
 	})
@@ -118,6 +131,7 @@ type server struct {
 	policies      *service.Policies
 	planningRuns  *service.PlanningRuns
 	reservations  *service.Reservations
+	assignments   *service.Assignments
 	cursors       cursorCodec
 }
 

@@ -231,6 +231,64 @@ func ValidateProposal(proposal MatchProposal) error {
 	return nil
 }
 
+// ValidateAssignmentAcknowledgment validates a consumer-owned terminal result
+// against the immutable assignment context that Sema delivered.
+func ValidateAssignmentAcknowledgment(
+	assignment Assignment,
+	request AssignmentAcknowledgmentRequest,
+) error {
+	if request.OperationID == "" {
+		return NewFailure(FailureInvalidInput, "assignment acknowledgment operation ID is required")
+	}
+	switch request.Outcome {
+	case AssignmentCompleted:
+		if request.FailureCode != "" || request.Reason != "" {
+			return NewFailure(FailureInvalidInput, "completed assignment cannot carry failure detail")
+		}
+		if assignment.Kind == ProposalBackfill {
+			return validateAcknowledgedBackfillVersions(assignment, request)
+		}
+		if hasAcknowledgedRosterDetail(request) {
+			return NewFailure(FailureInvalidInput, "new-match completion cannot carry roster detail")
+		}
+	case AssignmentCancelled:
+		if request.Reason == "" || request.FailureCode != "" || hasAcknowledgedRosterDetail(request) {
+			return NewFailure(FailureInvalidInput, "cancelled assignment needs only a reason")
+		}
+	case AssignmentFailed:
+		if !ValidFailureCode(request.FailureCode) || request.Reason == "" {
+			return NewFailure(FailureInvalidInput, "failed assignment needs a failure code and reason")
+		}
+		if assignment.Kind == ProposalBackfill && request.FailureCode == FailureStaleSnapshot {
+			return validateAcknowledgedBackfillVersions(assignment, request)
+		}
+		if hasAcknowledgedRosterDetail(request) {
+			return NewFailure(FailureInvalidInput, "non-stale failure cannot carry roster detail")
+		}
+	default:
+		return NewFailure(FailureInvalidInput, "assignment outcome %q is not terminal", request.Outcome)
+	}
+	return nil
+}
+
+func validateAcknowledgedBackfillVersions(
+	assignment Assignment,
+	request AssignmentAcknowledgmentRequest,
+) error {
+	if assignment.Backfill == nil || request.SessionID != assignment.Backfill.SessionID ||
+		request.ExpectedRosterVersion != assignment.Backfill.RosterVersion {
+		return NewFailure(FailureStaleSnapshot, "backfill acknowledgment does not match the assigned roster snapshot")
+	}
+	if request.ResultingRosterVersion <= request.ExpectedRosterVersion {
+		return NewFailure(FailureInvalidInput, "resulting roster version must advance")
+	}
+	return nil
+}
+
+func hasAcknowledgedRosterDetail(request AssignmentAcknowledgmentRequest) bool {
+	return request.SessionID != "" || request.ExpectedRosterVersion != 0 || request.ResultingRosterVersion != 0
+}
+
 func CloneMatchTicket(ticket MatchTicket) MatchTicket {
 	ticket.Players = slices.Clone(ticket.Players)
 	return ticket

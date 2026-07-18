@@ -187,6 +187,44 @@ func FromDomainReservation(reservation domain.Reservation) Reservation {
 	}
 }
 
+func FromDomainAssignment(assignment domain.Assignment) Assignment {
+	teams := make([]TeamAssignment, len(assignment.Teams))
+	for index, team := range assignment.Teams {
+		teams[index] = TeamAssignment{Team: team.Team, Tickets: fromDomainTicketRefs(team.Tickets)}
+	}
+	var acknowledgment *AssignmentAcknowledgment
+	if assignment.Acknowledgment != nil {
+		acknowledgment = &AssignmentAcknowledgment{
+			OperationID: string(assignment.Acknowledgment.OperationID),
+			Outcome:     string(assignment.Acknowledgment.Outcome), SessionID: string(assignment.Acknowledgment.SessionID),
+			ExpectedRosterVersion:  uint64(assignment.Acknowledgment.ExpectedRosterVersion),
+			ResultingRosterVersion: uint64(assignment.Acknowledgment.ResultingRosterVersion),
+			FailureCode:            string(assignment.Acknowledgment.FailureCode), Reason: assignment.Acknowledgment.Reason,
+			AcknowledgedAt: assignment.Acknowledgment.AcknowledgedAt.UTC(),
+		}
+	}
+	return Assignment{
+		ID: string(assignment.ID), ReservationID: string(assignment.ReservationID),
+		ProposalID: string(assignment.ProposalID), Kind: string(assignment.Kind),
+		Teams: teams, Backfill: fromDomainBackfillTarget(assignment.Backfill),
+		ConfirmedAt: assignment.ConfirmedAt.UTC(), Status: string(assignment.Status),
+		Acknowledgment: acknowledgment,
+	}
+}
+
+func ToDomainAcknowledgment(
+	operationID string,
+	request AcknowledgeAssignmentRequest,
+) domain.AssignmentAcknowledgmentRequest {
+	return domain.AssignmentAcknowledgmentRequest{
+		OperationID: domain.OperationID(operationID), Outcome: domain.AssignmentStatus(request.Outcome),
+		SessionID:              domain.SessionID(request.SessionID),
+		ExpectedRosterVersion:  domain.Revision(request.ExpectedRosterVersion),
+		ResultingRosterVersion: domain.Revision(request.ResultingRosterVersion),
+		FailureCode:            domain.FailureCode(request.FailureCode), Reason: request.Reason,
+	}
+}
+
 func fromDomainTicketRefs(references []domain.TicketRef) []TicketRef {
 	converted := make([]TicketRef, len(references))
 	for index, reference := range references {

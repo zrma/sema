@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning vertical slice가 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. 나머지 lifecycle service와 identity provider/runtime cutover는 P30에 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning/reservation/assignment lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. V0 import/rollback과 identity provider/runtime cutover는 P30에 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -117,6 +117,10 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - tenant-scoped immutable policy registration, canonical fingerprint conflict와 authenticated get/list page.
 - repository-versioned input capture, transaction 밖 deterministic matcher와 atomic proposal/unmatched completion을 제공하는 resumable planning run.
 - unrelated ingress 뒤에도 completed run storage version에 묶여 유지되는 proposal/unmatched cursor page.
+- authoritative proposal의 current demand를 PostgreSQL CAS로 선점하고 cancel/expiry에서 atomic 해제하는 reservation command/read service.
+- demand 소비, reservation confirm과 pending assignment create를 한 transaction에 두는 assignment polling lifecycle.
+- external session outcome만 기록하고 concurrent terminal split-brain을 차단하는 idempotent acknowledgment service.
+- aggregate 후속 mutation 뒤에도 최초 reservation/assignment 응답을 보존하는 immutable operation result.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -127,7 +131,7 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
-- reservation confirm/assignment/acknowledgment target command service, V0 import/cutover와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
+- V0 import/cutover와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
 - authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 - stable release 자체; 현재 `stable_admitted: false`다.
@@ -145,4 +149,4 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 ## Next Slice
 
-P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 demand claim, immutable Policy catalog, repository-versioned planning run/proposal persistence와 proposal-derived reservation create/cancel/expiry를 닫았다. 다음 slice는 reservation confirm과 assignment polling/acknowledgment다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.
+P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 demand claim, immutable Policy catalog, repository-versioned planning run/proposal persistence와 reservation/assignment/acknowledgment lifecycle을 닫았다. 다음 slice는 V0 journal read-only import와 discard/retry rollback fixture다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.

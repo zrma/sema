@@ -335,7 +335,7 @@ func (coordinator *Coordinator) AcknowledgeAssignment(
 		}
 		return domain.Assignment{}, domain.NewFailure(domain.FailureInvalidTransition, "assignment %q is already terminal", assignmentID)
 	}
-	if err := validateAcknowledgment(assignment, request); err != nil {
+	if err := domain.ValidateAssignmentAcknowledgment(assignment, request); err != nil {
 		return domain.Assignment{}, err
 	}
 	acknowledgment := &domain.AssignmentAcknowledgment{
@@ -476,60 +476,4 @@ func cloneAssignment(assignment domain.Assignment) domain.Assignment {
 		assignment.Acknowledgment = &acknowledgment
 	}
 	return assignment
-}
-
-func validateAcknowledgment(
-	assignment domain.Assignment,
-	request domain.AssignmentAcknowledgmentRequest,
-) error {
-	if request.OperationID == "" {
-		return domain.NewFailure(domain.FailureInvalidInput, "assignment acknowledgment operation ID is required")
-	}
-	switch request.Outcome {
-	case domain.AssignmentCompleted:
-		if request.FailureCode != "" || request.Reason != "" {
-			return domain.NewFailure(domain.FailureInvalidInput, "completed assignment cannot carry failure detail")
-		}
-		if assignment.Kind == domain.ProposalBackfill {
-			return validateBackfillVersions(assignment, request)
-		}
-		if hasRosterDetail(request) {
-			return domain.NewFailure(domain.FailureInvalidInput, "new-match completion cannot carry roster detail")
-		}
-	case domain.AssignmentCancelled:
-		if request.Reason == "" || request.FailureCode != "" || hasRosterDetail(request) {
-			return domain.NewFailure(domain.FailureInvalidInput, "cancelled assignment needs only a reason")
-		}
-	case domain.AssignmentFailed:
-		if !domain.ValidFailureCode(request.FailureCode) || request.Reason == "" {
-			return domain.NewFailure(domain.FailureInvalidInput, "failed assignment needs a failure code and reason")
-		}
-		if assignment.Kind == domain.ProposalBackfill && request.FailureCode == domain.FailureStaleSnapshot {
-			return validateBackfillVersions(assignment, request)
-		}
-		if hasRosterDetail(request) {
-			return domain.NewFailure(domain.FailureInvalidInput, "non-stale failure cannot carry roster detail")
-		}
-	default:
-		return domain.NewFailure(domain.FailureInvalidInput, "assignment outcome %q is not terminal", request.Outcome)
-	}
-	return nil
-}
-
-func validateBackfillVersions(
-	assignment domain.Assignment,
-	request domain.AssignmentAcknowledgmentRequest,
-) error {
-	if assignment.Backfill == nil || request.SessionID != assignment.Backfill.SessionID ||
-		request.ExpectedRosterVersion != assignment.Backfill.RosterVersion {
-		return domain.NewFailure(domain.FailureStaleSnapshot, "backfill acknowledgment does not match the assigned roster snapshot")
-	}
-	if request.ResultingRosterVersion <= request.ExpectedRosterVersion {
-		return domain.NewFailure(domain.FailureInvalidInput, "resulting roster version must advance")
-	}
-	return nil
-}
-
-func hasRosterDetail(request domain.AssignmentAcknowledgmentRequest) bool {
-	return request.SessionID != "" || request.ExpectedRosterVersion != 0 || request.ResultingRosterVersion != 0
 }

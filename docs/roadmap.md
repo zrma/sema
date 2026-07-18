@@ -256,7 +256,7 @@ matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional 
 - [x] tenant-scoped immutable Policy catalog와 authenticated command/read service
 - [x] repository-versioned planning run과 immutable proposal/unmatched result page
 - [x] proposal-derived reservation create/cancel/get/list와 demand claim/expiry replay
-- [ ] reservation confirm/assignment/acknowledgment command service
+- [x] reservation confirm/assignment/acknowledgment command service
 - [ ] identity provider와 tenant credential lifecycle 결정
 - [ ] authenticated PostgreSQL runtime executable과 remote-listener security gate
 - [ ] V0 read-only import, rollback과 backup/restore rehearsal

@@ -306,6 +306,7 @@ func fixturePrincipal(tenant string, write bool) Principal {
 		PermissionMatchTicketsRead: true, PermissionBackfillTicketsRead: true,
 		PermissionPoliciesRead: true, PermissionPlanningRunsRead: true,
 		PermissionReservationsRead: true,
+		PermissionAssignmentsRead:  true,
 	}
 	if write {
 		permissions[PermissionMatchTicketsWrite] = true
@@ -313,6 +314,7 @@ func fixturePrincipal(tenant string, write bool) Principal {
 		permissions[PermissionPoliciesWrite] = true
 		permissions[PermissionPlanningRunsWrite] = true
 		permissions[PermissionReservationsWrite] = true
+		permissions[PermissionAssignmentsWrite] = true
 	}
 	return Principal{Subject: "subject-" + tenant, Tenant: tenant, Permissions: permissions}
 }

@@ -285,3 +285,55 @@ type ReservationPage struct {
 	RepositoryVersion uint64                `json:"repository_version"`
 	NextCursor        string                `json:"next_cursor,omitempty"`
 }
+
+type ConfirmReservationRequest struct {
+	AssignmentID string `json:"assignment_id"`
+}
+
+type AssignmentAcknowledgment struct {
+	OperationID            string    `json:"operation_id"`
+	Outcome                string    `json:"outcome"`
+	SessionID              string    `json:"session_id,omitempty"`
+	ExpectedRosterVersion  uint64    `json:"expected_roster_version,omitempty"`
+	ResultingRosterVersion uint64    `json:"resulting_roster_version,omitempty"`
+	FailureCode            string    `json:"failure_code,omitempty"`
+	Reason                 string    `json:"reason,omitempty"`
+	AcknowledgedAt         time.Time `json:"acknowledged_at"`
+}
+
+type Assignment struct {
+	ID             string                    `json:"id"`
+	ReservationID  string                    `json:"reservation_id"`
+	ProposalID     string                    `json:"proposal_id"`
+	Kind           string                    `json:"kind"`
+	Teams          []TeamAssignment          `json:"teams"`
+	Backfill       *BackfillTarget           `json:"backfill,omitempty"`
+	ConfirmedAt    time.Time                 `json:"confirmed_at"`
+	Status         string                    `json:"status"`
+	Acknowledgment *AssignmentAcknowledgment `json:"acknowledgment,omitempty"`
+}
+
+type AssignmentResource struct {
+	Assignment     Assignment `json:"assignment"`
+	StorageVersion uint64     `json:"storage_version"`
+}
+
+type AssignmentMutation struct {
+	Resource AssignmentResource `json:"resource"`
+	Replayed bool               `json:"replayed"`
+}
+
+type AssignmentPage struct {
+	Items             []AssignmentResource `json:"items"`
+	RepositoryVersion uint64               `json:"repository_version"`
+	NextCursor        string               `json:"next_cursor,omitempty"`
+}
+
+type AcknowledgeAssignmentRequest struct {
+	Outcome                string `json:"outcome"`
+	SessionID              string `json:"session_id,omitempty"`
+	ExpectedRosterVersion  uint64 `json:"expected_roster_version,omitempty"`
+	ResultingRosterVersion uint64 `json:"resulting_roster_version,omitempty"`
+	FailureCode            string `json:"failure_code,omitempty"`
+	Reason                 string `json:"reason,omitempty"`
+}

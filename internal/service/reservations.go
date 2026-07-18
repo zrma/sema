@@ -535,6 +535,56 @@ func (service *Reservations) expireOne(
 	return err
 }
 
+func (service *Reservations) invalidateStale(
+	ctx context.Context,
+	scope string,
+	reservation domain.Reservation,
+	at time.Time,
+) error {
+	snapshot, err := service.repository.Snapshot(ctx, scope)
+	if err != nil {
+		return err
+	}
+	resource, exists := findResource(snapshot, Key(scope, ResourceReservation, string(reservation.ID)))
+	if !exists || resource.Deleted {
+		return nil
+	}
+	current, err := decodeReservation(resource.Payload)
+	if err != nil {
+		return err
+	}
+	if current.Status != domain.ReservationActive {
+		return nil
+	}
+	current.Status = domain.ReservationCancelled
+	payload, err := encodeReservation(current)
+	if err != nil {
+		return err
+	}
+	mutations := []repository.Mutation{{
+		Key: resource.Key, ExpectedVersion: resource.Version, Payload: payload,
+	}}
+	claimMutations, err := reservationClaimDeletions(snapshot, scope, current)
+	if err != nil {
+		return err
+	}
+	mutations = append(mutations, claimMutations...)
+	command, err := json.Marshal(struct {
+		Kind       string               `json:"kind"`
+		ID         domain.ReservationID `json:"id"`
+		ProposalID domain.ProposalID    `json:"proposal_id"`
+	}{Kind: "reservation.invalidate_stale", ID: current.ID, ProposalID: current.ProposalID})
+	if err != nil {
+		return fmt.Errorf("encode stale reservation invalidation: %w", err)
+	}
+	operation := repository.Operation{
+		Scope: scope, ID: domain.OperationID("/reservation.invalidate-stale/" + string(current.ID)),
+		Kind: "reservation.invalidate_stale", Digest: repository.Digest(command), At: at,
+	}
+	_, err = service.repository.Commit(ctx, operation, mutations)
+	return err
+}
+
 func (service *Reservations) replayedMutation(
 	ctx context.Context,
 	scope string,

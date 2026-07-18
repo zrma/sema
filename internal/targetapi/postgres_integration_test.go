@@ -153,4 +153,45 @@ func TestTargetAPIPostgresComposition(t *testing.T) {
 		!reflect.DeepEqual(replayedReservation.Resource, createdReservation.Resource) {
 		t.Fatalf("PostgreSQL reservation replay = %#v; created=%#v", replayedReservation, createdReservation)
 	}
+	requestData[api.ReservationMutation](
+		t, handler, "tenant-a", "postgres-reservation-for-assignment", http.MethodPost,
+		"/v0alpha2/reservations/reservation-postgres-assignment",
+		api.ReservationRequest{ProposalID: proposals.Items[0].Proposal.ID}, http.StatusOK,
+	)
+	confirmedAssignment := requestData[api.AssignmentMutation](
+		t, handler, "tenant-a", "postgres-assignment-confirm", http.MethodPost,
+		"/v0alpha2/reservations/reservation-postgres-assignment/confirm",
+		api.ConfirmReservationRequest{AssignmentID: "assignment-postgres"}, http.StatusOK,
+	)
+	polledAssignment := requestData[api.AssignmentResource](
+		t, handler, "tenant-a", "", http.MethodGet,
+		"/v0alpha2/assignments/assignment-postgres", nil, http.StatusOK,
+	)
+	if !reflect.DeepEqual(polledAssignment.Assignment, confirmedAssignment.Resource.Assignment) ||
+		polledAssignment.StorageVersion != confirmedAssignment.Resource.StorageVersion {
+		t.Fatalf("PostgreSQL assignment poll = %#v; confirmed=%#v", polledAssignment, confirmedAssignment)
+	}
+	acknowledgment := api.AcknowledgeAssignmentRequest{Outcome: "completed"}
+	if target := confirmedAssignment.Resource.Assignment.Backfill; target != nil {
+		acknowledgment.SessionID = target.SessionID
+		acknowledgment.ExpectedRosterVersion = target.RosterVersion
+		acknowledgment.ResultingRosterVersion = target.RosterVersion + 1
+	}
+	completedAssignment := requestData[api.AssignmentMutation](
+		t, handler, "tenant-a", "postgres-assignment-ack", http.MethodPost,
+		"/v0alpha2/assignments/assignment-postgres/acknowledgments",
+		acknowledgment, http.StatusOK,
+	)
+	if completedAssignment.Resource.Assignment.Status != "completed" {
+		t.Fatalf("PostgreSQL completed assignment = %#v", completedAssignment)
+	}
+	replayedAssignment := requestData[api.AssignmentMutation](
+		t, handler, "tenant-a", "postgres-assignment-confirm", http.MethodPost,
+		"/v0alpha2/reservations/reservation-postgres-assignment/confirm",
+		api.ConfirmReservationRequest{AssignmentID: "assignment-postgres"}, http.StatusOK,
+	)
+	if !replayedAssignment.Replayed ||
+		!reflect.DeepEqual(replayedAssignment.Resource, confirmedAssignment.Resource) {
+		t.Fatalf("PostgreSQL assignment replay = %#v; confirmed=%#v", replayedAssignment, confirmedAssignment)
+	}
 }
