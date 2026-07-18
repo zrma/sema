@@ -75,11 +75,11 @@ trio    [●─●─●]
 기본 wide layout은 세 행이다. 상단은 `WAITING POOL | MATCH LIFECYCLE`, 중단은 `AVERAGE QUEUE WAIT | RATING DENSITY`, 하단은 `COMPLETED MATCHES | EVENT STREAM`이다.
 
 - average queue wait chart는 assignment confirm 전인 party의 현재 wait를 player 수로 가중한다. Y axis는 wait duration이고 simulated time은 오른쪽으로 흐른다.
-- rating density chart는 전체 population을 1500 exact center와 대칭 rating bucket으로 집계한다. 1500 row의 빈 cell은 낮은 강조도의 `─` 기준축이고 실제 density가 있으면 `·`/`░`/`▒`/`▓`/`█` block ramp가 덮는다. `@`는 사용하지 않는다.
-- tall terminal에서는 같은 9개 rating bucket의 density cell 높이를 analytics panel에 비례해 확장하고 label은 bucket당 한 번만 표시한다. 반복된 row는 시각적 확대이며 새로운 rating sample이나 bucket 보간이 아니다.
+- rating density chart는 전체 population을 exact 1500과 그 양쪽 25점 단위 internal bucket으로 집계한다. 화면에 보이는 history의 분포 폭에 따라 1500 중심 Y축이 1400–1600, 1350–1650, 1300–1700처럼 대칭 확장되고 분포가 다시 좁아지면 축도 축소된다. 1500 row의 빈 cell은 낮은 강조도의 `─` 기준축이고 실제 density가 있으면 `·`/`░`/`▒`/`▓`/`█` block ramp가 덮는다. `@`는 사용하지 않는다.
+- chart는 가변 범위를 최대 9개 visible band로 묶고 tall terminal에서는 각 band의 density cell 높이를 analytics panel에 비례해 확장한다. label은 band당 한 번만 표시하며 반복된 row는 시각적 확대이지 새로운 rating sample이나 bucket 보간이 아니다.
 - 같은 10초 simulated logical-time bucket의 lifecycle event는 최신 read model로 교체하고 최근 512 bucket만 유지한다. 화면의 한 열도 같은 고정 bucket을 사용해 새 bucket이 오면 기존 열이 값 그대로 왼쪽으로 이동하며, 전체 history를 화면 폭에 다시 투영하지 않는다.
 - 기본 Unicode mode는 wait chart의 `●`/`░`와 event stream의 `→`/`◉`/`◆`/`▶`/`✓` marker를 사용하며 ASCII symbol은 `-ascii` fallback에서만 사용한다.
-- proposal에 선택된 party row는 즉시 사라지지 않는다. 같은 match에 속한 party는 동일한 color와 numbered marker로 잠시 고정된 뒤 오른쪽으로 함께 이동하고, 완전히 빠져나간 뒤 남은 queue row가 frame마다 한 줄씩 위로 접힌다. 같은 marker와 color는 `MATCH LIFECYCLE`의 header, team과 evidence 전체에 유지되고 lifecycle stage는 glyph와 text로 구분한다. active match가 끝나기 전에는 visual slot을 재사용하지 않는다.
+- proposal에 선택된 party row는 즉시 사라지지 않는다. 같은 match에 속한 party는 동일한 color와 numbered marker로 잠시 고정된 뒤 오른쪽으로 함께 이동하고, 완전히 빠져나간 뒤 남은 queue row가 frame마다 한 줄씩 위로 접힌다. Unicode marker는 visual slot 1–20에 `①`–`⑳`, 이후에는 일반 숫자를 사용하며 모두 3-cell marker column에 맞춰 waiting/lifecycle 본문 시작 위치를 고정한다. 같은 marker와 color는 `MATCH LIFECYCLE`의 header, team과 evidence 전체에 유지되고 lifecycle stage는 glyph와 text로 구분한다. active match가 끝나기 전에는 visual slot을 재사용하지 않는다.
 - 새 `MATCH LIFECYCLE` block은 plan event와 함께 한 번에 나타나지 않는다. selected party의 horizontal departure가 끝난 다음 batch proposal 순서대로 panel 상단에서 한 frame씩 stagger되어 header부터 아래로 펼쳐진다. 새 row가 드러나는 동안 기존 lifecycle block도 아래로 밀려 queue-to-lifecycle 흐름을 이어간다.
 - queue departure와 vertical compaction은 presentation motion이며 ticket reservation, confirm 시각이나 simulated clock을 바꾸지 않는다. reduced-motion과 snapshot은 중간 frame을 생략하고 최종 queue layout을 즉시 적용한다.
 - 72 columns 미만 또는 30 rows 미만에서는 lifecycle/recent summary를 우선하는 compact view로 축약한다.

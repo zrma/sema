@@ -97,7 +97,7 @@ type matchView struct {
 type trendSample struct {
 	at              time.Time
 	averageWait     time.Duration
-	ratingHistogram [9]int
+	ratingHistogram league.RatingHistogram
 	population      int
 }
 
@@ -489,7 +489,7 @@ func (model *Model) recordTrendSample() {
 	sample := trendSample{
 		at:              model.now.Truncate(trendColumnInterval),
 		averageWait:     model.averageQueueWait(),
-		ratingHistogram: model.population.CenteredHistogram,
+		ratingHistogram: model.population.RatingHistogram,
 		population:      model.population.Players,
 	}
 	if len(model.trends) > 0 && model.trends[len(model.trends)-1].at.Equal(sample.at) {

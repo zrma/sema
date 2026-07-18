@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	api "github.com/zrma/sema/internal/api/v0alpha1"
@@ -216,6 +217,28 @@ func TestActiveMatchesReceiveUniqueVisualSlotsAndColors(t *testing.T) {
 		colors[color] = struct{}{}
 		markers[marker] = struct{}{}
 		model.active[fmt.Sprintf("match-%02d", index)] = &matchView{matchVisual: visual}
+	}
+}
+
+func TestMatchVisualMarkersUseOneFixedDisplayColumn(t *testing.T) {
+	for _, test := range []struct {
+		index   int
+		unicode bool
+		marker  string
+	}{
+		{index: 0, unicode: true, marker: "①"},
+		{index: 19, unicode: true, marker: "⑳"},
+		{index: 20, unicode: true, marker: "21"},
+		{index: 57, unicode: true, marker: "58"},
+		{index: 99, unicode: true, marker: "100"},
+		{index: 0, unicode: false, marker: "01"},
+	} {
+		if raw := matchVisualMarker(test.index, test.unicode); raw != test.marker {
+			t.Fatalf("marker %d = %q; want %q", test.index, raw, test.marker)
+		}
+		if width := lipgloss.Width(matchVisualMarkerCell(test.index, test.unicode)); width != matchVisualMarkerWidth {
+			t.Fatalf("marker cell %d width = %d; want %d", test.index, width, matchVisualMarkerWidth)
+		}
 	}
 }
 

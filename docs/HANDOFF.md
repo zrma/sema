@@ -61,7 +61,7 @@
 - trend는 player-weighted pre-confirm wait와 1500-centered whole-population rating density를 최근 512개의 10초 logical-time bucket으로 보여준다. 신규 bucket은 기존 열을 재투영하지 않고 값 그대로 왼쪽으로 이동시킨다.
 - selected party row는 match별 marker/color를 공유해 hold와 horizontal departure를 거친 뒤 제거되며, 남은 waiting row는 frame 단위로 위로 접힌다. reduced-motion은 동일 final state를 즉시 적용한다.
 - 새 lifecycle block은 같은 marker/color를 유지한 채 batch 순서대로 panel 상단에서 stagger되어 펼쳐지고, 기존 block은 드러난 row만큼 아래로 이동한다. 이 motion도 presentation-only이며 reduced-motion은 최종 배치를 즉시 표시한다.
-- rating density는 9개 centered histogram bucket을 analytics panel의 가용 높이에 비례해 확장하고 label은 bucket당 한 번만 표시한다. 반복 row는 시각적 cell height이지 추가 rating data가 아니다.
+- rating density는 exact 1500과 양쪽 25점 histogram에서 visible history의 대칭 Y축 범위를 고르고 최대 9개 band를 analytics panel 높이에 비례해 확장한다. 반복 row는 시각적 cell height이지 추가 rating data가 아니다.
 - P18 global selector는 `MaxProposals`를 상한으로 사용하고 candidate/selection budget을 분리하며, best feasible batch와 rank utility/truncation evidence를 public alpha, HTTP DTO와 durable replay에 보존한다.
 - Flow는 5v5 한 match 분량부터 partial batch를 계획하고 backlog가 있으면 기본 32-match upper bound까지 한 cycle에 반환한다. 400-player fixture는 한 cycle 32 proposals를 고정하고 1,000-player 정상상태 구간은 89.9 match/min을 기록했다.
 - selector cardinality가 하나이면 anchored batch alternative를 생략하는 P20 fast path가 50v50, 100K queue와 engine 1,000-ticket을 기존 reference performance budget 안에 유지한다. multi-proposal 또는 backfill 경쟁 경로는 P18 candidate graph를 유지한다.

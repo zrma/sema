@@ -20,6 +20,9 @@ func TestDefaultPopulationStartsAsOneThousandPlayerMixedPartyLeague(t *testing.T
 	if stats.CenteredHistogram[4] != 1000 {
 		t.Fatalf("centered rating histogram = %#v", stats.CenteredHistogram)
 	}
+	if stats.RatingHistogram[RatingHistogramBucket(1500)] != 1000 {
+		t.Fatalf("dynamic rating histogram = %#v", stats.RatingHistogram)
+	}
 	parties := population.Parties()
 	for index, expected := range []int{2, 1, 1, 1, 3, 2} {
 		if len(parties[index].Players) != expected {
@@ -64,6 +67,9 @@ func TestMatchResultAndRatingEvolutionAreDeterministicAndZeroSum(t *testing.T) {
 	if stats.CenteredHistogram[3] != 5 || stats.CenteredHistogram[5] != 5 {
 		t.Fatalf("rating did not spread symmetrically around 1500: %#v", stats.CenteredHistogram)
 	}
+	if stats.RatingHistogram[RatingHistogramBucket(1484)] != 5 || stats.RatingHistogram[RatingHistogramBucket(1516)] != 5 {
+		t.Fatalf("fine rating histogram did not preserve the spread: %#v", stats.RatingHistogram)
+	}
 	for _, party := range first.Parties() {
 		if party.Revision != 2 {
 			t.Fatalf("party %s revision = %d; want 2", party.ID, party.Revision)
@@ -73,6 +79,19 @@ func TestMatchResultAndRatingEvolutionAreDeterministicAndZeroSum(t *testing.T) {
 				t.Fatalf("player %s games = %d; want 1", player.ID, player.Games)
 			}
 		}
+	}
+}
+
+func TestRatingHistogramPreservesCenterAndBounds(t *testing.T) {
+	for _, rating := range []int{100, 124, 125, 1474, 1475, 1499, 1500, 1501, 1525, 1526, 2976, 3000} {
+		bucket := RatingHistogramBucket(rating)
+		lower, upper := RatingHistogramBounds(bucket)
+		if rating < lower || rating > upper {
+			t.Fatalf("rating %d mapped to bucket %d outside [%d,%d]", rating, bucket, lower, upper)
+		}
+	}
+	if lower, upper := RatingHistogramBounds(RatingHistogramBucket(1500)); lower != 1500 || upper != 1500 {
+		t.Fatalf("center bounds = [%d,%d]; want [1500,1500]", lower, upper)
 	}
 }
 

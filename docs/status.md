@@ -77,7 +77,7 @@ P0부터 P28 matcher V0 exit까지 완료되었다. 현재 milestone은 P29 serv
 - 같은 10초 logical-time bucket을 합치고 512 bucket으로 제한하며 신규 시간대에 기존 열을 값 그대로 이동시키는 deterministic trend read model과 Unicode/color, ASCII, medium/tall/compact terminal gate.
 - selected party를 match별 color/marker로 묶어 hold 뒤 오른쪽으로 이동시키고 남은 waiting row를 frame 단위로 접는 queue departure motion과 reduced-motion final-state fallback.
 - 새 lifecycle block을 batch 순서대로 panel 상단에서 stagger해 펼치고 기존 block을 아래로 이동시키는 presentation-only entry motion.
-- tall analytics panel의 전체 높이에 9개 rating bucket을 비례 확장하되 label과 histogram 의미를 유지하는 density scaling.
+- fine-grained rating histogram에서 visible 분포 폭에 맞는 1500-centered dynamic Y축을 만들고 tall analytics panel 전체 높이에 visible band를 비례 확장하는 density scaling.
 - 한 match 분량부터 partial batch를 계획하고 backlog에서 기본 32 proposals까지 반환하는 Flow admission contract와 256 configuration safety bound.
 - 1,000-player warm-up 이후 20분간 89.9 match/min, 30분 누적 wait p50/p90/p99 5/9/18초를 기록한 synthetic stability evidence.
 - proposal limit/capacity가 하나인 workload에서 redundant anchored search를 생략하고 multi-proposal candidate diversity는 보존하는 planner fast path.

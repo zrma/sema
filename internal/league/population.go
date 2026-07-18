@@ -8,11 +8,15 @@ import (
 )
 
 const (
-	defaultPopulationSize = 1000
-	defaultInitialRating  = 1500
-	defaultRatingK        = 32
-	minimumRating         = 100
-	maximumRating         = 3000
+	defaultPopulationSize  = 1000
+	defaultInitialRating   = 1500
+	defaultRatingK         = 32
+	minimumRating          = 100
+	maximumRating          = 3000
+	ratingHistogramCenter  = 1500
+	ratingHistogramStep    = 25
+	ratingHistogramMiddle  = 56
+	RatingHistogramBuckets = 117
 )
 
 var partyPattern = [...]int{2, 1, 1, 1, 3, 2}
@@ -43,6 +47,11 @@ type Player struct {
 	Wins   int
 }
 
+// RatingHistogram stores exact-center and 25-point rating bands from 100 through 3000.
+// Index 56 is rating 1500, lower indices descend from 1475-1499, and higher indices
+// ascend from 1501-1525.
+type RatingHistogram [RatingHistogramBuckets]int
+
 // Party is a stable group that owns one versioned matchmaking ticket.
 type Party struct {
 	ID       string
@@ -65,6 +74,8 @@ type Stats struct {
 	Histogram    [9]int
 	// CenteredHistogram preserves a dedicated 1500 bucket for symmetric TUI history.
 	CenteredHistogram [9]int
+	// RatingHistogram supports a dynamically scaled TUI density axis without exposing player identity.
+	RatingHistogram RatingHistogram
 }
 
 // Result records one simulated outcome and the per-player Elo movement for each team.
@@ -301,6 +312,7 @@ func (population *Population) Stats() Stats {
 		variance += difference * difference
 		stats.Histogram[ratingBucket(rating)]++
 		stats.CenteredHistogram[centeredRatingBucket(rating)]++
+		stats.RatingHistogram[RatingHistogramBucket(rating)]++
 	}
 	stats.StdDev = int(math.Round(math.Sqrt(variance / float64(len(ratings)))))
 	return stats
@@ -327,6 +339,38 @@ func centeredRatingBucket(rating int) int {
 		}
 	}
 	return 8
+}
+
+// RatingHistogramBucket maps a visible rating into the fine-grained histogram.
+func RatingHistogramBucket(rating int) int {
+	rating = clamp(rating, minimumRating, maximumRating)
+	if rating == ratingHistogramCenter {
+		return ratingHistogramMiddle
+	}
+	if rating < ratingHistogramCenter {
+		distance := (ratingHistogramCenter - rating + ratingHistogramStep - 1) / ratingHistogramStep
+		return ratingHistogramMiddle - distance
+	}
+	distance := (rating - ratingHistogramCenter + ratingHistogramStep - 1) / ratingHistogramStep
+	return ratingHistogramMiddle + distance
+}
+
+// RatingHistogramBounds returns the inclusive rating range represented by a bucket.
+func RatingHistogramBounds(index int) (int, int) {
+	index = clamp(index, 0, RatingHistogramBuckets-1)
+	if index == ratingHistogramMiddle {
+		return ratingHistogramCenter, ratingHistogramCenter
+	}
+	if index < ratingHistogramMiddle {
+		distance := ratingHistogramMiddle - index
+		lower := ratingHistogramCenter - distance*ratingHistogramStep
+		upper := ratingHistogramCenter - (distance-1)*ratingHistogramStep - 1
+		return max(minimumRating, lower), upper
+	}
+	distance := index - ratingHistogramMiddle
+	lower := ratingHistogramCenter + (distance-1)*ratingHistogramStep + 1
+	upper := ratingHistogramCenter + distance*ratingHistogramStep
+	return lower, min(maximumRating, upper)
 }
 
 func clamp(value, minimum, maximum int) int {

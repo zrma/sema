@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	api "github.com/zrma/sema/internal/api/v0alpha1"
+	"github.com/zrma/sema/internal/league"
 )
 
 type glyphSet struct {
@@ -34,6 +35,8 @@ var unicodeMatchMarkers = [...]string{
 	"①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩",
 	"⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳",
 }
+
+const matchVisualMarkerWidth = 3
 
 func (model *Model) glyphs() glyphSet {
 	if !model.options.Unicode {
@@ -392,9 +395,9 @@ func (model *Model) waitingLines(glyphs glyphSet, limit int) []string {
 		}
 		lane := model.waitingLane(ticket, glyphs)
 		wait := max(time.Duration(0), model.now.Sub(ticket.ticket.EnqueuedAt)).Round(100 * time.Millisecond)
-		marker := " "
+		marker := strings.Repeat(" ", matchVisualMarkerWidth)
 		if ticket.leaving {
-			marker = matchVisualMarker(ticket.matchVisual, model.options.Unicode)
+			marker = matchVisualMarkerCell(ticket.matchVisual, model.options.Unicode)
 		}
 		line := fmt.Sprintf(
 			"%s %s %-11s %5s  r%-4d  %dms",
@@ -476,7 +479,7 @@ func (model *Model) lifecycleBlock(identifier string, match *matchView, glyphs g
 		stage += " " + remaining.String()
 	}
 	color := matchVisualColor(match.matchVisual)
-	marker := matchVisualMarker(match.matchVisual, model.options.Unicode)
+	marker := matchVisualMarkerCell(match.matchVisual, model.options.Unicode)
 	lines := []string{model.paint(fmt.Sprintf("%s %s %-8s %-15s %s", marker, icon, matchLabel(identifier), stage, motion), color)}
 	for teamIndex, team := range match.proposal.Teams {
 		lines = append(lines, model.paint(fmt.Sprintf("  %c  %s", 'A'+rune(teamIndex), model.teamGlyph(team, match.partySizes)), color))
@@ -517,6 +520,11 @@ func matchVisualMarker(index int, unicode bool) string {
 		return unicodeMatchMarkers[index]
 	}
 	return fmt.Sprintf("%02d", index+1)
+}
+
+func matchVisualMarkerCell(index int, unicode bool) string {
+	marker := matchVisualMarker(index, unicode)
+	return marker + strings.Repeat(" ", max(0, matchVisualMarkerWidth-lipgloss.Width(marker)))
 }
 
 func matchVisualColor(index int) string {
@@ -687,14 +695,15 @@ func (model *Model) ratingDensityLines(glyphs glyphSet, width, height int) []str
 		return nil
 	}
 	bandCount := min(9, height)
-	bands := ratingBands(bandCount)
 	const axisWidth = 6
 	chartWidth := trendChartWidth(width, axisWidth)
 	columns := trendColumns(model.trends, chartWidth)
+	bands := ratingBands(columns, bandCount)
 	axis := "│"
 	if !model.options.Unicode {
 		axis = "|"
 	}
+	centerBucket := league.RatingHistogramBucket(1500)
 	lines := make([]string, 0, height)
 	for row := range height {
 		bandIndex := min(bandCount-1, row*bandCount/height)
@@ -714,7 +723,7 @@ func (model *Model) ratingDensityLines(glyphs glyphSet, width, height int) []str
 			for bucket := band.lower; bucket <= band.upper; bucket++ {
 				players += column.sample.ratingHistogram[bucket]
 			}
-			centered := band.lower <= 4 && band.upper >= 4 && row == labelRow
+			centered := band.lower <= centerBucket && band.upper >= centerBucket && row == labelRow
 			chart.WriteString(model.densityCell(players, column.sample.population, centered))
 		}
 		lines = append(lines, fmt.Sprintf("%5s%s%s", label, axis, chart.String()))
@@ -776,22 +785,59 @@ func visibleTrendRange(columns []trendColumn) (string, string) {
 	return first, last
 }
 
-func ratingBands(count int) []ratingBand {
-	labels := [...]string{"<1400", "1400", "1450", "1475", "1500", "1501", "1526", "1551", ">1600"}
+func ratingBands(columns []trendColumn, count int) []ratingBand {
+	center := league.RatingHistogramBucket(1500)
+	minimumBucket := center
+	maximumBucket := center
+	for _, column := range columns {
+		if !column.valid {
+			continue
+		}
+		for bucket, players := range column.sample.ratingHistogram {
+			if players <= 0 {
+				continue
+			}
+			minimumBucket = min(minimumBucket, bucket)
+			maximumBucket = max(maximumBucket, bucket)
+		}
+	}
+	halfSpan := niceRatingHalfSpan(max(center-minimumBucket, maximumBucket-center))
+	lowerBound := max(0, center-halfSpan)
+	upperBound := min(league.RatingHistogramBuckets-1, center+halfSpan)
+	bucketCount := upperBound - lowerBound + 1
 	bands := make([]ratingBand, 0, count)
 	for row := range count {
 		group := count - 1 - row
-		lower := group * len(labels) / count
-		upper := (group+1)*len(labels)/count - 1
-		labelIndex := lower
-		if lower <= 4 && upper >= 4 {
-			labelIndex = 4
-		} else if upper < 4 {
-			labelIndex = upper
-		}
-		bands = append(bands, ratingBand{lower: lower, upper: upper, label: labels[labelIndex]})
+		lower := lowerBound + group*bucketCount/count
+		upper := lowerBound + (group+1)*bucketCount/count - 1
+		bands = append(bands, ratingBand{
+			lower: lower,
+			upper: upper,
+			label: ratingBandLabel(lower, upper, center),
+		})
 	}
 	return bands
+}
+
+func niceRatingHalfSpan(distance int) int {
+	for _, span := range [...]int{4, 6, 8, 12, 16, 24, 32, 48, 60} {
+		if distance <= span {
+			return span
+		}
+	}
+	return distance
+}
+
+func ratingBandLabel(lower, upper, center int) string {
+	if lower <= center && center <= upper {
+		return "1500"
+	}
+	if upper < center {
+		minimum, _ := league.RatingHistogramBounds(lower)
+		return fmt.Sprintf("%d", minimum)
+	}
+	_, maximum := league.RatingHistogramBounds(upper)
+	return fmt.Sprintf("%d", maximum)
 }
 
 func (model *Model) densityCell(players, population int, centered bool) string {

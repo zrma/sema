@@ -33,15 +33,15 @@ func TestAverageQueueWaitWeightsPlayersAndStopsAtConfirmation(t *testing.T) {
 	}
 }
 
-func TestTrendSampleReplacesSameBucketAndUsesCenteredRatingHistogram(t *testing.T) {
+func TestTrendSampleReplacesSameBucketAndUsesDynamicRatingHistogram(t *testing.T) {
 	now := time.Date(2026, time.January, 1, 0, 1, 0, 0, time.UTC)
 	model := &Model{now: now, tickets: make(map[string]*ticketView)}
-	model.population = league.Stats{Players: 10, CenteredHistogram: [9]int{0, 0, 0, 5, 0, 5}}
+	model.population = league.Stats{Players: 10, RatingHistogram: testRatingHistogram(1484, 5, 1516, 5)}
 	model.recordTrendSample()
-	model.population.CenteredHistogram = [9]int{0, 0, 0, 4, 2, 4}
+	model.population.RatingHistogram = testRatingHistogram(1484, 4, 1500, 2, 1516, 4)
 	model.now = model.now.Add(5 * time.Second)
 	model.recordTrendSample()
-	if len(model.trends) != 1 || model.trends[0].ratingHistogram != model.population.CenteredHistogram {
+	if len(model.trends) != 1 || model.trends[0].ratingHistogram != model.population.RatingHistogram {
 		t.Fatalf("same-bucket trend sample was not replaced: %#v", model.trends)
 	}
 	model.now = now.Add(trendColumnInterval)
@@ -103,7 +103,7 @@ func TestRatingDensityExpandsBandsAcrossAvailableHeight(t *testing.T) {
 		options: options,
 		trends: []trendSample{{
 			at: now, population: 100,
-			ratingHistogram: [9]int{0, 0, 0, 0, 100},
+			ratingHistogram: testRatingHistogram(1500, 100),
 		}},
 	}
 
@@ -119,7 +119,7 @@ func TestRatingDensityExpandsBandsAcrossAvailableHeight(t *testing.T) {
 			labelCounts[label]++
 		}
 	}
-	for _, label := range []string{"<1400", "1400", "1450", "1475", "1500", "1501", "1526", "1551", ">1600"} {
+	for _, label := range []string{"1400", "1425", "1450", "1475", "1500", "1525", "1550", "1575", "1600"} {
 		if count := labelCounts[label]; count != 1 {
 			t.Fatalf("rating label %q appeared %d times; want once:\n%s", label, count, joined)
 		}
@@ -141,10 +141,29 @@ func TestRatingDensityExpandsBandsAcrossAvailableHeight(t *testing.T) {
 	}
 
 	model.options.Unicode = true
-	model.trends[0].ratingHistogram = [9]int{0, 0, 0, 100}
+	model.trends[0].ratingHistogram = testRatingHistogram(1475, 100)
 	emptyCenter := strings.Join(model.ratingDensityLines(model.glyphs(), 60, 18), "\n")
 	if axisRows := strings.Count(emptyCenter, "─"); axisRows != 1 {
 		t.Fatalf("expanded empty 1500 bucket rendered %d reference axes; want one:\n%s", axisRows, emptyCenter)
+	}
+}
+
+func TestRatingDensityScaleExpandsWithVisibleDistribution(t *testing.T) {
+	base := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	centered := []trendColumn{{
+		at: base, valid: true,
+		sample: trendSample{population: 100, ratingHistogram: testRatingHistogram(1500, 100)},
+	}}
+	if bands := ratingBands(centered, 9); bands[0].label != "1600" || bands[4].label != "1500" || bands[8].label != "1400" {
+		t.Fatalf("centered scale = %#v; want 1400..1600", bands)
+	}
+
+	spread := []trendColumn{{
+		at: base, valid: true,
+		sample: trendSample{population: 100, ratingHistogram: testRatingHistogram(1300, 50, 1700, 50)},
+	}}
+	if bands := ratingBands(spread, 9); bands[0].label != "1700" || bands[4].label != "1500" || bands[8].label != "1300" {
+		t.Fatalf("expanded scale = %#v; want 1300..1700", bands)
 	}
 }
 
@@ -158,4 +177,12 @@ func assertTrendWaits(t *testing.T, columns []trendColumn, waits ...time.Duratio
 			t.Fatalf("column %d = %#v; want wait %s", index, columns[index], wait)
 		}
 	}
+}
+
+func testRatingHistogram(ratingsAndCounts ...int) league.RatingHistogram {
+	var histogram league.RatingHistogram
+	for index := 0; index+1 < len(ratingsAndCounts); index += 2 {
+		histogram[league.RatingHistogramBucket(ratingsAndCounts[index])] += ratingsAndCounts[index+1]
+	}
+	return histogram
 }

@@ -188,7 +188,7 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 ## P22: Flow Rating Density Scaling
 
 - [x] tall analytics panel의 전체 density chart 높이 사용
-- [x] 9개 histogram bucket의 비례 vertical cell 확장
+- [x] dynamic rating band의 비례 vertical cell 확장
 - [x] bucket당 단일 Y-axis label 유지
 - [x] 기존 histogram/measurement 의미 보존
 - [x] 기본/tall/medium/compact와 ASCII regression gate
