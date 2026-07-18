@@ -112,6 +112,8 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - 인증 adapter에서만 tenant를 결정하고 permission을 repository lookup 전에 검증하는 experimental target `v0alpha2` boundary.
 - higher-revision match-ticket resource, exact tombstone, historical operation replay와 PostgreSQL-backed create/poll fixture.
 - tenant/kind/filter/order와 repository version에 묶인 HMAC opaque cursor 및 stale-page restart contract.
+- BackfillTicket higher-revision/monotonic-roster replace, exact freshness cancel과 authenticated polling/page.
+- Match/Backfill 공통 ID와 session별 active backfill 하나를 PostgreSQL CAS로 보장하는 durable claim resource.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -122,7 +124,7 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
-- Backfill/planning/reservation/assignment/acknowledgment target command service, V0 import/cutover와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
+- planning/reservation/assignment/acknowledgment target command service, V0 import/cutover와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
 - authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 - stable release 자체; 현재 `stable_admitted: false`다.
@@ -140,4 +142,4 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 ## Next Slice
 
-P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 나머지 lifecycle command service와 V0 import/cutover를 준비한다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.
+P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 BackfillTicket command/read와 atomic demand/session claim을 닫았고 다음 slice는 repository-versioned planning run과 proposal persistence다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.

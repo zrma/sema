@@ -72,4 +72,17 @@ func TestTargetAPIPostgresComposition(t *testing.T) {
 	if !reflect.DeepEqual(polled.Ticket, created.Resource.Ticket) || polled.StorageVersion != created.Resource.StorageVersion {
 		t.Fatalf("PostgreSQL poll = %#v; created=%#v", polled, created)
 	}
+	createdBackfill := requestData[api.BackfillTicketMutation](
+		t, handler, "tenant-a", "postgres-backfill-create", http.MethodPut,
+		"/v0alpha2/backfill-tickets/backfill-postgres",
+		backfillTicket("backfill-postgres", "session-postgres", 1, 7), http.StatusOK,
+	)
+	polledBackfill := requestData[api.BackfillTicketResource](
+		t, handler, "tenant-a", "", http.MethodGet,
+		"/v0alpha2/backfill-tickets/backfill-postgres", nil, http.StatusOK,
+	)
+	if !reflect.DeepEqual(polledBackfill.Ticket, createdBackfill.Resource.Ticket) ||
+		polledBackfill.StorageVersion != createdBackfill.Resource.StorageVersion {
+		t.Fatalf("PostgreSQL backfill poll = %#v; created=%#v", polledBackfill, createdBackfill)
+	}
 }

@@ -301,9 +301,12 @@ func fixtureAuthenticator() Authenticator {
 }
 
 func fixturePrincipal(tenant string, write bool) Principal {
-	permissions := map[Permission]bool{PermissionMatchTicketsRead: true}
+	permissions := map[Permission]bool{
+		PermissionMatchTicketsRead: true, PermissionBackfillTicketsRead: true,
+	}
 	if write {
 		permissions[PermissionMatchTicketsWrite] = true
+		permissions[PermissionBackfillTicketsWrite] = true
 	}
 	return Principal{Subject: "subject-" + tenant, Tenant: tenant, Permissions: permissions}
 }

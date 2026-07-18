@@ -62,6 +62,7 @@ performance_release_decision: docs/decisions/0015-performance-release-gate.md
 service_authority_decision: docs/decisions/0016-service-authority-contract.md
 postgres_authority_decision: docs/decisions/0017-postgresql-authority-baseline.md
 target_api_decision: docs/decisions/0018-authenticated-target-api-boundary.md
+demand_claim_decision: docs/decisions/0019-demand-claim-authority.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:

@@ -52,14 +52,26 @@ func New(
 	if err != nil {
 		return nil, err
 	}
-	server := &server{authenticator: authenticator, tickets: tickets, cursors: codec}
+	backfills, err := service.NewBackfillTickets(owner, options.Now)
+	if err != nil {
+		return nil, err
+	}
+	server := &server{
+		authenticator: authenticator, tickets: tickets, backfills: backfills, cursors: codec,
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v0alpha2/match-tickets", server.listMatchTickets)
 	mux.HandleFunc("GET /v0alpha2/match-tickets/{ticket_id}", server.getMatchTicket)
 	mux.HandleFunc("PUT /v0alpha2/match-tickets/{ticket_id}", server.putMatchTicket)
 	mux.HandleFunc("DELETE /v0alpha2/match-tickets/{ticket_id}", server.deleteMatchTicket)
+	mux.HandleFunc("GET /v0alpha2/backfill-tickets", server.listBackfillTickets)
+	mux.HandleFunc("GET /v0alpha2/backfill-tickets/{ticket_id}", server.getBackfillTicket)
+	mux.HandleFunc("PUT /v0alpha2/backfill-tickets/{ticket_id}", server.putBackfillTicket)
+	mux.HandleFunc("DELETE /v0alpha2/backfill-tickets/{ticket_id}", server.deleteBackfillTicket)
 	mux.HandleFunc("/v0alpha2/match-tickets", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/match-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
+	mux.HandleFunc("/v0alpha2/backfill-tickets", methodNotAllowed("GET"))
+	mux.HandleFunc("/v0alpha2/backfill-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
 	mux.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writeError(writer, apiError{status: http.StatusNotFound, code: "NotFound", message: "endpoint was not found"})
 	})
@@ -69,6 +81,7 @@ func New(
 type server struct {
 	authenticator Authenticator
 	tickets       *service.MatchTickets
+	backfills     *service.BackfillTickets
 	cursors       cursorCodec
 }
 
@@ -425,7 +438,7 @@ func methodNotAllowed(allowed string) http.HandlerFunc {
 func writeFailure(writer http.ResponseWriter, err error) {
 	if errors.Is(err, service.ErrResourceNotFound) {
 		writeError(writer, apiError{
-			status: http.StatusNotFound, code: "NotFound", message: "match ticket was not found",
+			status: http.StatusNotFound, code: "NotFound", message: "resource was not found",
 		})
 		return
 	}

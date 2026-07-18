@@ -11,15 +11,17 @@ import (
 type ResourceKind string
 
 const (
-	ResourcePolicy           ResourceKind = "policy"
-	ResourceMatchTicket      ResourceKind = "match_ticket"
-	ResourceBackfillTicket   ResourceKind = "backfill_ticket"
-	ResourcePlanningSnapshot ResourceKind = "planning_snapshot"
-	ResourcePlanningRun      ResourceKind = "planning_run"
-	ResourceProposal         ResourceKind = "proposal"
-	ResourceReservation      ResourceKind = "reservation"
-	ResourceAssignment       ResourceKind = "assignment"
-	ResourceAcknowledgment   ResourceKind = "assignment_acknowledgment"
+	ResourcePolicy               ResourceKind = "policy"
+	ResourceMatchTicket          ResourceKind = "match_ticket"
+	ResourceBackfillTicket       ResourceKind = "backfill_ticket"
+	ResourcePlanningSnapshot     ResourceKind = "planning_snapshot"
+	ResourcePlanningRun          ResourceKind = "planning_run"
+	ResourceProposal             ResourceKind = "proposal"
+	ResourceReservation          ResourceKind = "reservation"
+	ResourceAssignment           ResourceKind = "assignment"
+	ResourceAcknowledgment       ResourceKind = "assignment_acknowledgment"
+	ResourceDemandIdentity       ResourceKind = "demand_identity"
+	ResourceBackfillSessionClaim ResourceKind = "backfill_session_claim"
 )
 
 func (kind ResourceKind) Valid() bool {
@@ -32,7 +34,9 @@ func (kind ResourceKind) Valid() bool {
 		ResourceProposal,
 		ResourceReservation,
 		ResourceAssignment,
-		ResourceAcknowledgment:
+		ResourceAcknowledgment,
+		ResourceDemandIdentity,
+		ResourceBackfillSessionClaim:
 		return true
 	default:
 		return false

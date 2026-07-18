@@ -53,3 +53,49 @@ type MatchTicketPage struct {
 	RepositoryVersion uint64                `json:"repository_version"`
 	NextCursor        string                `json:"next_cursor,omitempty"`
 }
+
+type RoleCount struct {
+	Role  string `json:"role"`
+	Count int    `json:"count"`
+}
+
+type RosterTeamSummary struct {
+	PlayerCount      int         `json:"player_count"`
+	SkillTotal       int         `json:"skill_total"`
+	RoleCounts       []RoleCount `json:"role_counts,omitempty"`
+	MaxLatencyMillis int         `json:"max_latency_millis"`
+}
+
+type BackfillTicket struct {
+	ID              string              `json:"id"`
+	Revision        uint64              `json:"revision"`
+	SessionID       string              `json:"session_id"`
+	RosterVersion   uint64              `json:"roster_version"`
+	OpenSlotsByTeam []int               `json:"open_slots_by_team"`
+	ExistingTeams   []RosterTeamSummary `json:"existing_teams,omitempty"`
+	EnqueuedAt      time.Time           `json:"enqueued_at"`
+}
+
+type BackfillTicketResource struct {
+	Ticket         BackfillTicket `json:"ticket"`
+	StorageVersion uint64         `json:"storage_version"`
+}
+
+type BackfillTicketMutation struct {
+	Resource BackfillTicketResource `json:"resource"`
+	Replayed bool                   `json:"replayed"`
+}
+
+type BackfillTicketCancellation struct {
+	ID             string `json:"id"`
+	Revision       uint64 `json:"revision"`
+	RosterVersion  uint64 `json:"roster_version"`
+	StorageVersion uint64 `json:"storage_version"`
+	Replayed       bool   `json:"replayed"`
+}
+
+type BackfillTicketPage struct {
+	Items             []BackfillTicketResource `json:"items"`
+	RepositoryVersion uint64                   `json:"repository_version"`
+	NextCursor        string                   `json:"next_cursor,omitempty"`
+}

@@ -120,7 +120,7 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 - Operational validation: `docs/todo-0019-operational-validation/spec.md`, `docs/operational-validation.md`, `docs/decisions/0013-operational-validation-baseline.md`.
 - Container operations: `docs/todo-0020-container-operations/spec.md`, `docs/operations-runbook.md`, `docs/decisions/0014-container-deployment-baseline.md`.
 - Performance and release admission: `docs/todo-0021-performance-release-gate/spec.md`, `docs/performance-slo.md`, `docs/release-admission.md`, `docs/decisions/0015-performance-release-gate.md`.
-- Service productization: `docs/todo-0040-service-productization-entry/spec.md`, `docs/service-authority.md`, `docs/repository-adapter-evidence.md`, `docs/postgres-repository.md`, `docs/target-api.md`, `docs/decisions/0016-service-authority-contract.md`, `docs/decisions/0017-postgresql-authority-baseline.md`, `docs/decisions/0018-authenticated-target-api-boundary.md`.
+- Service productization: `docs/todo-0040-service-productization-entry/spec.md`, `docs/service-authority.md`, `docs/repository-adapter-evidence.md`, `docs/postgres-repository.md`, `docs/target-api.md`, `docs/decisions/0016-service-authority-contract.md`, `docs/decisions/0017-postgresql-authority-baseline.md`, `docs/decisions/0018-authenticated-target-api-boundary.md`, `docs/decisions/0019-demand-claim-authority.md`.
 - Authenticated service runtime: `docs/todo-0041-authenticated-service-runtime/spec.md`.
 - Interactive Flow: `docs/todo-0022-sema-flow/spec.md`, `docs/sema-flow.md`.
 - Closed-loop population simulation: `docs/todo-0023-population-simulation/spec.md`, `internal/league`.

@@ -8,8 +8,10 @@ import (
 type Permission string
 
 const (
-	PermissionMatchTicketsRead  Permission = "match_tickets.read"
-	PermissionMatchTicketsWrite Permission = "match_tickets.write"
+	PermissionMatchTicketsRead     Permission = "match_tickets.read"
+	PermissionMatchTicketsWrite    Permission = "match_tickets.write"
+	PermissionBackfillTicketsRead  Permission = "backfill_tickets.read"
+	PermissionBackfillTicketsWrite Permission = "backfill_tickets.write"
 )
 
 type Principal struct {

@@ -1,12 +1,10 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"slices"
 	"time"
 
@@ -89,6 +87,7 @@ func (service *MatchTickets) Put(
 	}
 	key := Key(scope, ResourceMatchTicket, string(ticket.ID))
 	expected := repository.Version(0)
+	mutations := make([]repository.Mutation, 0, 2)
 	if current, exists := findResource(snapshot, key); exists {
 		if current.Deleted {
 			return MatchTicketMutation{}, domain.NewFailure(
@@ -111,10 +110,28 @@ func (service *MatchTickets) Put(
 			)
 		}
 		expected = current.Version
+		if err := validateDemandIdentity(snapshot, scope, ResourceMatchTicket, string(ticket.ID)); err != nil {
+			return MatchTicketMutation{}, err
+		}
+	} else {
+		claimPayload, err := encodeDemandIdentityClaim(ResourceMatchTicket, string(ticket.ID))
+		if err != nil {
+			return MatchTicketMutation{}, err
+		}
+		claimKey := Key(scope, ResourceDemandIdentity, string(ticket.ID))
+		if _, exists := findResource(snapshot, claimKey); exists {
+			return MatchTicketMutation{}, domain.NewFailure(
+				domain.FailureInvalidRevision,
+				"ticket identity %q is already claimed",
+				ticket.ID,
+			)
+		}
+		mutations = append(mutations, repository.Mutation{Key: claimKey, Payload: claimPayload})
 	}
-	result, err := service.repository.Commit(ctx, operation, []repository.Mutation{{
+	mutations = append(mutations, repository.Mutation{
 		Key: key, ExpectedVersion: expected, Payload: payload,
-	}})
+	})
+	result, err := service.repository.Commit(ctx, operation, mutations)
 	if err != nil {
 		if repository.IsConflict(err) {
 			return MatchTicketMutation{}, domain.NewFailure(
@@ -309,13 +326,8 @@ func encodeMatchTicket(ticket domain.MatchTicket) ([]byte, error) {
 
 func decodeMatchTicket(payload []byte) (domain.MatchTicket, error) {
 	var stored persistedMatchTicket
-	decoder := json.NewDecoder(bytes.NewReader(payload))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&stored); err != nil {
+	if err := decodeStrict(payload, &stored); err != nil {
 		return domain.MatchTicket{}, fmt.Errorf("decode match ticket resource: %w", err)
-	}
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return domain.MatchTicket{}, fmt.Errorf("decode match ticket resource: trailing data")
 	}
 	if stored.Schema != matchTicketPayloadSchema {
 		return domain.MatchTicket{}, fmt.Errorf("unsupported match ticket resource schema %q", stored.Schema)
@@ -331,6 +343,26 @@ func decodeMatchTicket(payload []byte) (domain.MatchTicket, error) {
 		return domain.MatchTicket{}, fmt.Errorf("stored match ticket is invalid: %w", err)
 	}
 	return ticket, nil
+}
+
+func validateDemandIdentity(
+	snapshot repository.Snapshot,
+	scope string,
+	kind ResourceKind,
+	id string,
+) error {
+	claimResource, exists := findResource(snapshot, Key(scope, ResourceDemandIdentity, id))
+	if !exists || claimResource.Deleted {
+		return fmt.Errorf("demand identity claim %q is missing", id)
+	}
+	claim, err := decodeDemandIdentityClaim(claimResource.Payload)
+	if err != nil {
+		return err
+	}
+	if claim.Kind != kind || claim.ID != id {
+		return fmt.Errorf("demand identity claim %q belongs to another resource", id)
+	}
+	return nil
 }
 
 func findResource(snapshot repository.Snapshot, key repository.Key) (repository.Resource, bool) {
