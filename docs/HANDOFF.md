@@ -35,6 +35,10 @@
 - P26 backfill이 optional roster-versioned team aggregate와 incoming placement의 resulting skill/role/latency를 평가하고 exhaustive frontier 및 stale reserve fixture가 같은 freshness contract를 검증한다.
 - P27 reusable discovery index가 party/skill/role/latency partition을 canonical age order로 merge해 96-ticket matrix와 10K queue에서 linear oldest-prefix와 exact-equivalent window를 만든다. per-plan build는 하지 않고 stateful owner 연결을 productization entry에 둔다.
 - P28 conformance matrix가 planner의 multi-proposal/backfill fuzz, discovery exact-equivalence fuzz, exhaustive frontier, fairness와 freshness fixture를 하나의 matcher V0 exit gate로 묶는다.
+- P29 adapter-neutral repository가 tenant-scoped resource CAS, operation idempotency receipt와 redacted audit를 한 atomic commit으로 정의한다.
+- shared repository conformance와 in-memory adapter가 same-version competition, multi-resource atomicity, duplicate operation과 reopen replay를 실행한다.
+- service resource model이 repository-versioned immutable planning snapshot과 stale candidate-index fence를 제공하고 ADR 0016이 authority/failure/retention을 고정한다.
+- V0 journal은 read-only import source이며 legacy HTTP operation은 새 target resource에 명시적으로 mapping하고 in-place rewrite하지 않는다.
 - P7 discovery가 versioned oldest-fitting ticket window, 10K correctness, 10K/100K manual benchmark와 fuzz invariant를 제공한다.
 - public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
 - `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
@@ -73,7 +77,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit까지 완료되었다. planner/coordinator/journal은 한 writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 현재 active milestone은 P29 service productization entry다. `docs/todo-0040-service-productization-entry/spec.md`에서 adapter-neutral repository contract, authority/failure matrix, stateful index lifetime과 target API resource를 먼저 정의한다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit까지 완료되었고 P29의 adapter-neutral contract slice도 닫혔다. planner/coordinator/journal은 아직 V0 single writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음은 `docs/todo-0040-service-productization-entry/spec.md`의 persistent adapter/crash conformance와 authenticated target API fixture다. storage product나 replica topology는 benchmark와 recovery evidence 전에 확정하지 않는다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

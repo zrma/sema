@@ -54,6 +54,8 @@ flowchart LR
 - `internal/durable`은 coordinator mutation과 plan decision을 한 writer에서 직렬화하고 synced journal을 restart recovery와 audit authority로 사용한다.
 - `cmd/sema-server`는 explicit `v0alpha1` DTO를 변환하고 server clock과 durable proposal lookup을 사용한다. client placement는 reserve authority가 아니다.
 - `internal/observability`은 route-pattern metric/trace와 redacted audit만 노출하고 resource identity를 label/span으로 사용하지 않는다.
+- `internal/repository`는 tenant-scoped resource storage version, atomic CAS mutation, operation receipt와 redacted audit의 adapter-neutral contract를 소유한다.
+- `internal/service`는 repository-versioned immutable planning input과 target resource kind를 소유한다. candidate index는 같은 repository version에서만 사용할 수 있는 derived state다.
 
 ## Invariants
 
@@ -77,6 +79,15 @@ flowchart LR
 - 외부 import baseline은 `alpha.Compose`의 side-effect-free composition에 한정되며 JSON tag는 production wire contract가 아니다.
 - durable journal은 fixed reservation TTL과 Darwin/Linux single-writer file lock을 요구하며 horizontal authority는 제공하지 않는다.
 - 별도 consumer process는 HTTP로 분리하지만 planner, coordinator와 journal writer는 같은 deployable에 둔다.
+
+## Productization Consistency Target
+
+- 한 service command의 resource mutation, idempotency receipt와 audit receipt는 하나의 atomic commit이다.
+- resource storage version은 domain ticket/roster revision과 별개이며 concurrent update를 CAS한다.
+- planning snapshot capture 뒤 matcher search 중에는 storage transaction을 열어 두지 않는다. immutable snapshot과 proposal record는 audit authority로 남고 reserve는 현재 resource freshness를 다시 검증한다.
+- related ticket/backfill/reservation/assignment mutation만 같은 transaction에 묶고 unrelated ingress는 진행할 수 있다.
+- candidate index는 repository commit version을 따라가거나 snapshot에서 rebuild한다. version mismatch에서는 index result를 사용하지 않는다.
+- current journal은 V0 reference/import source다. target database, single/multi-writer와 replica topology는 persistent conformance와 contention/recovery evidence 뒤 결정한다.
 
 ## Failure Model
 

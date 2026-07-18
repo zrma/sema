@@ -234,6 +234,16 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] algorithm-owned TODO와 calibration-owned decision 분리
 - [x] persistence/API service productization entry spec
 
-## Next Program: Service Productization
+## P29: Service Productization Entry
 
-matcher V0의 algorithm-owned contract는 완료되었다. 다음 active milestone은 P29이며 `docs/todo-0040-service-productization-entry/spec.md`에서 transactional authority, stateful index lifetime, versioned API resource와 V0 migration을 시작한다. database, topology와 stable compatibility는 failure fixture와 workload evidence 전까지 확정하지 않는다.
+- [x] tenant-scoped adapter-neutral repository CAS와 operation receipt contract
+- [x] in-memory adapter와 reusable repository conformance suite
+- [x] immutable planning snapshot과 repository-versioned candidate index seam
+- [x] authority/retention/failure matrix와 V0 import-only migration mapping
+- [ ] persistent adapter prototype와 real crash/reopen conformance
+- [ ] authenticated target API schema, pagination와 polling contract fixture
+- [ ] contention/recovery evidence에 따른 storage 및 writer topology decision
+
+## Active Program: Service Productization
+
+matcher V0의 algorithm-owned contract는 완료되었다. P29 첫 slice가 transactional repository/resource contract, stateful index freshness와 V0 migration inventory를 만들었다. 다음은 persistent adapter prototype을 같은 conformance에 연결하고 crash/contention evidence를 수집하는 일이다. database, topology와 stable compatibility는 이 evidence 전까지 확정하지 않는다.

@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P28 matcher V0 exit까지 완료되었다. 현재 milestone은 P29 service productization entry이며 transactional persistence authority와 versioned API resource를 설계할 준비가 된 상태다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P28 matcher V0 exit까지 완료되었다. 현재 P29 service productization entry의 첫 contract slice가 완료되어 transactional repository authority, versioned resource와 V0 migration inventory가 executable form으로 존재한다. persistent adapter prototype과 authenticated target API는 아직 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -98,6 +98,11 @@ P0부터 P28 matcher V0 exit까지 완료되었다. 현재 milestone은 P29 serv
 - 100K repeated lookup과 one-time build cost를 분리한 discovery benchmark 및 stateful ownership boundary.
 - multi-proposal/roster-aware planner fuzz, linear/indexed discovery fuzz와 persisted regression corpus를 묶은 matcher V0 conformance gate.
 - algorithm-owned matcher invariant, consumer calibration과 service productization responsibility의 명시적 분리.
+- tenant-scoped resource key, per-resource storage-version CAS, atomic operation/audit receipt와 defensive snapshot을 제공하는 adapter-neutral repository contract.
+- same ticket revision competition, duplicate idempotency, atomic multi-resource conflict와 reopen replay를 실행하는 reusable repository conformance suite 및 in-memory adapter.
+- repository version에 묶인 immutable planning snapshot과 stale candidate index 사용을 거부하는 derived-index freshness fence.
+- policy/ticket/snapshot/proposal/reservation/assignment authority 및 minimum lifetime, server-clock expiry와 typed failure mapping을 정한 ADR 0016.
+- V0 journal read-only import, legacy HTTP-to-target resource operation mapping과 non-destructive rollback boundary.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -125,4 +130,4 @@ P0부터 P28 matcher V0 exit까지 완료되었다. 현재 milestone은 P29 serv
 
 ## Next Slice
 
-P28은 `docs/matcher-conformance.md`로 matcher의 algorithm-owned contract를 닫았다. 다음 slice는 `docs/todo-0040-service-productization-entry/spec.md`의 adapter-neutral repository contract, authority/failure matrix와 target API resource model이다. stateful index lifetime은 transactional demand repository에 연결하고 journal/HTTP V0의 migration mapping을 함께 만든다. database/topology, production MMR와 numeric SLA는 근거가 생기기 전까지 확정하지 않는다.
+P29의 adapter-neutral contract와 in-memory conformance는 완료되었다. 다음 slice는 최소 하나의 persistent adapter prototype을 `repositorytest.Run`에 연결하고 commit 전/후 process crash, reopen replay와 CAS contention을 측정하는 것이다. 그 뒤 authenticated target API schema와 pagination/polling fixture를 구현한다. database/topology, production MMR와 numeric SLA는 근거가 생기기 전까지 확정하지 않는다.
