@@ -50,6 +50,8 @@
 - BackfillTicket target API는 ticket/roster freshness를 함께 전진시키고 exact cancel하며 같은 historical idempotency와 pagination contract를 사용한다.
 - `demand_identity`와 `backfill_session_claim` resource가 Match/Backfill ID 충돌과 session별 active backfill 경쟁을 PostgreSQL transaction 하나로 직렬화한다.
 - target Policy catalog가 tenant-scoped immutable version/content fingerprint를 PostgreSQL에 저장하고 authenticated create/get/list와 historical operation replay를 제공한다.
+- target planning run이 exact repository version의 policy/demand snapshot을 먼저 commit하고 transaction 밖에서 matcher를 실행한 뒤 proposal/unmatched 전체를 atomic completion으로 기록한다.
+- capture 뒤 interruption은 같은 client operation으로 저장된 snapshot부터 resume하며 completed result cursor는 unrelated queue ingress에 stale해지지 않는다.
 - P7 discovery가 versioned oldest-fitting ticket window, 10K correctness, 10K/100K manual benchmark와 fuzz invariant를 제공한다.
 - public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
 - `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
@@ -88,7 +90,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 target durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. authenticated `v0alpha2` Policy/MatchTicket/BackfillTicket surface는 provider 선택 없이 tenant isolation, historical idempotency, pagination/polling과 PostgreSQL composition을 검증한다. durable demand/session claim이 두 replica의 cross-kind identity와 same-session backfill 경쟁을 막는다. planner/coordinator/journal은 target lifecycle/import cutover 전까지 V0 single writer reference로 유지한다. P30의 다음 slice는 repository-versioned planning run과 proposal persistence다. 실제 remote listener 전에 identity provider와 tenant credential lifecycle 결정이 필요하다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 target durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. authenticated `v0alpha2` Policy/MatchTicket/BackfillTicket/PlanningRun surface는 provider 선택 없이 tenant isolation, historical idempotency, pagination/polling과 PostgreSQL composition을 검증한다. durable demand/session claim이 두 replica의 cross-kind identity와 same-session backfill 경쟁을 막고, planning run은 immutable snapshot 뒤 transaction 밖에서 matcher를 실행해 result를 atomic completion한다. planner/coordinator/journal은 target lifecycle/import cutover 전까지 V0 single writer reference로 유지한다. P30의 다음 slice는 proposal-derived reservation과 assignment lifecycle이다. 실제 remote listener 전에 identity provider와 tenant credential lifecycle 결정이 필요하다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

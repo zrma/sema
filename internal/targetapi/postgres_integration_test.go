@@ -98,4 +98,30 @@ func TestTargetAPIPostgresComposition(t *testing.T) {
 		polledPolicy.StorageVersion != createdPolicy.Resource.StorageVersion {
 		t.Fatalf("PostgreSQL policy poll = %#v; created=%#v", polledPolicy, createdPolicy)
 	}
+	planningPolicy := matchmakingPolicy("policy-postgres-planning")
+	planningPolicy.RoleRequirements = nil
+	requestData[api.PolicyMutation](
+		t, handler, "tenant-a", "postgres-planning-policy-create", http.MethodPut,
+		"/v0alpha2/policies/policy-postgres-planning", planningPolicy, http.StatusOK,
+	)
+	for index := 1; index < 4; index++ {
+		id := fmt.Sprintf("ticket-postgres-%d", index)
+		requestData[api.MatchTicketMutation](
+			t, handler, "tenant-a", "postgres-create-"+id, http.MethodPut,
+			"/v0alpha2/match-tickets/"+id, matchTicket(id, 1), http.StatusOK,
+		)
+	}
+	createdRun := requestData[api.PlanningRunMutation](
+		t, handler, "tenant-a", "postgres-planning-run", http.MethodPost,
+		"/v0alpha2/planning-runs/postgres-run",
+		api.PlanningRunRequest{PolicyVersion: "policy-postgres-planning"}, http.StatusOK,
+	)
+	proposals := requestData[api.ProposalPage](
+		t, handler, "tenant-a", "", http.MethodGet,
+		"/v0alpha2/planning-runs/postgres-run/proposals", nil, http.StatusOK,
+	)
+	if createdRun.Resource.Status != "completed" ||
+		len(proposals.Items) != createdRun.Resource.ProposalCount {
+		t.Fatalf("PostgreSQL planning run = %#v proposals=%#v", createdRun, proposals)
+	}
 }

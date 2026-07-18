@@ -129,3 +129,70 @@ func FromDomainPolicy(policy domain.MatchmakingPolicy) MatchmakingPolicy {
 		RoleRequirements: requirements, RelaxationSteps: steps,
 	}
 }
+
+func FromDomainProposal(proposal domain.MatchProposal) MatchProposal {
+	teams := make([]TeamAssignment, len(proposal.Teams))
+	for index, team := range proposal.Teams {
+		teams[index] = TeamAssignment{Team: team.Team, Tickets: fromDomainTicketRefs(team.Tickets)}
+	}
+	return MatchProposal{
+		ID: string(proposal.ID), Kind: string(proposal.Kind), PolicyVersion: proposal.PolicyVersion,
+		PolicyFingerprint: string(proposal.PolicyFingerprint), Teams: teams,
+		Tickets: fromDomainTicketRefs(proposal.Tickets), Backfill: fromDomainBackfillTarget(proposal.Backfill),
+		Evidence: ScoreEvidence{
+			RelaxationLevel: proposal.Evidence.RelaxationLevel, WaitPriority: proposal.Evidence.WaitPriority,
+			RolePenalty: proposal.Evidence.RolePenalty, TeamSkillGap: proposal.Evidence.TeamSkillGap,
+			OldestWaitMillis:         proposal.Evidence.OldestWaitMillis,
+			TotalWaitMillis:          proposal.Evidence.TotalWaitMillis,
+			MaxLatencyMillis:         proposal.Evidence.MaxLatencyMillis,
+			CandidateTickets:         proposal.Evidence.CandidateTickets,
+			CandidatesEvaluated:      proposal.Evidence.CandidatesEvaluated,
+			SearchNodes:              proposal.Evidence.SearchNodes,
+			CandidateWindowTruncated: proposal.Evidence.CandidateWindowTruncated,
+			SearchTruncated:          proposal.Evidence.SearchTruncated,
+			SelectionUtility:         proposal.Evidence.SelectionUtility,
+		},
+	}
+}
+
+func FromDomainUnmatched(unmatched domain.UnmatchedTicket) UnmatchedTicket {
+	return UnmatchedTicket{
+		Ticket: TicketRef{ID: string(unmatched.Ticket.ID), Revision: uint64(unmatched.Ticket.Revision)},
+		Reason: string(unmatched.Reason),
+	}
+}
+
+func FromDomainBatchEvidence(evidence domain.BatchScoreEvidence) BatchScoreEvidence {
+	return BatchScoreEvidence{
+		CandidateProposals:           evidence.CandidateProposals,
+		SelectedProposals:            evidence.SelectedProposals,
+		SelectedBackfills:            evidence.SelectedBackfills,
+		WaitPriorityEligibleDemands:  evidence.WaitPriorityEligibleDemands,
+		WaitPrioritySelectedDemands:  evidence.WaitPrioritySelectedDemands,
+		OldestWaitPriorityMillis:     evidence.OldestWaitPriorityMillis,
+		OldestSelectedPriorityMillis: evidence.OldestSelectedPriorityMillis,
+		TotalUtility:                 evidence.TotalUtility,
+		CandidateGenerationNodes:     evidence.CandidateGenerationNodes,
+		CandidateGenerationTruncated: evidence.CandidateGenerationTruncated,
+		SelectionNodes:               evidence.SelectionNodes,
+		SelectionTruncated:           evidence.SelectionTruncated,
+	}
+}
+
+func fromDomainTicketRefs(references []domain.TicketRef) []TicketRef {
+	converted := make([]TicketRef, len(references))
+	for index, reference := range references {
+		converted[index] = TicketRef{ID: string(reference.ID), Revision: uint64(reference.Revision)}
+	}
+	return converted
+}
+
+func fromDomainBackfillTarget(target *domain.BackfillTarget) *BackfillTarget {
+	if target == nil {
+		return nil
+	}
+	return &BackfillTarget{
+		Ticket:    TicketRef{ID: string(target.Ticket.ID), Revision: uint64(target.Ticket.Revision)},
+		SessionID: string(target.SessionID), RosterVersion: uint64(target.RosterVersion),
+	}
+}

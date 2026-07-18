@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -33,7 +34,7 @@ func TestPolicyRegistrationSerializesVersionContentCompetition(t *testing.T) {
 			defer group.Done()
 			<-start
 			_, putErr := owner.Put(
-				context.Background(), "tenant-a", domain.OperationID("register-policy-"+string(rune('a'+index))),
+				context.Background(), "tenant-a", domain.OperationID(fmt.Sprintf("register-policy-%d", index)),
 				policies[index],
 			)
 			results <- putErr
@@ -80,7 +81,7 @@ func TestIdenticalConcurrentPolicyRegistrationsBothReceiveDurableReceipts(t *tes
 			defer group.Done()
 			<-start
 			result, putErr := owner.Put(
-				context.Background(), "tenant-a", domain.OperationID("register-identical-"+string(rune('a'+index))),
+				context.Background(), "tenant-a", domain.OperationID(fmt.Sprintf("register-identical-%d", index)),
 				servicePolicy("policy-identical"),
 			)
 			if putErr == nil {

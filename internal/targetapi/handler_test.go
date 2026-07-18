@@ -303,12 +303,13 @@ func fixtureAuthenticator() Authenticator {
 func fixturePrincipal(tenant string, write bool) Principal {
 	permissions := map[Permission]bool{
 		PermissionMatchTicketsRead: true, PermissionBackfillTicketsRead: true,
-		PermissionPoliciesRead: true,
+		PermissionPoliciesRead: true, PermissionPlanningRunsRead: true,
 	}
 	if write {
 		permissions[PermissionMatchTicketsWrite] = true
 		permissions[PermissionBackfillTicketsWrite] = true
 		permissions[PermissionPoliciesWrite] = true
+		permissions[PermissionPlanningRunsWrite] = true
 	}
 	return Principal{Subject: "subject-" + tenant, Tenant: tenant, Permissions: permissions}
 }

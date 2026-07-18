@@ -67,6 +67,7 @@ func TestServiceResourceKindsMapToScopedRepositoryKeys(t *testing.T) {
 		service.ResourcePlanningSnapshot,
 		service.ResourcePlanningRun,
 		service.ResourceProposal,
+		service.ResourcePlanningUnmatched,
 		service.ResourceReservation,
 		service.ResourceAssignment,
 		service.ResourceAcknowledgment,

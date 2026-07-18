@@ -14,6 +14,8 @@ const (
 	PermissionBackfillTicketsWrite Permission = "backfill_tickets.write"
 	PermissionPoliciesRead         Permission = "policies.read"
 	PermissionPoliciesWrite        Permission = "policies.write"
+	PermissionPlanningRunsRead     Permission = "planning_runs.read"
+	PermissionPlanningRunsWrite    Permission = "planning_runs.write"
 )
 
 type Principal struct {

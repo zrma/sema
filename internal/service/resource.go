@@ -17,6 +17,7 @@ const (
 	ResourcePlanningSnapshot     ResourceKind = "planning_snapshot"
 	ResourcePlanningRun          ResourceKind = "planning_run"
 	ResourceProposal             ResourceKind = "proposal"
+	ResourcePlanningUnmatched    ResourceKind = "planning_unmatched"
 	ResourceReservation          ResourceKind = "reservation"
 	ResourceAssignment           ResourceKind = "assignment"
 	ResourceAcknowledgment       ResourceKind = "assignment_acknowledgment"
@@ -32,6 +33,7 @@ func (kind ResourceKind) Valid() bool {
 		ResourcePlanningSnapshot,
 		ResourcePlanningRun,
 		ResourceProposal,
+		ResourcePlanningUnmatched,
 		ResourceReservation,
 		ResourceAssignment,
 		ResourceAcknowledgment,

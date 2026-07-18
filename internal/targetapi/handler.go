@@ -60,9 +60,13 @@ func New(
 	if err != nil {
 		return nil, err
 	}
+	planningRuns, err := service.NewPlanningRuns(owner, options.Now, nil)
+	if err != nil {
+		return nil, err
+	}
 	server := &server{
 		authenticator: authenticator, tickets: tickets, backfills: backfills,
-		policies: policies, cursors: codec,
+		policies: policies, planningRuns: planningRuns, cursors: codec,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v0alpha2/match-tickets", server.listMatchTickets)
@@ -76,12 +80,19 @@ func New(
 	mux.HandleFunc("GET /v0alpha2/policies", server.listPolicies)
 	mux.HandleFunc("GET /v0alpha2/policies/{version}", server.getPolicy)
 	mux.HandleFunc("PUT /v0alpha2/policies/{version}", server.putPolicy)
+	mux.HandleFunc("POST /v0alpha2/planning-runs/{run_id}", server.postPlanningRun)
+	mux.HandleFunc("GET /v0alpha2/planning-runs/{run_id}", server.getPlanningRun)
+	mux.HandleFunc("GET /v0alpha2/planning-runs/{run_id}/proposals", server.listPlanningRunProposals)
+	mux.HandleFunc("GET /v0alpha2/planning-runs/{run_id}/unmatched", server.listPlanningRunUnmatched)
 	mux.HandleFunc("/v0alpha2/match-tickets", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/match-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
 	mux.HandleFunc("/v0alpha2/backfill-tickets", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/backfill-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
 	mux.HandleFunc("/v0alpha2/policies", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/policies/{version}", methodNotAllowed("GET, PUT"))
+	mux.HandleFunc("/v0alpha2/planning-runs/{run_id}", methodNotAllowed("GET, POST"))
+	mux.HandleFunc("/v0alpha2/planning-runs/{run_id}/proposals", methodNotAllowed("GET"))
+	mux.HandleFunc("/v0alpha2/planning-runs/{run_id}/unmatched", methodNotAllowed("GET"))
 	mux.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writeError(writer, apiError{status: http.StatusNotFound, code: "NotFound", message: "endpoint was not found"})
 	})
@@ -93,6 +104,7 @@ type server struct {
 	tickets       *service.MatchTickets
 	backfills     *service.BackfillTickets
 	policies      *service.Policies
+	planningRuns  *service.PlanningRuns
 	cursors       cursorCodec
 }
 

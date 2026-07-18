@@ -86,6 +86,7 @@ for required_file in \
   docs/decisions/0017-postgresql-authority-baseline.md \
   docs/decisions/0018-authenticated-target-api-boundary.md \
   docs/decisions/0019-demand-claim-authority.md \
+  docs/decisions/0020-planning-run-state-machine.md \
   docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/migrations/v0alpha3-to-v0alpha4.md \

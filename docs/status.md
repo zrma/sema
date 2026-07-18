@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand vertical slice가 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. 나머지 lifecycle service와 identity provider/runtime cutover는 P30에 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning vertical slice가 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. 나머지 lifecycle service와 identity provider/runtime cutover는 P30에 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -115,6 +115,8 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - BackfillTicket higher-revision/monotonic-roster replace, exact freshness cancel과 authenticated polling/page.
 - Match/Backfill 공통 ID와 session별 active backfill 하나를 PostgreSQL CAS로 보장하는 durable claim resource.
 - tenant-scoped immutable policy registration, canonical fingerprint conflict와 authenticated get/list page.
+- repository-versioned input capture, transaction 밖 deterministic matcher와 atomic proposal/unmatched completion을 제공하는 resumable planning run.
+- unrelated ingress 뒤에도 completed run storage version에 묶여 유지되는 proposal/unmatched cursor page.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -125,7 +127,7 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
-- planning/reservation/assignment/acknowledgment target command service, V0 import/cutover와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
+- reservation/assignment/acknowledgment target command service, V0 import/cutover와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
 - authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 - stable release 자체; 현재 `stable_admitted: false`다.
@@ -143,4 +145,4 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 ## Next Slice
 
-P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 BackfillTicket command/read, atomic demand/session claim과 immutable Policy catalog를 닫았고 다음 slice는 repository-versioned planning run과 proposal persistence다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.
+P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 demand claim, immutable Policy catalog와 repository-versioned planning run/proposal persistence를 닫았고 다음 slice는 proposal-derived reservation과 assignment lifecycle이다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.

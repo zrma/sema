@@ -2,7 +2,7 @@
 
 ## Status
 
-`v0alpha2`는 PostgreSQL target repository 위에서 검증하는 authenticated service boundary다. 현재 구현은 immutable `Policy` catalog와 `MatchTicket`/`BackfillTicket` ingestion, polling과 cancellation을 끝까지 연결하며 stable compatibility나 production listener를 제공하지 않는다. 기존 `v0alpha1` journal service와 route semantics를 조용히 바꾸지 않는다.
+`v0alpha2`는 PostgreSQL target repository 위에서 검증하는 authenticated service boundary다. 현재 구현은 immutable `Policy` catalog, `MatchTicket`/`BackfillTicket` ingestion과 repository-versioned planning run/result polling을 연결하며 stable compatibility나 production listener를 제공하지 않는다. 기존 `v0alpha1` journal service와 route semantics를 조용히 바꾸지 않는다.
 
 ## Authentication And Tenant Scope
 
@@ -13,6 +13,7 @@
 - `match_tickets.read`, `match_tickets.write` permission
 - `backfill_tickets.read`, `backfill_tickets.write` permission
 - `policies.read`, `policies.write` permission
+- `planning_runs.read`, `planning_runs.write` permission
 
 HTTP path, query와 body에는 tenant field가 없다. handler는 인증과 permission 확인을 repository lookup보다 먼저 수행하고, repository key의 scope는 항상 authenticated principal에서만 만든다. credential 부재/거부는 `Unauthenticated`, provider 장애는 retryable `AuthenticationUnavailable`, permission 부족은 `PermissionDenied`다.
 
@@ -54,6 +55,19 @@ replacement는 session identity를 바꾸지 않고 ticket revision을 전진시
 
 `demand_identity` claim이 MatchTicket과 BackfillTicket의 tenant-scoped ID 중복을 차단하고 `backfill_session_claim`이 session마다 하나의 active demand만 허용한다. 이 claim은 repository-internal authority이며 client가 직접 쓰거나 list할 수 없다. ticket identity claim은 cancellation 뒤에도 남고 session claim만 해제되어 새 ticket ID가 같은 session을 다시 요청할 수 있다.
 
+## Planning Run Operations
+
+| Method | Path | Permission | Semantics |
+|---|---|---|---|
+| `POST` | `/v0alpha2/planning-runs/{run_id}` | `planning_runs.write` | policy version으로 immutable snapshot capture, matcher 실행과 result completion |
+| `GET` | `/v0alpha2/planning-runs/{run_id}` | `planning_runs.read` | `planning` 또는 `completed` 상태 poll |
+| `GET` | `/v0alpha2/planning-runs/{run_id}/proposals` | `planning_runs.read` | immutable proposal page |
+| `GET` | `/v0alpha2/planning-runs/{run_id}/unmatched` | `planning_runs.read` | immutable unmatched ticket page |
+
+POST body는 `policy_version`만 받는다. capture commit은 policy와 active demand의 exact repository version을 `sema.planning-snapshot.v1` payload로 저장하고 transaction을 닫는다. matcher는 저장된 snapshot으로 transaction 밖에서 실행한다. completion은 `planning_run`, 모든 `proposal`과 `planning_unmatched` resource를 한 atomic commit에 기록한다. capture 뒤 matcher가 중단되면 같은 `Idempotency-Key` retry가 현재 queue를 다시 읽지 않고 저장된 snapshot부터 재개한다.
+
+planning command는 현재 synchronous HTTP response로 completion까지 기다리지만 `GET`은 concurrent execution 중 `planning` 상태도 읽을 수 있다. proposal은 planner만 생성하며 client가 placement body를 write할 endpoint는 없다. run ID는 immutable하고 다른 operation으로 재사용할 수 없다.
+
 ## Pagination And Polling
 
 list order는 `resource_id.asc`이고 기본 limit은 50, 최대는 200이다. `next_cursor`는 HMAC으로 인증한 opaque token이며 다음 context에 묶인다.
@@ -66,17 +80,19 @@ list order는 `resource_id.asc`이고 기본 limit은 50, 최대는 200이다. `
 
 cursor payload를 client state authority로 사용하지 않는다. 변조하거나 다른 tenant/filter/order에 재사용하면 `InvalidInput`이고, page 사이 tenant repository version이 바뀌면 retryable `StaleSnapshot`을 반환한다. consumer는 첫 page부터 다시 읽는다. 이 conservative fence는 중복/누락 없는 snapshot page를 우선하며, kind-specific database pagination 최적화는 측정된 snapshot 비용이 trigger가 될 때 추가한다.
 
+Policy와 active demand page는 위 repository snapshot fence를 사용한다. completed planning result는 immutable하므로 proposal/unmatched cursor를 completed run의 storage version과 run ID에 묶는다. unrelated queue ingress가 일어나도 이미 시작한 result page는 stale해지지 않는다.
+
 첫 delivery contract는 assignment와 ticket resource의 HTTP polling이다. stream, broker와 outbox는 baseline에 없다.
 
 ## Composition And Security Boundary
 
-target handler는 `repository.Repository`, `Authenticator`, server clock과 최소 32-byte cursor authentication key를 주입받는다. PostgreSQL integration fixture가 migration된 isolated schema에서 Policy와 두 demand kind의 실제 create/poll을 수행한다. cursor key와 database credential은 tracked configuration이나 response에 기록하지 않는다.
+target handler는 `repository.Repository`, `Authenticator`, server clock과 최소 32-byte cursor authentication key를 주입받는다. PostgreSQL integration fixture가 migration된 isolated schema에서 Policy, 두 demand kind와 planning result의 실제 create/poll을 수행한다. cursor key와 database credential은 tracked configuration이나 response에 기록하지 않는다.
 
 strict JSON decoding, 1 MiB body limit, bounded identifier와 allowlisted query parameter를 transport entry에서 적용한다. Proposal, Reservation과 Assignment는 target authority가 생성해야 하므로 이 첫 client-write surface에서 generic resource mutation으로 노출하지 않는다.
 
 ## Remaining Cutover Work
 
-- planning run, reservation, assignment와 acknowledgment command service를 같은 authorization/idempotency contract로 연결한다.
+- proposal-derived reservation, assignment와 acknowledgment command service를 같은 authorization/idempotency contract로 연결한다.
 - identity provider와 credential/tenant lifecycle을 선택하고 authenticated remote listener를 구성한다.
 - V0 read-only import, backup/restore rehearsal와 rollback gate를 실행한다.
 - quota/rate limit, database pool/timeout과 numeric SLO를 실제 workload evidence로 정한다.
