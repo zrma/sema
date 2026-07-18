@@ -91,3 +91,17 @@ go run ./cmd/sema-ops-check -cycles 100 -tickets-per-cycle 20 -concurrency 16 -t
 ```
 
 첫 command는 image user/version, in-image lifecycle validation, read-only/capability-reduced startup과 volume-backed restart를 확인한다. 두 번째 command는 외부 state를 건드리지 않는 bounded local soak 예다.
+
+## Target PostgreSQL Cutover Rehearsal
+
+위 container 절차는 현재 V0 single-writer runtime의 운영 계약이다. target PostgreSQL runtime을 remote traffic에 열기 전 local cutover evidence는 다음 disposable gate가 소유한다.
+
+```sh
+scripts/check-postgres.sh
+```
+
+이 gate는 pinned test PostgreSQL 안에서 isolated schema만 사용해 stopped V0 fixture import, custom-format logical backup, target schema 삭제, restore와 semantic manifest 비교를 수행한다. 복원된 import completion marker와 terminal assignment를 읽은 뒤 target schema를 다시 폐기하고 original V0 journal을 기존 TTL로 재기동한다. journal open/close 전후 source digest가 달라지면 실패한다.
+
+private manifest에는 source digest/record count, repository version, resource/audit digest, metadata/scope/operation authority digest와 repository table별 row count만 mode `0600`으로 임시 저장한다. DSN, raw resource, journal path, dump와 environment identity는 tracked 문서나 일반 CI artifact에 보존하지 않는다.
+
+이 local logical restore는 production backup 승인이 아니다. 실제 provider의 encryption, retention, PITR, access control, restore location과 RPO/RTO는 provider 선택 뒤 별도 rehearsal로 검증한다. target writer의 첫 mutation 뒤에는 V0 rollback을 금지하며 compatible target binary와 target PostgreSQL backup으로만 되돌린다.

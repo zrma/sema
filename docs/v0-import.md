@@ -39,6 +39,8 @@ completed response만 유실된 경우 same source/import ID retry는 completed 
 
 ## Cutover And Rollback
 
-completion marker만으로 writer cutover를 승인하지 않는다. backup/restore rehearsal, imported aggregate count/read fixture, target authentication/TLS gate와 V0 stopped-state 확인이 모두 필요하다.
+completion marker만으로 writer cutover를 승인하지 않는다. `scripts/check-postgres.sh`의 local rehearsal은 imported target을 backup/삭제/restore하고 aggregate digest, completion marker와 terminal assignment를 확인한 뒤 target을 폐기해 V0를 digest 변화 없이 다시 연다. 이 단계는 완료되었지만 target authentication/TLS gate와 실제 production backup topology는 별도 승인 대상이다.
 
 target writer가 시작되기 전에는 V0 binary와 original journal backup으로 rollback할 수 있다. target write가 시작된 뒤 reverse synchronization은 지원하지 않으므로 V0를 다시 writer로 열지 않는다. 그 시점의 rollback은 target PostgreSQL backup restore와 target binary rollback 문제다.
+
+리허설의 private manifest와 dump는 임시 operator artifact다. source path, DSN, raw payload와 environment identity는 tracked 문서나 일반 CI artifact에 남기지 않고 phase별 aggregate count만 보고한다.

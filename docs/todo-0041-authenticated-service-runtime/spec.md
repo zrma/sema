@@ -1,6 +1,6 @@
 # P30 Authenticated Service Runtime Spec
 
-- Status: In Progress — Import Boundary Complete
+- Status: Decision Gate — Remote Runtime Identity Required
 
 ## Objective
 
@@ -23,7 +23,7 @@ P29의 PostgreSQL authority와 authenticated match-ticket vertical slice를 prop
 - [x] reservation confirm과 assignment polling/acknowledgment를 repository multi-resource CAS로 구현한다.
 - [x] V0 journal read-only import와 completion marker, discard-and-retry failure fixture를 만든다.
 - [ ] 선택된 identity provider adapter, credential lifecycle, TLS와 remote-listener gate를 구성한다.
-- [ ] backup/restore 및 V0 rollback rehearsal 뒤에만 target writer cutover를 승인한다.
+- [x] backup/restore 및 V0 rollback rehearsal 뒤에만 target writer cutover를 승인한다.
 
 ## Acceptance
 
@@ -42,4 +42,4 @@ P29의 PostgreSQL authority와 authenticated match-ticket vertical slice를 prop
 
 ## Decision Gate
 
-provider-neutral planning run부터 assignment command service와 V0 import fixture는 계속 구현할 수 있다. 실제 remote executable과 credential 배포를 시작하기 전에는 identity provider, tenant credential lifecycle과 TLS termination owner를 사용자가 선택해야 한다. production PostgreSQL provider/backup topology와 numeric SLO는 별도 deployment evidence에서 결정한다.
+provider-neutral lifecycle, V0 import와 local PostgreSQL cutover rehearsal은 완료되었다. 실제 remote executable과 credential 배포를 시작하기 전에는 identity provider, tenant credential lifecycle과 TLS termination owner를 사용자가 선택해야 한다. production PostgreSQL provider/backup topology와 numeric SLO는 별도 deployment evidence에서 결정한다.

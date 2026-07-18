@@ -7,9 +7,16 @@ cd "$repo_root"
 image="postgres:17.10-alpine3.24@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193"
 container="sema-postgres-check-$$"
 password="sema-integration-only"
+rehearsal_schema="sema_backup_rehearsal"
+rehearsal_directory=""
+container_dump="/tmp/sema-backup-rehearsal.dump"
 
 cleanup() {
   docker rm -f "$container" >/dev/null 2>&1 || true
+  if [ -n "$rehearsal_directory" ]; then
+    rm -f -- "$rehearsal_directory/v0.journal" "$rehearsal_directory/manifest.json"
+    rmdir -- "$rehearsal_directory" >/dev/null 2>&1 || true
+  fi
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -48,4 +55,32 @@ address=$(docker port "$container" 5432/tcp | sed -n '1p')
 SEMA_POSTGRES_TEST_DSN="postgres://postgres:${password}@${address}/sema_test?sslmode=disable" \
   go test -race ./internal/repository/postgres ./internal/service ./internal/targetapi
 
-printf 'sema postgres repository check passed\n'
+rehearsal_directory=$(mktemp -d "${TMPDIR:-/tmp}/sema-postgres-rehearsal.XXXXXX")
+rehearsal_journal="$rehearsal_directory/v0.journal"
+rehearsal_manifest="$rehearsal_directory/manifest.json"
+rehearsal_dsn="postgres://postgres:${password}@${address}/sema_test?sslmode=disable"
+
+docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d sema_test \
+  -c "CREATE SCHEMA $rehearsal_schema" >/dev/null
+SEMA_POSTGRES_TEST_DSN="$rehearsal_dsn" go run ./cmd/sema-postgres-rehearsal \
+  -phase seed -schema "$rehearsal_schema" \
+  -journal "$rehearsal_journal" -manifest "$rehearsal_manifest"
+
+docker exec "$container" pg_dump -U postgres -d sema_test \
+  --format=custom --no-owner --no-privileges \
+  --schema="$rehearsal_schema" --file="$container_dump"
+docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d sema_test \
+  -c "SET client_min_messages TO warning; DROP SCHEMA $rehearsal_schema CASCADE" >/dev/null
+docker exec "$container" pg_restore -U postgres -d sema_test \
+  --exit-on-error --no-owner --no-privileges "$container_dump"
+
+SEMA_POSTGRES_TEST_DSN="$rehearsal_dsn" go run ./cmd/sema-postgres-rehearsal \
+  -phase verify -schema "$rehearsal_schema" \
+  -journal "$rehearsal_journal" -manifest "$rehearsal_manifest"
+
+docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d sema_test \
+  -c "SET client_min_messages TO warning; DROP SCHEMA $rehearsal_schema CASCADE" >/dev/null
+go run ./cmd/sema-postgres-rehearsal \
+  -phase rollback -journal "$rehearsal_journal" -manifest "$rehearsal_manifest"
+
+printf 'sema postgres repository and cutover rehearsal passed\n'
