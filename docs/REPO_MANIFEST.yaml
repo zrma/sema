@@ -12,8 +12,10 @@ workload_evaluation: docs/workload-evaluation.md
 evaluation_baseline: docs/evaluation-baseline.md
 matcher_conformance: docs/matcher-conformance.md
 service_productization_entry: docs/todo-0040-service-productization-entry/spec.md
+authenticated_service_runtime: docs/todo-0041-authenticated-service-runtime/spec.md
 repository_adapter_evidence: docs/repository-adapter-evidence.md
 postgres_repository: docs/postgres-repository.md
+target_api: docs/target-api.md
 candidate_discovery: docs/candidate-discovery.md
 public_api: alpha
 public_api_guide: docs/public-api.md
@@ -59,6 +61,7 @@ container_deployment_decision: docs/decisions/0014-container-deployment-baseline
 performance_release_decision: docs/decisions/0015-performance-release-gate.md
 service_authority_decision: docs/decisions/0016-service-authority-contract.md
 postgres_authority_decision: docs/decisions/0017-postgresql-authority-baseline.md
+target_api_decision: docs/decisions/0018-authenticated-target-api-boundary.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -76,6 +79,7 @@ checks:
   repository_memory_benchmark: go test ./internal/repository -run ^$ -bench ^BenchmarkMemoryRepository$ -benchtime=100x -count=3
   repository_file_prototype_benchmark: go test ./internal/repository/fileprototype -run ^$ -bench ^BenchmarkFilePrototypeRepository$ -benchtime=100x -count=3
   postgres_repository_test: scripts/check-postgres.sh
+  target_api_test: go test ./internal/targetapi
   alpha_test: go test ./alpha
   example_consumer: go run ./examples/compose
   release_build: scripts/check-release-build.sh

@@ -44,6 +44,9 @@
 - ADR 0017이 PostgreSQL primary를 durable authority로 채택하고 stateless service replica를 허용하며 Redis를 baseline에서 제외한다.
 - `internal/repository/postgres`가 explicit schema migration, resource CAS, ordered scope version과 atomic operation/audit receipt를 구현한다.
 - Docker-isolated PostgreSQL gate가 공통 conformance와 separate-pool ordered commit을 실제 database에서 검증한다.
+- `internal/targetapi`의 experimental `v0alpha2` match-ticket surface가 provider-neutral principal/permission, tenant isolation과 strict transport validation을 구현한다.
+- target mutation은 `Idempotency-Key`를 요구하고 repository receipt를 resource validation보다 먼저 resolve해 후속 revision 뒤의 오래된 retry도 최초 결과로 수렴한다.
+- target list/poll은 tenant/kind/filter/order와 repository version에 묶인 HMAC cursor를 사용하며 PostgreSQL composition fixture가 실제 create/get을 검증한다.
 - P7 discovery가 versioned oldest-fitting ticket window, 10K correctness, 10K/100K manual benchmark와 fuzz invariant를 제공한다.
 - public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
 - `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
@@ -82,7 +85,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit까지 완료되었고 P29는 PostgreSQL adapter와 actual database conformance까지 닫혔다. PostgreSQL primary가 target durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. planner/coordinator/journal은 target API cutover 전까지 V0 single writer reference로 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. 다음은 authenticated target API schema, tenant authorization, pagination/polling과 PostgreSQL-backed composition fixture다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 target durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. authenticated `v0alpha2` match-ticket vertical slice는 provider 선택 없이 tenant isolation, historical idempotency, pagination/polling과 PostgreSQL composition을 검증한다. planner/coordinator/journal은 target lifecycle/import cutover 전까지 V0 single writer reference로 유지한다. 다음 P30은 backfill부터 assignment acknowledgment까지의 command service, V0 import와 authenticated runtime cutover이며 실제 remote listener 전에 identity provider와 tenant credential lifecycle 결정이 필요하다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

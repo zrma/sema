@@ -243,9 +243,19 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] persistent adapter prototype와 real crash/reopen conformance
 - [x] 공통 contention workload와 storage decision evidence
 - [x] PostgreSQL schema, adapter와 separate-pool conformance
-- [ ] authenticated target API schema, pagination와 polling contract fixture
+- [x] authenticated target API schema, pagination와 polling contract fixture
 - [x] PostgreSQL primary authority와 stateless replica topology 결정
 
 ## Active Program: Service Productization
 
-matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional repository/resource contract, stateful index freshness, V0 migration inventory, persistent crash/contention evidence와 실제 PostgreSQL adapter를 만들었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에 없다. 다음은 authenticated target API와 PostgreSQL-backed composition/cutover fixture다.
+matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional repository/resource contract, PostgreSQL adapter와 provider-neutral authenticated `v0alpha2` match-ticket vertical slice를 닫았다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에 없다.
+
+## P30: Authenticated Service Runtime Cutover
+
+- [ ] BackfillTicket와 planning/reservation/assignment/acknowledgment command service
+- [ ] identity provider와 tenant credential lifecycle 결정
+- [ ] authenticated PostgreSQL runtime executable과 remote-listener security gate
+- [ ] V0 read-only import, rollback과 backup/restore rehearsal
+- [ ] workload 기반 quota/rate limit, pool/timeout과 numeric service SLO
+
+현재 결정 gate는 identity provider와 tenant credential lifecycle이다. 그 전에는 provider-neutral lifecycle service와 import fixture를 계속 구현할 수 있지만 remote production surface나 stable API는 선언하지 않는다.

@@ -104,6 +104,23 @@ func Run(t *testing.T, factory Factory) {
 			tenantB.Version != otherCommitted.Version || len(tenantB.Resources) != 1 {
 			t.Fatalf("tenant snapshots = A:%#v B:%#v", tenantA, tenantB)
 		}
+
+		later := transaction("replace-policy", "policy-a-v2", mutation(key, first.Version, "policy-v2"))
+		if _, err := owner.Commit(context.Background(), later.operation, later.mutations); err != nil {
+			t.Fatal(err)
+		}
+		resolved, exists, err := owner.Replay(context.Background(), request.operation)
+		if err != nil || !exists || !resolved.Replayed || resolved.Version != first.Version {
+			t.Fatalf("historical replay = %#v, exists=%t, err=%v", resolved, exists, err)
+		}
+		missing := transaction("missing-operation", "missing", mutation(key, first.Version, "unused"))
+		if result, exists, err := owner.Replay(context.Background(), missing.operation); err != nil || exists || result != (repository.CommitResult{}) {
+			t.Fatalf("missing replay = %#v, exists=%t, err=%v", result, exists, err)
+		}
+		conflicting.operation.At = later.operation.At
+		if _, exists, err := owner.Replay(context.Background(), conflicting.operation); !exists || failureCode(err) != domain.FailureIdempotencyConflict {
+			t.Fatalf("resolved operation conflict = exists=%t err=%v", exists, err)
+		}
 	})
 
 	t.Run("atomic multi resource conflict", func(t *testing.T) {

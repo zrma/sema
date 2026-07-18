@@ -56,6 +56,33 @@ func (store *Store) Close() {
 	}
 }
 
+func (store *Store) Replay(
+	ctx context.Context,
+	operation repository.Operation,
+) (repository.CommitResult, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return repository.CommitResult{}, false, err
+	}
+	if err := repository.ValidateOperation(operation); err != nil {
+		return repository.CommitResult{}, false, err
+	}
+	var digest []byte
+	var rawVersion int64
+	err := store.pool.QueryRow(ctx, `
+		SELECT digest, version
+		FROM sema_repository_operations
+		WHERE scope = $1 AND operation_id = $2`,
+		operation.Scope, string(operation.ID)).Scan(&digest, &rawVersion)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return repository.CommitResult{}, false, nil
+	}
+	if err != nil {
+		return repository.CommitResult{}, false, fmt.Errorf("read postgres operation receipt: %w", err)
+	}
+	result, err := validateReplay(operation, digest, rawVersion)
+	return result, true, err
+}
+
 func (store *Store) Snapshot(ctx context.Context, scope string) (repository.Snapshot, error) {
 	if err := ctx.Err(); err != nil {
 		return repository.Snapshot{}, err
@@ -297,6 +324,14 @@ func replayOperation(
 		operation.Scope, string(operation.ID)).Scan(&digest, &rawVersion); err != nil {
 		return repository.CommitResult{}, fmt.Errorf("read postgres operation receipt: %w", err)
 	}
+	return validateReplay(operation, digest, rawVersion)
+}
+
+func validateReplay(
+	operation repository.Operation,
+	digest []byte,
+	rawVersion int64,
+) (repository.CommitResult, error) {
 	if !bytes.Equal(digest, operation.Digest[:]) {
 		return repository.CommitResult{}, domain.NewFailure(
 			domain.FailureIdempotencyConflict,

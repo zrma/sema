@@ -63,6 +63,32 @@ func NewMemory() *Memory {
 	return OpenMemory(NewMemoryBackend())
 }
 
+func (memory *Memory) Replay(ctx context.Context, operation Operation) (CommitResult, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return CommitResult{}, false, err
+	}
+	if err := ValidateOperation(operation); err != nil {
+		return CommitResult{}, false, err
+	}
+	memory.backend.mu.Lock()
+	defer memory.backend.mu.Unlock()
+
+	receipt, exists := memory.backend.operations[operationKey{scope: operation.Scope, id: operation.ID}]
+	if !exists {
+		return CommitResult{}, false, nil
+	}
+	if receipt.digest != operation.Digest {
+		return CommitResult{}, true, domain.NewFailure(
+			domain.FailureIdempotencyConflict,
+			"operation ID %q was used for another command",
+			operation.ID,
+		)
+	}
+	result := receipt.result
+	result.Replayed = true
+	return result, true, nil
+}
+
 func (memory *Memory) Snapshot(ctx context.Context, scope string) (Snapshot, error) {
 	if err := ctx.Err(); err != nil {
 		return Snapshot{}, err
@@ -185,14 +211,8 @@ func (memory *Memory) Audit(ctx context.Context, scope string, after Version, li
 }
 
 func validateAndNormalize(operation Operation, mutations []Mutation) ([]Mutation, error) {
-	if operation.Scope == "" || operation.ID == "" || operation.Kind == "" || operation.At.IsZero() {
-		return nil, domain.NewFailure(
-			domain.FailureInvalidInput,
-			"operation scope, identity, kind, and server time are required",
-		)
-	}
-	if operation.Digest == ([sha256.Size]byte{}) {
-		return nil, domain.NewFailure(domain.FailureInvalidInput, "operation digest is required")
+	if err := ValidateOperation(operation); err != nil {
+		return nil, err
 	}
 	if len(mutations) == 0 {
 		return nil, domain.NewFailure(domain.FailureInvalidInput, "transaction needs at least one mutation")

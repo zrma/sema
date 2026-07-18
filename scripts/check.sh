@@ -23,7 +23,9 @@ for required_file in \
   deploy/compose.yaml \
   examples/compose/main.go \
   internal/api/v0alpha1/types.go \
+  internal/api/v0alpha2/types.go \
   internal/httpapi/handler.go \
+  internal/targetapi/handler.go \
   internal/observability/recorder.go \
   internal/operational/load.go \
   internal/performance/report.go \
@@ -59,6 +61,7 @@ for required_file in \
   docs/performance-slo.md \
   docs/release-admission.md \
   docs/postgres-repository.md \
+  docs/target-api.md \
   docs/sema-flow.md \
   docs/sema-flow-measurement.md \
   docs/sema-flow-capacity-matrix.md \
@@ -81,6 +84,7 @@ for required_file in \
   docs/decisions/0015-performance-release-gate.md \
   docs/decisions/0016-service-authority-contract.md \
   docs/decisions/0017-postgresql-authority-baseline.md \
+  docs/decisions/0018-authenticated-target-api-boundary.md \
   docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/migrations/v0alpha3-to-v0alpha4.md \
@@ -128,6 +132,7 @@ for required_file in \
   docs/todo-0038-indexed-candidate-discovery/spec.md \
   docs/todo-0039-matcher-v0-exit/spec.md \
   docs/todo-0040-service-productization-entry/spec.md \
+  docs/todo-0041-authenticated-service-runtime/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-postgres.sh \
@@ -180,7 +185,7 @@ if grep -R -n -F '"github.com/zrma/sema/internal/' examples; then
   exit 1
 fi
 
-sh -n scripts/build-release.sh scripts/check-container.sh scripts/check-performance.sh scripts/check-release-admission.sh scripts/check-release-build.sh
+sh -n scripts/build-release.sh scripts/check-container.sh scripts/check-postgres.sh scripts/check-performance.sh scripts/check-release-admission.sh scripts/check-release-build.sh
 
 grep -Eq '^FROM golang:[^ ]+@sha256:[0-9a-f]{64} AS build$' Dockerfile || {
   printf 'repository check failed: container builder must use an exact digest\n' >&2

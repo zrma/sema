@@ -46,6 +46,6 @@ address=$(docker port "$container" 5432/tcp | sed -n '1p')
 }
 
 SEMA_POSTGRES_TEST_DSN="postgres://postgres:${password}@${address}/sema_test?sslmode=disable" \
-  go test -race ./internal/repository/postgres
+  go test -race ./internal/repository/postgres ./internal/targetapi
 
 printf 'sema postgres repository check passed\n'

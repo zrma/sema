@@ -81,6 +81,35 @@ func open(path string, fault faultFunc) (*Store, error) {
 	return &Store{path: path, state: loaded, fault: fault}, nil
 }
 
+func (store *Store) Replay(
+	ctx context.Context,
+	operation repository.Operation,
+) (repository.CommitResult, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return repository.CommitResult{}, false, err
+	}
+	if err := repository.ValidateOperation(operation); err != nil {
+		return repository.CommitResult{}, false, err
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	receipt, exists := store.state.operations[operationKey{scope: operation.Scope, id: operation.ID}]
+	if !exists {
+		return repository.CommitResult{}, false, nil
+	}
+	if receipt.digest != operation.Digest {
+		return repository.CommitResult{}, true, domain.NewFailure(
+			domain.FailureIdempotencyConflict,
+			"operation ID %q was used for another command",
+			operation.ID,
+		)
+	}
+	result := receipt.result
+	result.Replayed = true
+	return result, true, nil
+}
+
 func (store *Store) Snapshot(ctx context.Context, scope string) (repository.Snapshot, error) {
 	if err := ctx.Err(); err != nil {
 		return repository.Snapshot{}, err

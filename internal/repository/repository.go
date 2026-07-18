@@ -83,8 +83,25 @@ type AuditRecord struct {
 // A successful operation receipt and all mutations share one commit version.
 type Repository interface {
 	Snapshot(context.Context, string) (Snapshot, error)
+	Replay(context.Context, Operation) (CommitResult, bool, error)
 	Commit(context.Context, Operation, []Mutation) (CommitResult, error)
 	Audit(context.Context, string, Version, int) ([]AuditRecord, error)
+}
+
+// ValidateOperation validates the identity needed to resolve or commit one
+// idempotent operation. A service resolves the receipt before validating
+// mutable resource state so an older retry still returns its original result.
+func ValidateOperation(operation Operation) error {
+	if operation.Scope == "" || operation.ID == "" || operation.Kind == "" || operation.At.IsZero() {
+		return domain.NewFailure(
+			domain.FailureInvalidInput,
+			"operation scope, identity, kind, and server time are required",
+		)
+	}
+	if operation.Digest == ([sha256.Size]byte{}) {
+		return domain.NewFailure(domain.FailureInvalidInput, "operation digest is required")
+	}
+	return nil
 }
 
 // Conflict reports a resource whose storage version changed after it was read.
