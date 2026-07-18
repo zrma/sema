@@ -99,3 +99,48 @@ type BackfillTicketPage struct {
 	RepositoryVersion uint64                   `json:"repository_version"`
 	NextCursor        string                   `json:"next_cursor,omitempty"`
 }
+
+type RoleRequirement struct {
+	Role       string `json:"role"`
+	MinPerTeam int    `json:"min_per_team"`
+	Hard       bool   `json:"hard"`
+}
+
+type RelaxationStep struct {
+	AfterWaitMillis int64 `json:"after_wait_millis"`
+	MaxTeamSkillGap int   `json:"max_team_skill_gap"`
+	MaxRolePenalty  int   `json:"max_role_penalty"`
+	PrioritizeWait  bool  `json:"prioritize_wait"`
+}
+
+type MatchmakingPolicy struct {
+	Version                  string            `json:"version"`
+	TeamCount                int               `json:"team_count"`
+	TeamSize                 int               `json:"team_size"`
+	MaxLatencyMillis         int               `json:"max_latency_millis"`
+	MaxProposals             int               `json:"max_proposals,omitempty"`
+	MaxSearchNodes           int               `json:"max_search_nodes,omitempty"`
+	MaxCandidateTickets      int               `json:"max_candidate_tickets,omitempty"`
+	MaxCandidatesPerProposal int               `json:"max_candidates_per_proposal,omitempty"`
+	MaxBatchCandidates       int               `json:"max_batch_candidates,omitempty"`
+	MaxBatchSearchNodes      int               `json:"max_batch_search_nodes,omitempty"`
+	RoleRequirements         []RoleRequirement `json:"role_requirements,omitempty"`
+	RelaxationSteps          []RelaxationStep  `json:"relaxation_steps,omitempty"`
+}
+
+type PolicyResource struct {
+	Policy         MatchmakingPolicy `json:"policy"`
+	Fingerprint    string            `json:"fingerprint"`
+	StorageVersion uint64            `json:"storage_version"`
+}
+
+type PolicyMutation struct {
+	Resource PolicyResource `json:"resource"`
+	Replayed bool           `json:"replayed"`
+}
+
+type PolicyPage struct {
+	Items             []PolicyResource `json:"items"`
+	RepositoryVersion uint64           `json:"repository_version"`
+	NextCursor        string           `json:"next_cursor,omitempty"`
+}

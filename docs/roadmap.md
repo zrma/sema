@@ -253,6 +253,7 @@ matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional 
 ## P30: Authenticated Service Runtime Cutover
 
 - [x] BackfillTicket authenticated command/read service와 atomic demand/session claim
+- [x] tenant-scoped immutable Policy catalog와 authenticated command/read service
 - [ ] planning/reservation/assignment/acknowledgment command service
 - [ ] identity provider와 tenant credential lifecycle 결정
 - [ ] authenticated PostgreSQL runtime executable과 remote-listener security gate

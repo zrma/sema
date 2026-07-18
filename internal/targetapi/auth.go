@@ -12,6 +12,8 @@ const (
 	PermissionMatchTicketsWrite    Permission = "match_tickets.write"
 	PermissionBackfillTicketsRead  Permission = "backfill_tickets.read"
 	PermissionBackfillTicketsWrite Permission = "backfill_tickets.write"
+	PermissionPoliciesRead         Permission = "policies.read"
+	PermissionPoliciesWrite        Permission = "policies.write"
 )
 
 type Principal struct {

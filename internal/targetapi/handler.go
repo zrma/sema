@@ -56,8 +56,13 @@ func New(
 	if err != nil {
 		return nil, err
 	}
+	policies, err := service.NewPolicies(owner, options.Now)
+	if err != nil {
+		return nil, err
+	}
 	server := &server{
-		authenticator: authenticator, tickets: tickets, backfills: backfills, cursors: codec,
+		authenticator: authenticator, tickets: tickets, backfills: backfills,
+		policies: policies, cursors: codec,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v0alpha2/match-tickets", server.listMatchTickets)
@@ -68,10 +73,15 @@ func New(
 	mux.HandleFunc("GET /v0alpha2/backfill-tickets/{ticket_id}", server.getBackfillTicket)
 	mux.HandleFunc("PUT /v0alpha2/backfill-tickets/{ticket_id}", server.putBackfillTicket)
 	mux.HandleFunc("DELETE /v0alpha2/backfill-tickets/{ticket_id}", server.deleteBackfillTicket)
+	mux.HandleFunc("GET /v0alpha2/policies", server.listPolicies)
+	mux.HandleFunc("GET /v0alpha2/policies/{version}", server.getPolicy)
+	mux.HandleFunc("PUT /v0alpha2/policies/{version}", server.putPolicy)
 	mux.HandleFunc("/v0alpha2/match-tickets", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/match-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
 	mux.HandleFunc("/v0alpha2/backfill-tickets", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/backfill-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
+	mux.HandleFunc("/v0alpha2/policies", methodNotAllowed("GET"))
+	mux.HandleFunc("/v0alpha2/policies/{version}", methodNotAllowed("GET, PUT"))
 	mux.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writeError(writer, apiError{status: http.StatusNotFound, code: "NotFound", message: "endpoint was not found"})
 	})
@@ -82,6 +92,7 @@ type server struct {
 	authenticator Authenticator
 	tickets       *service.MatchTickets
 	backfills     *service.BackfillTickets
+	policies      *service.Policies
 	cursors       cursorCodec
 }
 

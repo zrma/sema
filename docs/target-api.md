@@ -2,7 +2,7 @@
 
 ## Status
 
-`v0alpha2`는 PostgreSQL target repository 위에서 검증하는 authenticated service boundary다. 현재 구현은 `MatchTicket`과 `BackfillTicket` ingestion, polling과 cancellation을 끝까지 연결하며 stable compatibility나 production listener를 제공하지 않는다. 기존 `v0alpha1` journal service와 route semantics를 조용히 바꾸지 않는다.
+`v0alpha2`는 PostgreSQL target repository 위에서 검증하는 authenticated service boundary다. 현재 구현은 immutable `Policy` catalog와 `MatchTicket`/`BackfillTicket` ingestion, polling과 cancellation을 끝까지 연결하며 stable compatibility나 production listener를 제공하지 않는다. 기존 `v0alpha1` journal service와 route semantics를 조용히 바꾸지 않는다.
 
 ## Authentication And Tenant Scope
 
@@ -12,10 +12,21 @@
 - 하나의 tenant scope
 - `match_tickets.read`, `match_tickets.write` permission
 - `backfill_tickets.read`, `backfill_tickets.write` permission
+- `policies.read`, `policies.write` permission
 
 HTTP path, query와 body에는 tenant field가 없다. handler는 인증과 permission 확인을 repository lookup보다 먼저 수행하고, repository key의 scope는 항상 authenticated principal에서만 만든다. credential 부재/거부는 `Unauthenticated`, provider 장애는 retryable `AuthenticationUnavailable`, permission 부족은 `PermissionDenied`다.
 
 실제 token protocol, issuer, tenant credential lifecycle과 TLS termination은 아직 선택하지 않았다. 따라서 target handler를 사용하는 remote executable도 아직 제공하지 않는다.
+
+## Policy Operations
+
+| Method | Path | Permission | Semantics |
+|---|---|---|---|
+| `PUT` | `/v0alpha2/policies/{version}` | `policies.write` | immutable version-to-content registration |
+| `GET` | `/v0alpha2/policies/{version}` | `policies.read` | registered policy poll |
+| `GET` | `/v0alpha2/policies` | `policies.read` | registered policy page |
+
+policy version은 canonical rule content의 fingerprint에 묶인다. 같은 content 재등록은 별도 operation receipt를 남기지만 payload content는 바꾸지 않으며, 같은 version에 다른 content를 등록하면 `PolicyConflict`다. role requirement 순서는 canonicalize하고 relaxation 순서는 policy semantics로 보존한다. repository payload는 `sema.policy.v1` schema와 검증된 fingerprint를 함께 저장하며 read 때 content로 fingerprint를 다시 계산한다.
 
 ## Match Ticket Operations
 
@@ -59,7 +70,7 @@ cursor payload를 client state authority로 사용하지 않는다. 변조하거
 
 ## Composition And Security Boundary
 
-target handler는 `repository.Repository`, `Authenticator`, server clock과 최소 32-byte cursor authentication key를 주입받는다. PostgreSQL integration fixture가 migration된 isolated schema에서 실제 create와 poll을 수행한다. cursor key와 database credential은 tracked configuration이나 response에 기록하지 않는다.
+target handler는 `repository.Repository`, `Authenticator`, server clock과 최소 32-byte cursor authentication key를 주입받는다. PostgreSQL integration fixture가 migration된 isolated schema에서 Policy와 두 demand kind의 실제 create/poll을 수행한다. cursor key와 database credential은 tracked configuration이나 response에 기록하지 않는다.
 
 strict JSON decoding, 1 MiB body limit, bounded identifier와 allowlisted query parameter를 transport entry에서 적용한다. Proposal, Reservation과 Assignment는 target authority가 생성해야 하므로 이 첫 client-write surface에서 generic resource mutation으로 노출하지 않는다.
 

@@ -1,6 +1,6 @@
 # P30 Authenticated Service Runtime Spec
 
-- Status: In Progress — Demand Ingestion Complete
+- Status: In Progress — Demand And Policy Ingestion Complete
 
 ## Objective
 
@@ -17,6 +17,7 @@ P29의 PostgreSQL authority와 authenticated match-ticket vertical slice를 prop
 ## Implementation Sequence
 
 - [x] BackfillTicket create/replace/exact-cancel/get/list를 match-ticket과 같은 tenant/idempotency contract로 연결한다.
+- [x] immutable Policy create/get/list와 fingerprint conflict를 tenant-scoped repository authority로 연결한다.
 - [ ] planning run이 immutable snapshot을 저장하고 transaction 밖에서 matcher를 실행한 뒤 proposal/unmatched page를 기록하게 한다.
 - [ ] proposal-derived reservation, confirm/cancel과 assignment polling/acknowledgment를 repository multi-resource CAS로 구현한다.
 - [ ] V0 journal read-only import와 completion marker, discard-and-retry failure fixture를 만든다.
@@ -40,4 +41,4 @@ P29의 PostgreSQL authority와 authenticated match-ticket vertical slice를 prop
 
 ## Decision Gate
 
-provider-neutral BackfillTicket부터 assignment command service와 V0 import fixture는 계속 구현할 수 있다. 실제 remote executable과 credential 배포를 시작하기 전에는 identity provider, tenant credential lifecycle과 TLS termination owner를 사용자가 선택해야 한다. production PostgreSQL provider/backup topology와 numeric SLO는 별도 deployment evidence에서 결정한다.
+provider-neutral planning run부터 assignment command service와 V0 import fixture는 계속 구현할 수 있다. 실제 remote executable과 credential 배포를 시작하기 전에는 identity provider, tenant credential lifecycle과 TLS termination owner를 사용자가 선택해야 한다. production PostgreSQL provider/backup topology와 numeric SLO는 별도 deployment evidence에서 결정한다.

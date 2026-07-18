@@ -85,4 +85,17 @@ func TestTargetAPIPostgresComposition(t *testing.T) {
 		polledBackfill.StorageVersion != createdBackfill.Resource.StorageVersion {
 		t.Fatalf("PostgreSQL backfill poll = %#v; created=%#v", polledBackfill, createdBackfill)
 	}
+	createdPolicy := requestData[api.PolicyMutation](
+		t, handler, "tenant-a", "postgres-policy-create", http.MethodPut,
+		"/v0alpha2/policies/policy-postgres", matchmakingPolicy("policy-postgres"), http.StatusOK,
+	)
+	polledPolicy := requestData[api.PolicyResource](
+		t, handler, "tenant-a", "", http.MethodGet,
+		"/v0alpha2/policies/policy-postgres", nil, http.StatusOK,
+	)
+	if !reflect.DeepEqual(polledPolicy.Policy, createdPolicy.Resource.Policy) ||
+		polledPolicy.Fingerprint != createdPolicy.Resource.Fingerprint ||
+		polledPolicy.StorageVersion != createdPolicy.Resource.StorageVersion {
+		t.Fatalf("PostgreSQL policy poll = %#v; created=%#v", polledPolicy, createdPolicy)
+	}
 }
