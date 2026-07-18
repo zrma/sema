@@ -87,7 +87,7 @@ flowchart LR
 - planning snapshot capture 뒤 matcher search 중에는 storage transaction을 열어 두지 않는다. immutable snapshot과 proposal record는 audit authority로 남고 reserve는 현재 resource freshness를 다시 검증한다.
 - related ticket/backfill/reservation/assignment mutation만 같은 transaction에 묶고 unrelated ingress는 진행할 수 있다.
 - candidate index는 repository commit version을 따라가거나 snapshot에서 rebuild한다. version mismatch에서는 index result를 사용하지 않는다.
-- current journal은 V0 reference/import source다. file prototype이 persistent conformance와 contention/recovery evidence를 제공했으며 `docs/repository-adapter-evidence.md`는 PostgreSQL primary를 첫 target write authority로 권장한다. 실제 database/topology 채택은 사용자 결정 뒤 ADR로 고정한다.
+- current journal은 V0 reference/import source다. PostgreSQL primary가 target durable write authority이고 service는 stateless replica로 확장한다. Redis는 baseline에 없으며 candidate index는 PostgreSQL snapshot version에서 rebuild 가능한 derived state다. runtime cutover는 authenticated target API와 import fixture 뒤 수행한다.
 
 ## Failure Model
 

@@ -27,6 +27,8 @@ for required_file in \
   internal/observability/recorder.go \
   internal/operational/load.go \
   internal/performance/report.go \
+  internal/repository/postgres/postgres.go \
+  internal/repository/postgres/schema.sql \
   internal/flow/simulator.go \
   internal/flowmatrix/matrix.go \
   internal/flowui/model.go \
@@ -56,6 +58,7 @@ for required_file in \
   docs/operations-runbook.md \
   docs/performance-slo.md \
   docs/release-admission.md \
+  docs/postgres-repository.md \
   docs/sema-flow.md \
   docs/sema-flow-measurement.md \
   docs/sema-flow-capacity-matrix.md \
@@ -76,6 +79,8 @@ for required_file in \
   docs/decisions/0013-operational-validation-baseline.md \
   docs/decisions/0014-container-deployment-baseline.md \
   docs/decisions/0015-performance-release-gate.md \
+  docs/decisions/0016-service-authority-contract.md \
+  docs/decisions/0017-postgresql-authority-baseline.md \
   docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/migrations/v0alpha3-to-v0alpha4.md \
@@ -125,6 +130,7 @@ for required_file in \
   docs/todo-0040-service-productization-entry/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
+  scripts/check-postgres.sh \
   scripts/check-performance.sh \
   scripts/check-release-admission.sh \
   scripts/check-release-build.sh \

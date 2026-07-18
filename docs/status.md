@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P28 matcher V0 exit까지 완료되었다. P29 service productization entry는 transactional repository authority, versioned resource, V0 migration inventory와 persistent crash/contention evidence까지 완료해 storage decision gate에 도달했다. authenticated target API와 실제 product database adapter는 아직 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P28 matcher V0 exit까지 완료되었다. P29 service productization entry는 transactional repository authority, persistent crash/contention evidence와 실제 PostgreSQL adapter까지 완료했다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. authenticated target API와 runtime cutover는 아직 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -106,6 +106,9 @@ P0부터 P28 matcher V0 exit까지 완료되었다. P29 service productization e
 - 공통 repository conformance를 통과하고 full-state checksum/atomic replace를 사용하는 persistent file reference adapter.
 - commit 전/후 실제 subprocess crash, reopen idempotency replay, corruption/private-mode refusal와 same-resource contention benchmark.
 - file prototype을 production store에서 제외하고 PostgreSQL primary authority를 권장하는 storage decision evidence.
+- PostgreSQL-owned schema, explicit migration, Read Committed CAS commit과 Repeatable Read snapshot adapter.
+- 실제 pinned PostgreSQL에서 공통 conformance, separate-pool ordered commit과 reopen replay를 실행하는 integration gate.
+- PostgreSQL primary, stateless service replica와 no-Redis baseline을 확정한 ADR 0017.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -116,7 +119,7 @@ P0부터 P28 matcher V0 exit까지 완료되었다. P29 service productization e
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
-- external database, journal compaction와 multi-replica coordination; file reference adapter는 product storage가 아니다.
+- PostgreSQL-backed target runtime composition/cutover, journal compaction와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
 - authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 - stable release 자체; 현재 `stable_admitted: false`다.
@@ -130,8 +133,8 @@ P0부터 P28 matcher V0 exit까지 완료되었다. P29 service productization e
 - role composition의 hard/soft 경계.
 - mixed-party battle royale과 현실적인 existing-roster backfill 분포.
 - append-only journal에는 아직 compaction, online backup와 numeric recovery SLO가 없다.
-- 첫 target persistent adapter와 write authority를 PostgreSQL primary로 채택할지 결정해야 한다.
+- authentication provider, tenant credential lifecycle과 production PostgreSQL provider/backup topology.
 
 ## Next Slice
 
-P29의 persistent prototype, process crash/reopen와 comparative contention evidence까지 완료되었다. `docs/repository-adapter-evidence.md`의 권장안대로 첫 target adapter와 write authority를 PostgreSQL primary로 채택할지 사용자 결정을 기다린다. 승인 뒤 authenticated target API schema, pagination/polling fixture와 실제 database adapter를 구현한다. production MMR와 numeric SLA는 consumer evidence 전까지 확정하지 않는다.
+P29의 PostgreSQL schema/adapter와 실제 conformance까지 완료되었다. 다음 slice는 provider-neutral authenticated target API schema, tenant authorization, opaque pagination/polling fixture와 PostgreSQL-backed runtime composition 경계를 구현하는 것이다. 실제 identity provider, production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.

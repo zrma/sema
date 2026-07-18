@@ -64,6 +64,6 @@ file/embedded single-node adapter는 conformance를 구현할 수 있지만 mult
 
 이 선택은 PostgreSQL schema, deployment vendor, replica 수, numeric SLO 또는 stable API를 아직 확정하지 않는다. 그 항목은 실제 adapter fixture와 consumer workload를 통해 별도로 좁힌다.
 
-## Decision Gate
+## Decision Outcome
 
-P29의 persistent conformance, real process crash와 comparative contention evidence는 준비되었다. 다음 진행에 필요한 제품 결정은 **첫 target persistent adapter와 write authority를 PostgreSQL primary로 채택할지** 하나다. 권장안은 채택이며, 승인 전에는 external dependency나 irreversible migration을 추가하지 않는다.
+P29의 persistent conformance, real process crash와 comparative contention evidence를 바탕으로 PostgreSQL primary를 첫 target persistent adapter와 write authority로 채택했다. service는 stateless replica로 확장하고 Redis는 baseline에서 제외한다. 실제 schema, transaction과 conformance는 `docs/postgres-repository.md`와 ADR 0017이 소유한다.

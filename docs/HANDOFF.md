@@ -41,6 +41,9 @@
 - V0 journal은 read-only import source이며 legacy HTTP operation은 새 target resource에 명시적으로 mapping하고 in-place rewrite하지 않는다.
 - persistent file reference adapter가 같은 conformance와 commit 전/후 subprocess crash/reopen fixture를 통과한다.
 - 공통 sequential/contended CAS workload는 full-state file rewrite가 production storage에 부적합함을 보여주며 PostgreSQL primary authority를 첫 target으로 권장한다.
+- ADR 0017이 PostgreSQL primary를 durable authority로 채택하고 stateless service replica를 허용하며 Redis를 baseline에서 제외한다.
+- `internal/repository/postgres`가 explicit schema migration, resource CAS, ordered scope version과 atomic operation/audit receipt를 구현한다.
+- Docker-isolated PostgreSQL gate가 공통 conformance와 separate-pool ordered commit을 실제 database에서 검증한다.
 - P7 discovery가 versioned oldest-fitting ticket window, 10K correctness, 10K/100K manual benchmark와 fuzz invariant를 제공한다.
 - public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
 - `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
@@ -79,7 +82,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit까지 완료되었고 P29는 persistent adapter/crash/contention evidence까지 닫혀 storage decision gate에 도달했다. planner/coordinator/journal은 아직 V0 single writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음은 `docs/repository-adapter-evidence.md`의 권장안대로 PostgreSQL primary를 target write authority로 채택할지 결정하는 일이다. 승인 뒤 authenticated target API fixture와 실제 adapter를 구현한다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit까지 완료되었고 P29는 PostgreSQL adapter와 actual database conformance까지 닫혔다. PostgreSQL primary가 target durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. planner/coordinator/journal은 target API cutover 전까지 V0 single writer reference로 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. 다음은 authenticated target API schema, tenant authorization, pagination/polling과 PostgreSQL-backed composition fixture다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

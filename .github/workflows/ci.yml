@@ -24,6 +24,16 @@ jobs:
       - uses: actions/checkout@v7
       - run: scripts/check-container.sh
 
+  postgres:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - run: scripts/check-postgres.sh
+
   performance:
     runs-on: ubuntu-latest
     steps:
