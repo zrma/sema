@@ -96,7 +96,7 @@ func (memory *Memory) Commit(
 	if err := ctx.Err(); err != nil {
 		return CommitResult{}, err
 	}
-	normalized, err := validateAndNormalize(operation, mutations)
+	normalized, err := ValidateTransaction(operation, mutations)
 	if err != nil {
 		return CommitResult{}, err
 	}

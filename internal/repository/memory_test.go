@@ -16,3 +16,12 @@ func TestMemoryRepositoryConformance(t *testing.T) {
 		}
 	})
 }
+
+func BenchmarkMemoryRepository(b *testing.B) {
+	repositorytest.BenchmarkAdapter(b, func(testing.TB) (repository.Repository, func() repository.Repository) {
+		backend := repository.NewMemoryBackend()
+		return repository.OpenMemory(backend), func() repository.Repository {
+			return repository.OpenMemory(backend)
+		}
+	})
+}

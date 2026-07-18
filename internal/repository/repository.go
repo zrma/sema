@@ -51,6 +51,12 @@ func Digest(payload []byte) [sha256.Size]byte {
 	return sha256.Sum256(payload)
 }
 
+// ValidateTransaction validates adapter-independent command semantics and
+// returns defensive mutations in canonical resource order.
+func ValidateTransaction(operation Operation, mutations []Mutation) ([]Mutation, error) {
+	return validateAndNormalize(operation, mutations)
+}
+
 // Mutation replaces or tombstones one resource if ExpectedVersion still matches.
 // Version zero means that no resource or tombstone may exist.
 type Mutation struct {

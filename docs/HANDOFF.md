@@ -39,6 +39,8 @@
 - shared repository conformance와 in-memory adapter가 same-version competition, multi-resource atomicity, duplicate operation과 reopen replay를 실행한다.
 - service resource model이 repository-versioned immutable planning snapshot과 stale candidate-index fence를 제공하고 ADR 0016이 authority/failure/retention을 고정한다.
 - V0 journal은 read-only import source이며 legacy HTTP operation은 새 target resource에 명시적으로 mapping하고 in-place rewrite하지 않는다.
+- persistent file reference adapter가 같은 conformance와 commit 전/후 subprocess crash/reopen fixture를 통과한다.
+- 공통 sequential/contended CAS workload는 full-state file rewrite가 production storage에 부적합함을 보여주며 PostgreSQL primary authority를 첫 target으로 권장한다.
 - P7 discovery가 versioned oldest-fitting ticket window, 10K correctness, 10K/100K manual benchmark와 fuzz invariant를 제공한다.
 - public `alpha.Compose`가 explicit public/internal copy boundary로 immutable composition을 제공한다.
 - `examples/compose`가 `internal/` import 없이 alpha integration을 실행한다.
@@ -77,7 +79,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit까지 완료되었고 P29의 adapter-neutral contract slice도 닫혔다. planner/coordinator/journal은 아직 V0 single writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음은 `docs/todo-0040-service-productization-entry/spec.md`의 persistent adapter/crash conformance와 authenticated target API fixture다. storage product나 replica topology는 benchmark와 recovery evidence 전에 확정하지 않는다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit까지 완료되었고 P29는 persistent adapter/crash/contention evidence까지 닫혀 storage decision gate에 도달했다. planner/coordinator/journal은 아직 V0 single writer에 유지하고 Flow의 game/result/measurement/matrix/trend model은 synthetic reference workload로만 둔다. Sema는 assignment confirm까지 소유하며 frontend game execution은 planning capacity gate가 아니다. 다음은 `docs/repository-adapter-evidence.md`의 권장안대로 PostgreSQL primary를 target write authority로 채택할지 결정하는 일이다. 승인 뒤 authenticated target API fixture와 실제 adapter를 구현한다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

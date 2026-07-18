@@ -50,6 +50,7 @@ database나 deployment topology를 먼저 고르면 storage product의 transacti
 - `internal/repository`가 adapter-neutral CAS, idempotency, audit와 shared conformance suite를 제공하고 in-memory adapter가 reference implementation이 된다.
 - `internal/service`가 tenant-scoped resource kind, repository-versioned planning snapshot과 candidate-index freshness fence를 소유한다.
 - persistent adapter는 같은 conformance suite를 통과해야 하며 crash-before-commit과 crash-after-commit response loss를 구분해 검증해야 한다.
+- file reference adapter와 subprocess crash/contention 결과는 `docs/repository-adapter-evidence.md`에 기록하고 product storage 선택과 분리한다.
 - global serial execution이나 특정 SQL isolation 이름은 service contract가 아니다. adapter는 외부에서 관찰되는 atomicity와 conflict semantics를 만족하는 가장 작은 transaction을 사용한다.
 - numeric retention, authentication provider, rate limit과 database/topology는 아직 선택하지 않는다. 그러나 authenticated tenant scope 없는 remote exposure는 target architecture에서 허용하지 않는다.
 

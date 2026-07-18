@@ -12,6 +12,7 @@ workload_evaluation: docs/workload-evaluation.md
 evaluation_baseline: docs/evaluation-baseline.md
 matcher_conformance: docs/matcher-conformance.md
 service_productization_entry: docs/todo-0040-service-productization-entry/spec.md
+repository_adapter_evidence: docs/repository-adapter-evidence.md
 candidate_discovery: docs/candidate-discovery.md
 public_api: alpha
 public_api_guide: docs/public-api.md
@@ -68,6 +69,9 @@ checks:
   lab_test: go test ./internal/lab ./cmd/sema-lab
   evaluation_test: go test ./internal/evaluation
   discovery_test: go test ./internal/discovery
+  repository_test: go test -race ./internal/repository/...
+  repository_memory_benchmark: go test ./internal/repository -run ^$ -bench ^BenchmarkMemoryRepository$ -benchtime=100x -count=3
+  repository_file_prototype_benchmark: go test ./internal/repository/fileprototype -run ^$ -bench ^BenchmarkFilePrototypeRepository$ -benchtime=100x -count=3
   alpha_test: go test ./alpha
   example_consumer: go run ./examples/compose
   release_build: scripts/check-release-build.sh

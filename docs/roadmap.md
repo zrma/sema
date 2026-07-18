@@ -240,10 +240,11 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 - [x] in-memory adapter와 reusable repository conformance suite
 - [x] immutable planning snapshot과 repository-versioned candidate index seam
 - [x] authority/retention/failure matrix와 V0 import-only migration mapping
-- [ ] persistent adapter prototype와 real crash/reopen conformance
+- [x] persistent adapter prototype와 real crash/reopen conformance
+- [x] 공통 contention workload와 storage decision evidence
 - [ ] authenticated target API schema, pagination와 polling contract fixture
-- [ ] contention/recovery evidence에 따른 storage 및 writer topology decision
+- [ ] 첫 target storage와 writer topology 결정
 
 ## Active Program: Service Productization
 
-matcher V0의 algorithm-owned contract는 완료되었다. P29 첫 slice가 transactional repository/resource contract, stateful index freshness와 V0 migration inventory를 만들었다. 다음은 persistent adapter prototype을 같은 conformance에 연결하고 crash/contention evidence를 수집하는 일이다. database, topology와 stable compatibility는 이 evidence 전까지 확정하지 않는다.
+matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional repository/resource contract, stateful index freshness, V0 migration inventory와 persistent crash/contention evidence를 만들었다. file prototype은 target storage가 아니며 첫 product adapter는 PostgreSQL primary authority가 권장된다. database/topology 결정 뒤 authenticated target API와 실제 adapter 구현을 시작한다.
