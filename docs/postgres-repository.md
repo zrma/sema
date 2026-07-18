@@ -4,7 +4,7 @@
 
 `internal/repository/postgres`는 P29 target persistence의 첫 product adapter다. PostgreSQL primary가 tenant-scoped resource, operation receipt와 redacted audit의 durable authority이며 Redis는 사용하지 않는다.
 
-이 adapter와 authenticated match-ticket target fixture의 존재는 현재 V0 `cmd/sema-server` runtime cutover를 의미하지 않는다. 기존 journal/HTTP service는 나머지 lifecycle command, explicit import/rollback과 identity-provider-backed listener가 준비될 때까지 reference surface로 남는다.
+이 adapter와 authenticated target lifecycle/import fixture의 존재는 현재 V0 `cmd/sema-server` runtime cutover를 의미하지 않는다. 기존 journal/HTTP service는 backup/restore rollback rehearsal과 identity-provider-backed listener가 준비될 때까지 reference surface로 남는다.
 
 ## Schema Ownership
 

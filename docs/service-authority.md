@@ -104,3 +104,5 @@ ADR 0017에 따라 PostgreSQL primary가 target mutation authority다. write는 
 | `GET /audit` | Audit receipt page | numeric `after`는 target opaque cursor로 변환하고 raw journal payload는 노출하지 않는다. |
 
 V0 importer는 source journal을 수정하지 않는다. import target이 완성되기 전에는 V0 writer를 다시 시작할 수 있고, cutover 뒤 reverse write는 지원하지 않는다. target cutover와 V0 폐기는 별도 migration acceptance 및 backup/restore rehearsal 뒤에만 수행한다.
+
+importer는 source의 sequence/checksum/full replay와 stable read를 검증하고 빈 target에만 `legacy_import` start marker를 만든다. resource batch가 모두 commit된 뒤 같은 marker를 source digest에 묶인 `completed`로 전환한다. 중단된 `importing` target은 resume하거나 resource별 cleanup하지 않고 isolated scope/schema 전체를 폐기한다. target writer gate는 expected source digest를 `RequireLegacyImportCompleted`로 다시 확인한다. 세부 절차와 rollback 경계는 `docs/v0-import.md`, 결정 근거는 ADR 0023이 소유한다.

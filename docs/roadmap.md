@@ -259,7 +259,8 @@ matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional 
 - [x] reservation confirm/assignment/acknowledgment command service
 - [ ] identity provider와 tenant credential lifecycle 결정
 - [ ] authenticated PostgreSQL runtime executable과 remote-listener security gate
-- [ ] V0 read-only import, rollback과 backup/restore rehearsal
+- [x] V0 read-only import와 discard-and-retry completion marker
+- [ ] rollback과 backup/restore rehearsal
 - [ ] workload 기반 quota/rate limit, pool/timeout과 numeric service SLO
 
 현재 결정 gate는 identity provider와 tenant credential lifecycle이다. 그 전에는 provider-neutral lifecycle service와 import fixture를 계속 구현할 수 있지만 remote production surface나 stable API는 선언하지 않는다.

@@ -125,7 +125,7 @@ strict JSON decoding, 1 MiB body limit, bounded identifier와 allowlisted query 
 ## Remaining Cutover Work
 
 - identity provider와 credential/tenant lifecycle을 선택하고 authenticated remote listener를 구성한다.
-- V0 read-only import, backup/restore rehearsal와 rollback gate를 실행한다.
+- completed V0 import를 대상으로 backup/restore rehearsal와 pre-writer rollback gate를 실행한다.
 - quota/rate limit, database pool/timeout과 numeric SLO를 실제 workload evidence로 정한다.
 
 위 항목 전에는 `cmd/sema-server`를 PostgreSQL target runtime으로 바꾸거나 `v0alpha2`를 stable contract로 선언하지 않는다.

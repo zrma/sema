@@ -121,6 +121,8 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - demand 소비, reservation confirm과 pending assignment create를 한 transaction에 두는 assignment polling lifecycle.
 - external session outcome만 기록하고 concurrent terminal split-brain을 차단하는 idempotent acknowledgment service.
 - aggregate 후속 mutation 뒤에도 최초 reservation/assignment 응답을 보존하는 immutable operation result.
+- V0 journal bytes를 수정하지 않고 target resource를 batch normalize하는 read-only importer와 source-digest completion marker.
+- partial import target을 resume하지 않고 isolated scope/schema discard 뒤 재실행하는 rollback fixture.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -131,7 +133,7 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
-- V0 import/cutover와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
+- backup/restore cutover rehearsal과 production multi-replica deployment; file reference adapter는 product storage가 아니다.
 - authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 - stable release 자체; 현재 `stable_admitted: false`다.
@@ -149,4 +151,4 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 ## Next Slice
 
-P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 demand claim, immutable Policy catalog, repository-versioned planning run/proposal persistence와 reservation/assignment/acknowledgment lifecycle을 닫았다. 다음 slice는 V0 journal read-only import와 discard/retry rollback fixture다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.
+P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 demand claim, immutable Policy catalog, repository-versioned planning run/proposal persistence, reservation/assignment/acknowledgment lifecycle과 V0 read-only import/discard 경계를 닫았다. 다음 slice는 PostgreSQL backup/restore와 pre-writer V0 rollback rehearsal이다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider와 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.

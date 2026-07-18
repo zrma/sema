@@ -25,6 +25,7 @@ const (
 	ResourceDemandIdentity       ResourceKind = "demand_identity"
 	ResourceBackfillSessionClaim ResourceKind = "backfill_session_claim"
 	ResourceDemandReservation    ResourceKind = "demand_reservation_claim"
+	ResourceLegacyImport         ResourceKind = "legacy_import"
 )
 
 func (kind ResourceKind) Valid() bool {
@@ -43,6 +44,8 @@ func (kind ResourceKind) Valid() bool {
 		ResourceDemandIdentity,
 		ResourceBackfillSessionClaim,
 		ResourceDemandReservation:
+		return true
+	case ResourceLegacyImport:
 		return true
 	default:
 		return false
