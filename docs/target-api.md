@@ -2,7 +2,7 @@
 
 ## Status
 
-`v0alpha2`는 PostgreSQL target repository 위에서 검증하는 authenticated service boundary다. 현재 구현은 immutable `Policy` catalog, `MatchTicket`/`BackfillTicket` ingestion과 repository-versioned planning run/result polling을 연결하며 stable compatibility나 production listener를 제공하지 않는다. 기존 `v0alpha1` journal service와 route semantics를 조용히 바꾸지 않는다.
+`v0alpha2`는 PostgreSQL target repository 위에서 검증하는 authenticated service boundary다. 현재 구현은 immutable `Policy` catalog, `MatchTicket`/`BackfillTicket` ingestion, repository-versioned planning run/result와 proposal-derived reservation polling을 연결하며 stable compatibility나 production listener를 제공하지 않는다. 기존 `v0alpha1` journal service와 route semantics를 조용히 바꾸지 않는다.
 
 ## Authentication And Tenant Scope
 
@@ -14,6 +14,7 @@
 - `backfill_tickets.read`, `backfill_tickets.write` permission
 - `policies.read`, `policies.write` permission
 - `planning_runs.read`, `planning_runs.write` permission
+- `reservations.read`, `reservations.write` permission
 
 HTTP path, query와 body에는 tenant field가 없다. handler는 인증과 permission 확인을 repository lookup보다 먼저 수행하고, repository key의 scope는 항상 authenticated principal에서만 만든다. credential 부재/거부는 `Unauthenticated`, provider 장애는 retryable `AuthenticationUnavailable`, permission 부족은 `PermissionDenied`다.
 
@@ -68,6 +69,21 @@ POST body는 `policy_version`만 받는다. capture commit은 policy와 active d
 
 planning command는 현재 synchronous HTTP response로 completion까지 기다리지만 `GET`은 concurrent execution 중 `planning` 상태도 읽을 수 있다. proposal은 planner만 생성하며 client가 placement body를 write할 endpoint는 없다. run ID는 immutable하고 다른 operation으로 재사용할 수 없다.
 
+## Reservation Operations
+
+| Method | Path | Permission | Semantics |
+|---|---|---|---|
+| `POST` | `/v0alpha2/reservations/{reservation_id}` | `reservations.write` | authoritative `proposal_id`의 current demand를 atomic claim |
+| `GET` | `/v0alpha2/reservations/{reservation_id}` | `reservations.read` | active 또는 terminal reservation poll |
+| `GET` | `/v0alpha2/reservations` | `reservations.read` | active와 terminal reservation page |
+| `POST` | `/v0alpha2/reservations/{reservation_id}/cancel` | `reservations.write` | active reservation과 모든 demand claim을 atomic cancel |
+
+reserve body는 `proposal_id`만 받고 placement, ticket list와 expiry를 client가 제출할 수 없다. service는 저장된 proposal을 읽어 현재 ticket revision과 optional backfill session/roster version을 다시 검증하고, reservation과 ticket별 `demand_reservation_claim`을 한 commit으로 만든다. 같은 demand를 경쟁하는 replica 중 claim CAS winner만 성공한다.
+
+TTL은 handler composition의 필수 양수 옵션이며 expiry는 server clock이 결정한다. command/get/list가 만료를 발견하면 reservation을 `expired`로 전환하고 claim 전체를 영속적으로 해제한다. cancel/expiry 뒤 같은 proposal은 다른 reservation이 다시 claim할 수 있지만 terminal reservation ID는 재사용하지 않는다.
+
+reserve와 cancel은 최초 응답을 immutable internal `operation_result`에 저장한다. 따라서 뒤에 cancel/expiry가 일어난 후 최초 operation을 retry해도 current aggregate가 아니라 당시 status와 storage version을 반환한다. claim과 operation result는 client write/list surface에 노출하지 않는다.
+
 ## Pagination And Polling
 
 list order는 `resource_id.asc`이고 기본 limit은 50, 최대는 200이다. `next_cursor`는 HMAC으로 인증한 opaque token이며 다음 context에 묶인다.
@@ -80,19 +96,19 @@ list order는 `resource_id.asc`이고 기본 limit은 50, 최대는 200이다. `
 
 cursor payload를 client state authority로 사용하지 않는다. 변조하거나 다른 tenant/filter/order에 재사용하면 `InvalidInput`이고, page 사이 tenant repository version이 바뀌면 retryable `StaleSnapshot`을 반환한다. consumer는 첫 page부터 다시 읽는다. 이 conservative fence는 중복/누락 없는 snapshot page를 우선하며, kind-specific database pagination 최적화는 측정된 snapshot 비용이 trigger가 될 때 추가한다.
 
-Policy와 active demand page는 위 repository snapshot fence를 사용한다. completed planning result는 immutable하므로 proposal/unmatched cursor를 completed run의 storage version과 run ID에 묶는다. unrelated queue ingress가 일어나도 이미 시작한 result page는 stale해지지 않는다.
+Policy, active demand와 reservation page는 위 repository snapshot fence를 사용한다. completed planning result는 immutable하므로 proposal/unmatched cursor를 completed run의 storage version과 run ID에 묶는다. unrelated queue ingress가 일어나도 이미 시작한 result page는 stale해지지 않는다.
 
 첫 delivery contract는 assignment와 ticket resource의 HTTP polling이다. stream, broker와 outbox는 baseline에 없다.
 
 ## Composition And Security Boundary
 
-target handler는 `repository.Repository`, `Authenticator`, server clock과 최소 32-byte cursor authentication key를 주입받는다. PostgreSQL integration fixture가 migration된 isolated schema에서 Policy, 두 demand kind와 planning result의 실제 create/poll을 수행한다. cursor key와 database credential은 tracked configuration이나 response에 기록하지 않는다.
+target handler는 `repository.Repository`, `Authenticator`, server clock, 명시적 reservation TTL과 최소 32-byte cursor authentication key를 주입받는다. PostgreSQL integration fixture가 migration된 isolated schema에서 Policy, 두 demand kind와 planning result의 실제 create/poll을 수행한다. cursor key와 database credential은 tracked configuration이나 response에 기록하지 않는다.
 
 strict JSON decoding, 1 MiB body limit, bounded identifier와 allowlisted query parameter를 transport entry에서 적용한다. Proposal, Reservation과 Assignment는 target authority가 생성해야 하므로 이 첫 client-write surface에서 generic resource mutation으로 노출하지 않는다.
 
 ## Remaining Cutover Work
 
-- proposal-derived reservation, assignment와 acknowledgment command service를 같은 authorization/idempotency contract로 연결한다.
+- reservation confirm, assignment polling과 acknowledgment command service를 같은 authorization/idempotency contract로 연결한다.
 - identity provider와 credential/tenant lifecycle을 선택하고 authenticated remote listener를 구성한다.
 - V0 read-only import, backup/restore rehearsal와 rollback gate를 실행한다.
 - quota/rate limit, database pool/timeout과 numeric SLO를 실제 workload evidence로 정한다.

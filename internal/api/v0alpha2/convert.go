@@ -179,6 +179,14 @@ func FromDomainBatchEvidence(evidence domain.BatchScoreEvidence) BatchScoreEvide
 	}
 }
 
+func FromDomainReservation(reservation domain.Reservation) Reservation {
+	return Reservation{
+		ID: string(reservation.ID), ProposalID: string(reservation.ProposalID),
+		Tickets: fromDomainTicketRefs(reservation.Tickets), Backfill: fromDomainBackfillTarget(reservation.Backfill),
+		ExpiresAt: reservation.ExpiresAt.UTC(), Status: string(reservation.Status),
+	}
+}
+
 func fromDomainTicketRefs(references []domain.TicketRef) []TicketRef {
 	converted := make([]TicketRef, len(references))
 	for index, reference := range references {

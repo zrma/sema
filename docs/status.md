@@ -127,7 +127,7 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
-- reservation/assignment/acknowledgment target command service, V0 import/cutover와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
+- reservation confirm/assignment/acknowledgment target command service, V0 import/cutover와 production multi-replica deployment; file reference adapter는 product storage가 아니다.
 - authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 - stable release 자체; 현재 `stable_admitted: false`다.
@@ -145,4 +145,4 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 ## Next Slice
 
-P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 demand claim, immutable Policy catalog와 repository-versioned planning run/proposal persistence를 닫았고 다음 slice는 proposal-derived reservation과 assignment lifecycle이다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.
+P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 demand claim, immutable Policy catalog, repository-versioned planning run/proposal persistence와 proposal-derived reservation create/cancel/expiry를 닫았다. 다음 slice는 reservation confirm과 assignment polling/acknowledgment다. 실제 remote runtime을 열기 전에는 identity provider와 tenant credential lifecycle 결정이 필요하다. production database provider/backup과 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.

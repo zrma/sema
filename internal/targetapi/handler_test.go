@@ -126,7 +126,7 @@ func TestTargetAPIAuthenticatesAuthorizesAndIsolatesTenants(t *testing.T) {
 		AuthenticatorFunc(func(*http.Request) (Principal, error) {
 			return Principal{}, errors.New("provider unavailable")
 		}),
-		Options{CursorKey: bytes.Repeat([]byte{9}, 32)},
+		Options{CursorKey: bytes.Repeat([]byte{9}, 32), ReservationTTL: 30 * time.Second},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -276,8 +276,9 @@ func TestPrincipalIdentityRemainsProviderOpaque(t *testing.T) {
 func newTestHandler(t *testing.T, owner repository.Repository) http.Handler {
 	t.Helper()
 	handler, err := New(owner, fixtureAuthenticator(), Options{
-		Now:       func() time.Time { return targetFixtureNow },
-		CursorKey: bytes.Repeat([]byte{7}, 32),
+		Now:            func() time.Time { return targetFixtureNow },
+		CursorKey:      bytes.Repeat([]byte{7}, 32),
+		ReservationTTL: 30 * time.Second,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -304,12 +305,14 @@ func fixturePrincipal(tenant string, write bool) Principal {
 	permissions := map[Permission]bool{
 		PermissionMatchTicketsRead: true, PermissionBackfillTicketsRead: true,
 		PermissionPoliciesRead: true, PermissionPlanningRunsRead: true,
+		PermissionReservationsRead: true,
 	}
 	if write {
 		permissions[PermissionMatchTicketsWrite] = true
 		permissions[PermissionBackfillTicketsWrite] = true
 		permissions[PermissionPoliciesWrite] = true
 		permissions[PermissionPlanningRunsWrite] = true
+		permissions[PermissionReservationsWrite] = true
 	}
 	return Principal{Subject: "subject-" + tenant, Tenant: tenant, Permissions: permissions}
 }

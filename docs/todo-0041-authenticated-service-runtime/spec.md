@@ -1,6 +1,6 @@
 # P30 Authenticated Service Runtime Spec
 
-- Status: In Progress — Planning Boundary Complete
+- Status: In Progress — Reservation Boundary Complete
 
 ## Objective
 
@@ -19,7 +19,8 @@ P29의 PostgreSQL authority와 authenticated match-ticket vertical slice를 prop
 - [x] BackfillTicket create/replace/exact-cancel/get/list를 match-ticket과 같은 tenant/idempotency contract로 연결한다.
 - [x] immutable Policy create/get/list와 fingerprint conflict를 tenant-scoped repository authority로 연결한다.
 - [x] planning run이 immutable snapshot을 저장하고 transaction 밖에서 matcher를 실행한 뒤 proposal/unmatched page를 기록하게 한다.
-- [ ] proposal-derived reservation, confirm/cancel과 assignment polling/acknowledgment를 repository multi-resource CAS로 구현한다.
+- [x] proposal-derived reservation create/cancel/get/list와 demand claim/expiry/historical replay를 repository multi-resource CAS로 구현한다.
+- [ ] reservation confirm과 assignment polling/acknowledgment를 repository multi-resource CAS로 구현한다.
 - [ ] V0 journal read-only import와 completion marker, discard-and-retry failure fixture를 만든다.
 - [ ] 선택된 identity provider adapter, credential lifecycle, TLS와 remote-listener gate를 구성한다.
 - [ ] backup/restore 및 V0 rollback rehearsal 뒤에만 target writer cutover를 승인한다.

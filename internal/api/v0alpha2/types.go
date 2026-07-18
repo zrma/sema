@@ -256,3 +256,32 @@ type UnmatchedPage struct {
 	RunStorageVersion uint64              `json:"run_storage_version"`
 	NextCursor        string              `json:"next_cursor,omitempty"`
 }
+
+type ReservationRequest struct {
+	ProposalID string `json:"proposal_id"`
+}
+
+type Reservation struct {
+	ID         string          `json:"id"`
+	ProposalID string          `json:"proposal_id"`
+	Tickets    []TicketRef     `json:"tickets"`
+	Backfill   *BackfillTarget `json:"backfill,omitempty"`
+	ExpiresAt  time.Time       `json:"expires_at"`
+	Status     string          `json:"status"`
+}
+
+type ReservationResource struct {
+	Reservation    Reservation `json:"reservation"`
+	StorageVersion uint64      `json:"storage_version"`
+}
+
+type ReservationMutation struct {
+	Resource ReservationResource `json:"resource"`
+	Replayed bool                `json:"replayed"`
+}
+
+type ReservationPage struct {
+	Items             []ReservationResource `json:"items"`
+	RepositoryVersion uint64                `json:"repository_version"`
+	NextCursor        string                `json:"next_cursor,omitempty"`
+}

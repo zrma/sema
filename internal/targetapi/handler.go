@@ -32,8 +32,9 @@ const (
 var identifierPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 
 type Options struct {
-	Now       func() time.Time
-	CursorKey []byte
+	Now            func() time.Time
+	CursorKey      []byte
+	ReservationTTL time.Duration
 }
 
 func New(
@@ -64,9 +65,13 @@ func New(
 	if err != nil {
 		return nil, err
 	}
+	reservations, err := service.NewReservations(owner, options.Now, options.ReservationTTL)
+	if err != nil {
+		return nil, err
+	}
 	server := &server{
 		authenticator: authenticator, tickets: tickets, backfills: backfills,
-		policies: policies, planningRuns: planningRuns, cursors: codec,
+		policies: policies, planningRuns: planningRuns, reservations: reservations, cursors: codec,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v0alpha2/match-tickets", server.listMatchTickets)
@@ -84,6 +89,10 @@ func New(
 	mux.HandleFunc("GET /v0alpha2/planning-runs/{run_id}", server.getPlanningRun)
 	mux.HandleFunc("GET /v0alpha2/planning-runs/{run_id}/proposals", server.listPlanningRunProposals)
 	mux.HandleFunc("GET /v0alpha2/planning-runs/{run_id}/unmatched", server.listPlanningRunUnmatched)
+	mux.HandleFunc("POST /v0alpha2/reservations/{reservation_id}", server.postReservation)
+	mux.HandleFunc("GET /v0alpha2/reservations/{reservation_id}", server.getReservation)
+	mux.HandleFunc("GET /v0alpha2/reservations", server.listReservations)
+	mux.HandleFunc("POST /v0alpha2/reservations/{reservation_id}/cancel", server.cancelReservation)
 	mux.HandleFunc("/v0alpha2/match-tickets", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/match-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
 	mux.HandleFunc("/v0alpha2/backfill-tickets", methodNotAllowed("GET"))
@@ -93,6 +102,9 @@ func New(
 	mux.HandleFunc("/v0alpha2/planning-runs/{run_id}", methodNotAllowed("GET, POST"))
 	mux.HandleFunc("/v0alpha2/planning-runs/{run_id}/proposals", methodNotAllowed("GET"))
 	mux.HandleFunc("/v0alpha2/planning-runs/{run_id}/unmatched", methodNotAllowed("GET"))
+	mux.HandleFunc("/v0alpha2/reservations", methodNotAllowed("GET"))
+	mux.HandleFunc("/v0alpha2/reservations/{reservation_id}", methodNotAllowed("GET, POST"))
+	mux.HandleFunc("/v0alpha2/reservations/{reservation_id}/cancel", methodNotAllowed("POST"))
 	mux.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writeError(writer, apiError{status: http.StatusNotFound, code: "NotFound", message: "endpoint was not found"})
 	})
@@ -105,6 +117,7 @@ type server struct {
 	backfills     *service.BackfillTickets
 	policies      *service.Policies
 	planningRuns  *service.PlanningRuns
+	reservations  *service.Reservations
 	cursors       cursorCodec
 }
 

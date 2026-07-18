@@ -71,8 +71,10 @@ func TestServiceResourceKindsMapToScopedRepositoryKeys(t *testing.T) {
 		service.ResourceReservation,
 		service.ResourceAssignment,
 		service.ResourceAcknowledgment,
+		service.ResourceOperationResult,
 		service.ResourceDemandIdentity,
 		service.ResourceBackfillSessionClaim,
+		service.ResourceDemandReservation,
 	}
 	for _, kind := range kinds {
 		if !kind.Valid() {

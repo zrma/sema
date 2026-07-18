@@ -124,4 +124,33 @@ func TestTargetAPIPostgresComposition(t *testing.T) {
 		len(proposals.Items) != createdRun.Resource.ProposalCount {
 		t.Fatalf("PostgreSQL planning run = %#v proposals=%#v", createdRun, proposals)
 	}
+	if len(proposals.Items) == 0 {
+		t.Fatal("PostgreSQL planning run returned no reservable proposal")
+	}
+	createdReservation := requestData[api.ReservationMutation](
+		t, handler, "tenant-a", "postgres-reservation-create", http.MethodPost,
+		"/v0alpha2/reservations/reservation-postgres",
+		api.ReservationRequest{ProposalID: proposals.Items[0].Proposal.ID}, http.StatusOK,
+	)
+	polledReservation := requestData[api.ReservationResource](
+		t, handler, "tenant-a", "", http.MethodGet,
+		"/v0alpha2/reservations/reservation-postgres", nil, http.StatusOK,
+	)
+	if !reflect.DeepEqual(polledReservation.Reservation, createdReservation.Resource.Reservation) ||
+		polledReservation.StorageVersion != createdReservation.Resource.StorageVersion {
+		t.Fatalf("PostgreSQL reservation poll = %#v; created=%#v", polledReservation, createdReservation)
+	}
+	requestData[api.ReservationMutation](
+		t, handler, "tenant-a", "postgres-reservation-cancel", http.MethodPost,
+		"/v0alpha2/reservations/reservation-postgres/cancel", struct{}{}, http.StatusOK,
+	)
+	replayedReservation := requestData[api.ReservationMutation](
+		t, handler, "tenant-a", "postgres-reservation-create", http.MethodPost,
+		"/v0alpha2/reservations/reservation-postgres",
+		api.ReservationRequest{ProposalID: proposals.Items[0].Proposal.ID}, http.StatusOK,
+	)
+	if !replayedReservation.Replayed ||
+		!reflect.DeepEqual(replayedReservation.Resource, createdReservation.Resource) {
+		t.Fatalf("PostgreSQL reservation replay = %#v; created=%#v", replayedReservation, createdReservation)
+	}
 }

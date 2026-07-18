@@ -21,8 +21,10 @@ const (
 	ResourceReservation          ResourceKind = "reservation"
 	ResourceAssignment           ResourceKind = "assignment"
 	ResourceAcknowledgment       ResourceKind = "assignment_acknowledgment"
+	ResourceOperationResult      ResourceKind = "operation_result"
 	ResourceDemandIdentity       ResourceKind = "demand_identity"
 	ResourceBackfillSessionClaim ResourceKind = "backfill_session_claim"
+	ResourceDemandReservation    ResourceKind = "demand_reservation_claim"
 )
 
 func (kind ResourceKind) Valid() bool {
@@ -37,8 +39,10 @@ func (kind ResourceKind) Valid() bool {
 		ResourceReservation,
 		ResourceAssignment,
 		ResourceAcknowledgment,
+		ResourceOperationResult,
 		ResourceDemandIdentity,
-		ResourceBackfillSessionClaim:
+		ResourceBackfillSessionClaim,
+		ResourceDemandReservation:
 		return true
 	default:
 		return false

@@ -16,6 +16,8 @@ const (
 	PermissionPoliciesWrite        Permission = "policies.write"
 	PermissionPlanningRunsRead     Permission = "planning_runs.read"
 	PermissionPlanningRunsWrite    Permission = "planning_runs.write"
+	PermissionReservationsRead     Permission = "reservations.read"
+	PermissionReservationsWrite    Permission = "reservations.write"
 )
 
 type Principal struct {
