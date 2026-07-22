@@ -259,9 +259,9 @@ matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional 
 - [x] reservation confirm/assignment/acknowledgment command service
 - [x] provider-neutral OIDC/JWT authenticator와 tenant/scope claim contract
 - [ ] deployment identity provider credential lifecycle 결정
-- [ ] authenticated PostgreSQL runtime executable과 remote-listener security gate
+- [x] authenticated PostgreSQL runtime executable과 remote-listener security gate
 - [x] V0 read-only import와 discard-and-retry completion marker
 - [x] rollback과 backup/restore rehearsal
 - [ ] workload 기반 quota/rate limit, pool/timeout과 numeric service SLO
 
-provider-neutral lifecycle service, import fixture, local backup/restore/pre-writer rollback rehearsal과 OIDC/JWT authenticator는 완료되었다. 다음 구현 gate는 PostgreSQL remote executable과 deployment credential/TLS composition이다. provider-specific acceptance와 workload evidence 전에는 production surface나 stable API를 선언하지 않는다.
+provider-neutral lifecycle service, import fixture, local backup/restore/pre-writer rollback rehearsal, OIDC/JWT authenticator와 PostgreSQL remote executable은 완료되었다. 다음 gate는 deployment credential/TLS composition과 provider-specific acceptance다. workload evidence 전에는 production surface나 stable API를 선언하지 않는다.

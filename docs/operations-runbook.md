@@ -105,3 +105,7 @@ scripts/check-postgres.sh
 private manifest에는 source digest/record count, repository version, resource/audit digest, metadata/scope/operation authority digest와 repository table별 row count만 mode `0600`으로 임시 저장한다. DSN, raw resource, journal path, dump와 environment identity는 tracked 문서나 일반 CI artifact에 보존하지 않는다.
 
 이 local logical restore는 production backup 승인이 아니다. 실제 provider의 encryption, retention, PITR, access control, restore location과 RPO/RTO는 provider 선택 뒤 별도 rehearsal로 검증한다. target writer의 첫 mutation 뒤에는 V0 rollback을 금지하며 compatible target binary와 target PostgreSQL backup으로만 되돌린다.
+
+## Target Remote Runtime
+
+PostgreSQL-backed remote process의 generic startup, migration, health, OIDC, external TLS와 private-listener acceptance는 `docs/remote-runtime.md`가 소유한다. 실제 endpoint, credential, certificate, cluster route와 provider inventory는 이 공개 runbook에 기록하지 않는다.

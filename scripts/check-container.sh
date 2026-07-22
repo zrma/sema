@@ -36,6 +36,18 @@ docker run --rm "$image" -version | grep -Fxq 'sema-server v0.0.0-test' || {
   printf 'container check failed: embedded server version is incorrect\n' >&2
   exit 1
 }
+docker run --rm --entrypoint /usr/local/bin/sema-target-server "$image" -version | grep -Fxq 'sema-target-server v0.0.0-test' || {
+  printf 'container check failed: embedded target server version is incorrect\n' >&2
+  exit 1
+}
+docker run --rm --entrypoint /usr/local/bin/sema-postgres-migrate "$image" -version | grep -Fxq 'sema-postgres-migrate v0.0.0-test' || {
+  printf 'container check failed: embedded migration runner version is incorrect\n' >&2
+  exit 1
+}
+docker run --rm --entrypoint /usr/local/bin/sema-healthcheck "$image" -version | grep -Fxq 'sema-healthcheck v0.0.0-test' || {
+  printf 'container check failed: embedded healthcheck version is incorrect\n' >&2
+  exit 1
+}
 docker run --rm --entrypoint /usr/local/bin/sema-ops-check "$image" \
   -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null
 

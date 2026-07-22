@@ -17,7 +17,9 @@ for required_file in \
   cmd/sema-healthcheck/main.go \
   cmd/sema-benchmark-gate/main.go \
   cmd/sema-ops-check/main.go \
+  cmd/sema-postgres-migrate/main.go \
   cmd/sema-tui/main.go \
+  cmd/sema-target-server/main.go \
   cmd/sema-flow-report/main.go \
   cmd/sema-flow-matrix/main.go \
   deploy/compose.yaml \
@@ -26,6 +28,7 @@ for required_file in \
   internal/api/v0alpha2/types.go \
   internal/httpapi/handler.go \
   internal/targetapi/handler.go \
+  internal/targetruntime/handler.go \
   internal/observability/recorder.go \
   internal/operational/load.go \
   internal/performance/report.go \
@@ -36,6 +39,7 @@ for required_file in \
   internal/flowui/model.go \
   internal/league/population.go \
   docs/agent-harness.md \
+  docs/remote-runtime.md \
   docs/HANDOFF.md \
   docs/status.md \
   docs/roadmap.md \
@@ -62,6 +66,7 @@ for required_file in \
   docs/release-admission.md \
   docs/postgres-repository.md \
   docs/target-api.md \
+  docs/oidc-authentication.md \
   docs/sema-flow.md \
   docs/sema-flow-measurement.md \
   docs/sema-flow-capacity-matrix.md \
@@ -87,6 +92,12 @@ for required_file in \
   docs/decisions/0018-authenticated-target-api-boundary.md \
   docs/decisions/0019-demand-claim-authority.md \
   docs/decisions/0020-planning-run-state-machine.md \
+  docs/decisions/0021-reservation-claim-and-replay-authority.md \
+  docs/decisions/0022-assignment-delivery-and-acknowledgment.md \
+  docs/decisions/0023-v0-read-only-import-boundary.md \
+  docs/decisions/0024-postgresql-cutover-rehearsal.md \
+  docs/decisions/0025-provider-neutral-oidc-authentication.md \
+  docs/decisions/0026-authenticated-remote-runtime.md \
   docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/migrations/v0alpha3-to-v0alpha4.md \
@@ -219,7 +230,9 @@ go run ./cmd/sema-server -version >/dev/null
 go run ./cmd/sema-healthcheck -version >/dev/null
 go run ./cmd/sema-benchmark-gate -version >/dev/null
 go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null
+go run ./cmd/sema-postgres-migrate -version >/dev/null
 go run ./cmd/sema-tui -version >/dev/null
+go run ./cmd/sema-target-server -version >/dev/null
 go run ./cmd/sema-tui -snapshot -population 40 -game-duration 20s -steps 80 -width 100 -height 32 >/dev/null
 go run ./cmd/sema-flow-report -version >/dev/null
 go run ./cmd/sema-flow-report -duration 60s -population 40 -game-duration 20s -max-return-delay 10s -format json >/dev/null

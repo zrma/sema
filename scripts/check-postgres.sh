@@ -53,7 +53,7 @@ address=$(docker port "$container" 5432/tcp | sed -n '1p')
 }
 
 SEMA_POSTGRES_TEST_DSN="postgres://postgres:${password}@${address}/sema_test?sslmode=disable" \
-  go test -race ./internal/repository/postgres ./internal/service ./internal/targetapi
+  go test -race ./internal/repository/postgres ./internal/service ./internal/targetapi ./cmd/sema-target-server
 
 rehearsal_directory=$(mktemp -d "${TMPDIR:-/tmp}/sema-postgres-rehearsal.XXXXXX")
 rehearsal_journal="$rehearsal_directory/v0.journal"

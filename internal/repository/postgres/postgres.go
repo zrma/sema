@@ -56,6 +56,17 @@ func (store *Store) Close() {
 	}
 }
 
+// Ready checks connectivity without reading or creating a tenant scope.
+func (store *Store) Ready(ctx context.Context) error {
+	if store == nil || store.pool == nil {
+		return fmt.Errorf("postgres repository pool is unavailable")
+	}
+	if err := store.pool.Ping(ctx); err != nil {
+		return fmt.Errorf("ping postgres repository: %w", err)
+	}
+	return nil
+}
+
 func (store *Store) Replay(
 	ctx context.Context,
 	operation repository.Operation,

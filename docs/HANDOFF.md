@@ -48,6 +48,8 @@
 - target mutation은 `Idempotency-Key`를 요구하고 repository receipt를 resource validation보다 먼저 resolve해 후속 revision 뒤의 오래된 retry도 최초 결과로 수렴한다.
 - target list/poll은 tenant/kind/filter/order와 repository version에 묶인 HMAC cursor를 사용하며 PostgreSQL composition fixture가 실제 create/get을 검증한다.
 - provider-neutral OIDC adapter가 HTTPS discovery/JWKS, asymmetric signed JWT, exact issuer/audience/time, `sema_tenant`와 permission scope를 검증하고 invalid/provider-unavailable을 분리한다.
+- `cmd/sema-target-server`가 PostgreSQL과 OIDC를 별도 authenticated runtime으로 조립하고 explicit external TLS owner, secret-only DSN/cursor key, bounded admission과 tenant-free readiness 없이는 listener를 열지 않는다.
+- `cmd/sema-postgres-migrate`는 application startup과 분리된 pre-traffic schema migration을 제공하고 container는 OIDC HTTPS용 CA bundle을 포함한다. 기본 entrypoint는 아직 V0 server다.
 - BackfillTicket target API는 ticket/roster freshness를 함께 전진시키고 exact cancel하며 같은 historical idempotency와 pagination contract를 사용한다.
 - `demand_identity`와 `backfill_session_claim` resource가 Match/Backfill ID 충돌과 session별 active backfill 경쟁을 PostgreSQL transaction 하나로 직렬화한다.
 - target Policy catalog가 tenant-scoped immutable version/content fingerprint를 PostgreSQL에 저장하고 authenticated create/get/list와 historical operation replay를 제공한다.
@@ -91,7 +93,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 target durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. authenticated `v0alpha2` Policy/MatchTicket/BackfillTicket/PlanningRun/Reservation/Assignment surface는 provider 선택 없이 tenant isolation, historical idempotency, pagination/polling과 PostgreSQL composition을 검증한다. durable demand/session/reservation claim이 두 replica의 중복 authority를 막고, assignment acknowledgment는 external session outcome만 terminal CAS로 기록한다. V0 journal은 source를 수정하지 않는 batch importer와 digest-bound completion marker로 target resource에 normalize하며 partial target은 discard-and-retry한다. isolated PostgreSQL schema의 logical backup/삭제/restore 뒤 resource/audit/table manifest와 terminal lifecycle을 비교하고, target 폐기 뒤 V0를 source digest 변화 없이 재기동하는 local cutover rehearsal도 완료했다. 실제 remote listener 전 결정 gate는 identity provider, tenant credential lifecycle과 TLS termination owner다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 target durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. authenticated `v0alpha2` full lifecycle, provider-neutral OIDC와 별도 PostgreSQL target executable이 tenant isolation, historical idempotency, pagination/polling, bounded admission과 PostgreSQL composition을 검증한다. V0 journal은 source를 수정하지 않는 importer/rollback reference로 남고 기본 container entrypoint도 아직 V0 server다. 다음 결정 gate는 실제 deployment identity credential mapping, external TLS/private reachability와 provider-specific E2E acceptance다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

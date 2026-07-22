@@ -8,10 +8,13 @@ COPY . ./
 
 ARG VERSION=dev
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/sema-server ./cmd/sema-server && \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/sema-target-server ./cmd/sema-target-server && \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/sema-postgres-migrate ./cmd/sema-postgres-migrate && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/sema-healthcheck ./cmd/sema-healthcheck && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/sema-ops-check ./cmd/sema-ops-check && \
-    mkdir -p /out/rootfs/tmp /out/rootfs/var/lib/sema /out/rootfs/usr/local/bin /out/rootfs/licenses && \
-    cp /out/sema-server /out/sema-healthcheck /out/sema-ops-check /out/rootfs/usr/local/bin/ && \
+    mkdir -p /out/rootfs/tmp /out/rootfs/var/lib/sema /out/rootfs/usr/local/bin /out/rootfs/licenses /out/rootfs/etc/ssl/certs && \
+    cp /out/sema-server /out/sema-target-server /out/sema-postgres-migrate /out/sema-healthcheck /out/sema-ops-check /out/rootfs/usr/local/bin/ && \
+    cp /etc/ssl/certs/ca-certificates.crt /out/rootfs/etc/ssl/certs/ca-certificates.crt && \
     cp LICENSE /out/rootfs/licenses/LICENSE
 
 FROM scratch

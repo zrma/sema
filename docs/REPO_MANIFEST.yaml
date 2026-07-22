@@ -16,6 +16,8 @@ authenticated_service_runtime: docs/todo-0041-authenticated-service-runtime/spec
 repository_adapter_evidence: docs/repository-adapter-evidence.md
 postgres_repository: docs/postgres-repository.md
 target_api: docs/target-api.md
+oidc_authentication: docs/oidc-authentication.md
+remote_runtime: docs/remote-runtime.md
 candidate_discovery: docs/candidate-discovery.md
 public_api: alpha
 public_api_guide: docs/public-api.md
@@ -24,6 +26,8 @@ releasing: docs/releasing.md
 durable_runtime: docs/durable-runtime.md
 service_api: docs/service-api.md
 service_command: cmd/sema-server
+target_service_command: cmd/sema-target-server
+postgres_migration_command: cmd/sema-postgres-migrate
 observability: docs/observability.md
 operational_validation: docs/operational-validation.md
 operational_validation_command: cmd/sema-ops-check
@@ -64,6 +68,12 @@ postgres_authority_decision: docs/decisions/0017-postgresql-authority-baseline.m
 target_api_decision: docs/decisions/0018-authenticated-target-api-boundary.md
 demand_claim_decision: docs/decisions/0019-demand-claim-authority.md
 planning_run_decision: docs/decisions/0020-planning-run-state-machine.md
+reservation_authority_decision: docs/decisions/0021-reservation-claim-and-replay-authority.md
+assignment_delivery_decision: docs/decisions/0022-assignment-delivery-and-acknowledgment.md
+v0_import_decision: docs/decisions/0023-v0-read-only-import-boundary.md
+postgres_cutover_decision: docs/decisions/0024-postgresql-cutover-rehearsal.md
+oidc_authentication_decision: docs/decisions/0025-provider-neutral-oidc-authentication.md
+remote_runtime_decision: docs/decisions/0026-authenticated-remote-runtime.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -82,6 +92,8 @@ checks:
   repository_file_prototype_benchmark: go test ./internal/repository/fileprototype -run ^$ -bench ^BenchmarkFilePrototypeRepository$ -benchtime=100x -count=3
   postgres_repository_test: scripts/check-postgres.sh
   target_api_test: go test ./internal/targetapi
+  oidc_authentication_test: go test -race ./internal/authn/oidc
+  target_runtime_test: go test -race ./internal/targetruntime ./cmd/sema-target-server ./cmd/sema-postgres-migrate
   alpha_test: go test ./alpha
   example_consumer: go run ./examples/compose
   release_build: scripts/check-release-build.sh

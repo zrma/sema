@@ -1,6 +1,6 @@
 # P30 Authenticated Service Runtime Spec
 
-- Status: In Progress — Provider-Neutral OIDC Complete
+- Status: In Progress — Deployment Acceptance Pending
 
 ## Objective
 
@@ -23,7 +23,8 @@ P29의 PostgreSQL authority와 authenticated match-ticket vertical slice를 prop
 - [x] reservation confirm과 assignment polling/acknowledgment를 repository multi-resource CAS로 구현한다.
 - [x] V0 journal read-only import와 completion marker, discard-and-retry failure fixture를 만든다.
 - [x] provider-neutral OIDC/JWT adapter와 tenant/scope claim contract를 구성한다.
-- [ ] deployment credential lifecycle, TLS와 remote-listener gate를 구성한다.
+- [x] PostgreSQL target executable, deployment credential input, external TLS declaration과 remote-listener gate를 구성한다.
+- [ ] 실제 deployment identity provider credential mapping, private reachability와 E2E acceptance를 검증한다.
 - [x] backup/restore 및 V0 rollback rehearsal 뒤에만 target writer cutover를 승인한다.
 
 ## Acceptance
@@ -43,4 +44,4 @@ P29의 PostgreSQL authority와 authenticated match-ticket vertical slice를 prop
 
 ## Decision Gate
 
-provider-neutral lifecycle, V0 import, local PostgreSQL cutover rehearsal과 OIDC/JWT validation contract는 완료되었다. 다음 slice는 PostgreSQL target remote executable과 deployment-owned credential/TLS composition이다. production PostgreSQL provider/backup topology와 numeric SLO는 별도 deployment evidence에서 결정한다.
+provider-neutral lifecycle, V0 import, local PostgreSQL cutover rehearsal, OIDC/JWT validation과 target remote executable은 완료되었다. 다음 slice는 deployment-owned identity mapping, external TLS/private listener와 provider-specific E2E acceptance다. production PostgreSQL provider/backup topology와 numeric SLO는 별도 deployment evidence에서 결정한다.
