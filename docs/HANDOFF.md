@@ -47,6 +47,7 @@
 - `internal/targetapi`의 experimental `v0alpha2` match-ticket surface가 provider-neutral principal/permission, tenant isolation과 strict transport validation을 구현한다.
 - target mutation은 `Idempotency-Key`를 요구하고 repository receipt를 resource validation보다 먼저 resolve해 후속 revision 뒤의 오래된 retry도 최초 결과로 수렴한다.
 - target list/poll은 tenant/kind/filter/order와 repository version에 묶인 HMAC cursor를 사용하며 PostgreSQL composition fixture가 실제 create/get을 검증한다.
+- provider-neutral OIDC adapter가 HTTPS discovery/JWKS, asymmetric signed JWT, exact issuer/audience/time, `sema_tenant`와 permission scope를 검증하고 invalid/provider-unavailable을 분리한다.
 - BackfillTicket target API는 ticket/roster freshness를 함께 전진시키고 exact cancel하며 같은 historical idempotency와 pagination contract를 사용한다.
 - `demand_identity`와 `backfill_session_claim` resource가 Match/Backfill ID 충돌과 session별 active backfill 경쟁을 PostgreSQL transaction 하나로 직렬화한다.
 - target Policy catalog가 tenant-scoped immutable version/content fingerprint를 PostgreSQL에 저장하고 authenticated create/get/list와 historical operation replay를 제공한다.

@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning/reservation/assignment lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30의 V0 read-only import와 local PostgreSQL backup/restore/pre-writer rollback rehearsal까지 완료되었고, identity provider/runtime cutover가 결정 gate로 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning/reservation/assignment lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30의 V0 read-only import, local PostgreSQL backup/restore/pre-writer rollback과 provider-neutral OIDC/JWT authentication contract까지 완료되었고, remote runtime/deployment cutover가 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -125,6 +125,8 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - partial import target을 resume하지 않고 isolated scope/schema discard 뒤 재실행하는 rollback fixture.
 - isolated PostgreSQL schema를 logical backup/삭제/restore하고 resource/audit/table manifest, import marker와 terminal assignment를 비교하는 cutover rehearsal.
 - restored target 폐기 뒤 original V0 runtime을 source digest 변화 없이 재기동하는 pre-writer rollback gate.
+- HTTPS discovery/JWKS, asymmetric signature, issuer/audience/time, one-tenant claim과 exact permission scope를 검증하는 provider-neutral OIDC authenticator.
+- ephemeral TLS issuer에서 key rotation, invalid credential, permission denial과 provider-unavailable 401/403/503 mapping을 실행하는 conformance fixture.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -149,8 +151,8 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - role composition의 hard/soft 경계.
 - mixed-party battle royale과 현실적인 existing-roster backfill 분포.
 - append-only journal에는 아직 compaction, online backup와 numeric recovery SLO가 없다.
-- authentication provider, tenant credential lifecycle과 production PostgreSQL provider/backup topology.
+- deployment credential/TLS lifecycle과 production PostgreSQL provider/backup topology.
 
 ## Next Slice
 
-P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 demand claim, immutable Policy catalog, repository-versioned planning run/proposal persistence, reservation/assignment/acknowledgment lifecycle, V0 read-only import/discard와 local PostgreSQL backup/restore/pre-writer rollback rehearsal을 닫았다. 실제 remote runtime을 열기 전에는 identity provider, tenant credential lifecycle과 TLS termination owner 결정이 필요하다. production database provider와 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.
+P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 demand claim, immutable Policy catalog, repository-versioned planning run/proposal persistence, reservation/assignment/acknowledgment lifecycle, V0 read-only import/discard, local PostgreSQL backup/restore/pre-writer rollback과 provider-neutral OIDC/JWT authentication을 닫았다. 다음 slice는 PostgreSQL-backed remote runtime과 deployment credential/TLS composition이다. production database provider와 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.

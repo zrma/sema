@@ -19,7 +19,7 @@
 
 HTTP path, query와 body에는 tenant field가 없다. handler는 인증과 permission 확인을 repository lookup보다 먼저 수행하고, repository key의 scope는 항상 authenticated principal에서만 만든다. credential 부재/거부는 `Unauthenticated`, provider 장애는 retryable `AuthenticationUnavailable`, permission 부족은 `PermissionDenied`다.
 
-실제 token protocol, issuer, tenant credential lifecycle과 TLS termination은 아직 선택하지 않았다. 따라서 target handler를 사용하는 remote executable도 아직 제공하지 않는다.
+token validation protocol은 provider-neutral OIDC/JWT로 정했다. issuer와 audience는 deployment configuration이고 default tenant claim은 `sema_tenant`, permission은 standard string `scope`에서 exact vocabulary로 변환한다. token acquisition credential과 TLS termination은 deployment 책임이다. target handler를 사용하는 remote executable은 다음 slice에서 제공한다.
 
 ## Policy Operations
 
@@ -124,7 +124,8 @@ strict JSON decoding, 1 MiB body limit, bounded identifier와 allowlisted query 
 
 ## Remaining Cutover Work
 
-- identity provider와 credential/tenant lifecycle을 선택하고 authenticated remote listener를 구성한다.
+- PostgreSQL-backed authenticated remote listener를 구성한다.
+- deployment identity provider의 credential/tenant claim과 TLS lifecycle을 검증한다.
 - quota/rate limit, database pool/timeout과 numeric SLO를 실제 workload evidence로 정한다.
 
 completed V0 import의 local backup/restore와 pre-writer rollback gate는 `scripts/check-postgres.sh`가 검증한다. 위 remaining 항목 전에는 `cmd/sema-server`를 PostgreSQL target runtime으로 바꾸거나 `v0alpha2`를 stable contract로 선언하지 않는다.
