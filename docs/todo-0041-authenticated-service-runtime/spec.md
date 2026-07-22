@@ -24,6 +24,7 @@ P29의 PostgreSQL authority와 authenticated match-ticket vertical slice를 prop
 - [x] V0 journal read-only import와 completion marker, discard-and-retry failure fixture를 만든다.
 - [x] provider-neutral OIDC/JWT adapter와 tenant/scope claim contract를 구성한다.
 - [x] PostgreSQL target executable, deployment credential input, external TLS declaration과 remote-listener gate를 구성한다.
+- [x] provider token만 입력받아 health, auth failure, tenant isolation과 full lifecycle을 검증하는 remote smoke runner를 구성한다.
 - [ ] 실제 deployment identity provider credential mapping, private reachability와 E2E acceptance를 검증한다.
 - [x] backup/restore 및 V0 rollback rehearsal 뒤에만 target writer cutover를 승인한다.
 

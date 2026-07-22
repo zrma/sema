@@ -70,4 +70,25 @@ OIDC discovery/JWKS는 image의 public CA trust bundle을 사용한다. private 
 - token의 tenant claim을 바꾼 두 principal이 서로의 resource를 보거나 cursor를 재사용할 수 없다.
 - two-replica lifecycle contention이 repository conformance와 같은 single authority 결과를 만든다.
 
+`sema-target-smoke`는 실제 provider에서 발급한 token으로 health, no-token `401`, 같은
+tenant read-only token의 write `403`, 다른 tenant의 resource non-disclosure와
+policy/planning/reservation/assignment completion을 한 번에 검증한다. token은 flag나 tracked
+파일이 아니라 process environment로만 전달한다.
+
+```sh
+export SEMA_TARGET_BASE_URL='https://<target-service>'
+export SEMA_TARGET_WRITE_TOKEN='<same-tenant-full-lifecycle-token>'
+export SEMA_TARGET_READ_TOKEN='<same-tenant-match-ticket-read-token>'
+export SEMA_TARGET_OTHER_TENANT_TOKEN='<other-tenant-match-ticket-read-token>'
+
+sema-target-smoke
+```
+
+세 token은 서로 달라야 한다. write token에는 이 문서의 lifecycle endpoint에 필요한 read와
+write scope가 모두 있어야 하고, read token에는 `match_tickets.read`만, other-tenant token에는
+다른 `sema_tenant`와 `match_tickets.read`가 있어야 한다. smoke run은 unique ID의 durable
+acceptance resource를 남기므로 production tenant가 아니라 전용 E2E tenant/database에서
+실행한다. provider outage `503`과 JWKS rotation은 token-only smoke로 만들지 않고 통제된
+deployment failure drill에서 별도로 확인한다.
+
 위 acceptance가 실제 deployment에서 통과하기 전에는 remote runtime executable의 존재를 production cutover 완료로 해석하지 않는다.

@@ -20,6 +20,7 @@ for required_file in \
   cmd/sema-postgres-migrate/main.go \
   cmd/sema-tui/main.go \
   cmd/sema-target-server/main.go \
+  cmd/sema-target-smoke/main.go \
   cmd/sema-flow-report/main.go \
   cmd/sema-flow-matrix/main.go \
   deploy/compose.yaml \
@@ -233,6 +234,7 @@ go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -time
 go run ./cmd/sema-postgres-migrate -version >/dev/null
 go run ./cmd/sema-tui -version >/dev/null
 go run ./cmd/sema-target-server -version >/dev/null
+go run ./cmd/sema-target-smoke -version >/dev/null
 go run ./cmd/sema-tui -snapshot -population 40 -game-duration 20s -steps 80 -width 100 -height 32 >/dev/null
 go run ./cmd/sema-flow-report -version >/dev/null
 go run ./cmd/sema-flow-report -duration 60s -population 40 -game-duration 20s -max-return-delay 10s -format json >/dev/null

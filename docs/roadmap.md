@@ -258,6 +258,7 @@ matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional 
 - [x] proposal-derived reservation create/cancel/get/list와 demand claim/expiry replay
 - [x] reservation confirm/assignment/acknowledgment command service
 - [x] provider-neutral OIDC/JWT authenticator와 tenant/scope claim contract
+- [x] provider token 기반 remote health/auth/tenant/lifecycle smoke runner
 - [ ] deployment identity provider credential lifecycle 결정
 - [x] authenticated PostgreSQL runtime executable과 remote-listener security gate
 - [x] V0 read-only import와 discard-and-retry completion marker

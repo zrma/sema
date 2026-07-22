@@ -50,6 +50,7 @@
 - provider-neutral OIDC adapter가 HTTPS discovery/JWKS, asymmetric signed JWT, exact issuer/audience/time, `sema_tenant`와 permission scope를 검증하고 invalid/provider-unavailable을 분리한다.
 - `cmd/sema-target-server`가 PostgreSQL과 OIDC를 별도 authenticated runtime으로 조립하고 explicit external TLS owner, secret-only DSN/cursor key, bounded admission과 tenant-free readiness 없이는 listener를 열지 않는다.
 - `cmd/sema-postgres-migrate`는 application startup과 분리된 pre-traffic schema migration을 제공하고 container는 OIDC HTTPS용 CA bundle을 포함한다. 기본 entrypoint는 아직 V0 server다.
+- `cmd/sema-target-smoke`가 provider에서 발급된 세 종류의 bearer token만 받아 health, 401/403, tenant isolation과 planning-to-assignment completion을 검증하며 credential acquisition은 deployment에 남긴다.
 - BackfillTicket target API는 ticket/roster freshness를 함께 전진시키고 exact cancel하며 같은 historical idempotency와 pagination contract를 사용한다.
 - `demand_identity`와 `backfill_session_claim` resource가 Match/Backfill ID 충돌과 session별 active backfill 경쟁을 PostgreSQL transaction 하나로 직렬화한다.
 - target Policy catalog가 tenant-scoped immutable version/content fingerprint를 PostgreSQL에 저장하고 authenticated create/get/list와 historical operation replay를 제공한다.

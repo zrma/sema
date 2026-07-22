@@ -40,6 +40,10 @@ docker run --rm --entrypoint /usr/local/bin/sema-target-server "$image" -version
   printf 'container check failed: embedded target server version is incorrect\n' >&2
   exit 1
 }
+docker run --rm --entrypoint /usr/local/bin/sema-target-smoke "$image" -version | grep -Fxq 'sema-target-smoke v0.0.0-test' || {
+  printf 'container check failed: embedded target smoke version is incorrect\n' >&2
+  exit 1
+}
 docker run --rm --entrypoint /usr/local/bin/sema-postgres-migrate "$image" -version | grep -Fxq 'sema-postgres-migrate v0.0.0-test' || {
   printf 'container check failed: embedded migration runner version is incorrect\n' >&2
   exit 1

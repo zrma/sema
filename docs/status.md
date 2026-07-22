@@ -129,6 +129,7 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - ephemeral TLS issuer에서 key rotation, invalid credential, permission denial과 provider-unavailable 401/403/503 mapping을 실행하는 conformance fixture.
 - PostgreSQL schema check와 OIDC discovery 뒤에만 listener를 열고 explicit external TLS owner, secret loading, bounded admission과 tenant-free readiness를 요구하는 target runtime.
 - pre-traffic PostgreSQL migration runner와 HTTPS discovery를 위한 CA trust bundle을 포함하되 V0 default entrypoint를 보존하는 container composition.
+- 실제 provider token으로 health, 401/403, tenant isolation과 complete assignment lifecycle을 검증하되 token acquisition은 배포 경계에 남기는 target smoke runner.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -140,7 +141,7 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
 - production backup/PITR topology와 authenticated multi-replica deployment; file reference adapter는 product storage가 아니다.
-- authentication/TLS/rate limit, telemetry backend/alerts와 authenticated remote deployment.
+- 실제 provider credential mapping/TLS deployment, workload 기반 rate limit, telemetry backend/alerts와 production remote activation.
 - stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
 - stable release 자체; 현재 `stable_admitted: false`다.
 - production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
