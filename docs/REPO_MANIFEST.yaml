@@ -13,6 +13,7 @@ evaluation_baseline: docs/evaluation-baseline.md
 matcher_conformance: docs/matcher-conformance.md
 service_productization_entry: docs/todo-0040-service-productization-entry/spec.md
 authenticated_service_runtime: docs/todo-0041-authenticated-service-runtime/spec.md
+service_product_readiness: docs/todo-0042-service-product-readiness/spec.md
 repository_adapter_evidence: docs/repository-adapter-evidence.md
 postgres_repository: docs/postgres-repository.md
 target_api: docs/target-api.md
@@ -74,6 +75,7 @@ v0_import_decision: docs/decisions/0023-v0-read-only-import-boundary.md
 postgres_cutover_decision: docs/decisions/0024-postgresql-cutover-rehearsal.md
 oidc_authentication_decision: docs/decisions/0025-provider-neutral-oidc-authentication.md
 remote_runtime_decision: docs/decisions/0026-authenticated-remote-runtime.md
+standalone_product_scope_decision: docs/decisions/0027-standalone-product-scope.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:

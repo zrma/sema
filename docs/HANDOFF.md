@@ -94,7 +94,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 target durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. authenticated `v0alpha2` full lifecycle, provider-neutral OIDC와 별도 PostgreSQL target executable이 tenant isolation, historical idempotency, pagination/polling, bounded admission과 PostgreSQL composition을 검증한다. V0 journal은 source를 수정하지 않는 importer/rollback reference로 남고 기본 container entrypoint도 아직 V0 server다. 다음 결정 gate는 실제 deployment identity credential mapping, external TLS/private reachability와 provider-specific E2E acceptance다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit, P29 service productization entry와 P30 authenticated service runtime까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. authenticated `v0alpha2` full lifecycle, provider-neutral OIDC와 별도 PostgreSQL service executable이 tenant isolation, historical idempotency, pagination/polling, bounded admission, PostgreSQL composition과 reference deployment acceptance를 검증한다. V0 journal은 source를 수정하지 않는 optional import 및 development/reference surface로 남고 기본 container entrypoint는 아직 V0 server다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P31은 PostgreSQL/OIDC runtime을 표준 surface로 승격하고 repository-owned reference client, compatibility와 multi-replica/load/failure/recovery evidence를 닫는다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

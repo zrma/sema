@@ -122,9 +122,10 @@ target handler는 `repository.Repository`, `Authenticator`, server clock, 명시
 
 strict JSON decoding, 1 MiB body limit, bounded identifier와 allowlisted query parameter를 transport entry에서 적용한다. Proposal, Reservation과 Assignment는 target authority가 생성해야 하므로 이 첫 client-write surface에서 generic resource mutation으로 노출하지 않는다.
 
-## Remaining Cutover Work
+## Product Readiness Work
 
-- deployment identity provider의 credential/tenant claim, external TLS와 private listener lifecycle을 실제 환경에서 검증한다.
+- PostgreSQL/OIDC service를 standard runtime surface로 승격하고 reference deployment acceptance를 repeatable contract로 유지한다.
 - quota/rate limit, database pool/timeout과 numeric SLO를 실제 workload evidence로 정한다.
+- repository-owned reference client, multi-version compatibility와 multi-replica failure/recovery evidence를 추가한다.
 
-completed V0 import의 local backup/restore와 pre-writer rollback gate는 `scripts/check-postgres.sh`가 검증한다. 위 remaining 항목 전에는 `cmd/sema-server`를 PostgreSQL target runtime으로 바꾸거나 `v0alpha2`를 stable contract로 선언하지 않는다.
+optional V0 import의 local backup/restore와 pre-writer recovery gate는 `scripts/check-postgres.sh`가 검증한다. P31은 현재 기본 V0 entrypoint를 PostgreSQL/OIDC service로 승격하는 순서와 compatibility를 검증한다. 이 승격은 existing production traffic의 cutover가 아니며, 위 readiness 항목 전에는 `v0alpha2`를 stable contract로 선언하지 않는다.

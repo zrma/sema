@@ -88,7 +88,7 @@ flowchart LR
 - planning snapshot capture 뒤 matcher search 중에는 storage transaction을 열어 두지 않는다. immutable snapshot과 proposal record는 audit authority로 남고 reserve는 현재 resource freshness를 다시 검증한다.
 - related ticket/backfill/reservation/assignment mutation만 같은 transaction에 묶고 unrelated ingress는 진행할 수 있다.
 - candidate index는 repository commit version을 따라가거나 snapshot에서 rebuild한다. version mismatch에서는 index result를 사용하지 않는다.
-- current journal은 V0 reference/import source다. PostgreSQL primary가 target durable write authority이고 service는 stateless replica로 확장한다. Redis는 baseline에 없으며 candidate index는 PostgreSQL snapshot version에서 rebuild 가능한 derived state다. experimental `v0alpha2` target boundary는 OIDC adapter에서 tenant/permission을 결정하고 full lifecycle idempotency와 version-bound pagination을 검증한다. 별도 target executable까지 준비되었지만 실제 identity credential, external TLS/private reachability와 provider-specific E2E acceptance 뒤에만 writer cutover를 수행한다.
+- current journal은 V0 development/reference 및 optional import source다. PostgreSQL primary가 제품형 durable write authority이고 service는 stateless replica로 확장한다. Redis는 baseline에 없으며 candidate index는 PostgreSQL snapshot version에서 rebuild 가능한 derived state다. experimental `v0alpha2` boundary는 OIDC adapter에서 tenant/permission을 결정하고 full lifecycle idempotency와 version-bound pagination을 검증한다. 별도 PostgreSQL/OIDC executable과 reference deployment acceptance까지 완료되었으며 P31이 이를 표준 runtime surface로 승격한다.
 
 ## Failure Model
 

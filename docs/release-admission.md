@@ -22,11 +22,11 @@ manifest의 `alpha_admitted: true`는 `v0.*` candidate가 위 gate를 통과하�
 major version 1 이상은 manifest의 exact `stable_admitted: true`가 추가로 필요하다. 현재 값은 false이며 다음 blocker가 남아 있다.
 
 - stable Go API와 wire compatibility/deprecation policy.
-- authenticated and encrypted remote transport 또는 repository-owned approved gateway contract.
-- 실제 external consumer integration과 target workload evidence.
-- production retention/backup authority와 support ownership.
+- authenticated and encrypted remote transport를 재현하는 repository-owned gateway/runtime contract.
+- repository-owned reference client, multi-version wire conformance와 representative workload evidence.
+- PostgreSQL retention/backup/recovery authority와 support ownership.
 
-따라서 P10은 stable release를 수행한 것이 아니라 stable release가 실수로 수행되지 않도록 executable gate를 완성한 것이다. blocker를 해결할 때는 관련 compatibility/security/operations decision, tests와 external evidence를 먼저 추가하고 마지막 change에서 admission flag를 바꾼다.
+따라서 P10은 stable release를 수행한 것이 아니라 stable release가 실수로 수행되지 않도록 executable gate를 완성한 것이다. 실제 game integration은 adoption evidence이지 stable admission의 필수 조건이 아니다. blocker를 해결할 때는 관련 compatibility/security/operations decision과 repository-owned executable evidence를 먼저 추가하고 마지막 change에서 admission flag를 바꾼다.
 
 ## Commands
 

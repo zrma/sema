@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning/reservation/assignment lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30의 V0 read-only import, local PostgreSQL backup/restore/pre-writer rollback, provider-neutral OIDC/JWT authentication과 별도 target runtime executable까지 완료되었고, deployment-specific credential/TLS/E2E cutover가 남아 있다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
+P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authenticated service runtime까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning/reservation/assignment lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30은 optional V0 read-only import, local PostgreSQL backup/restore recovery, provider-neutral OIDC/JWT authentication, 별도 service executable과 reference deployment acceptance를 닫았다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P31 Service Product Readiness가 표준 runtime surface와 repository-owned compatibility, availability, load/failure 및 recovery evidence를 진행한다. source/service는 계속 experimental alpha이며 stable v1 release는 명시적인 blocker가 해결될 때까지 gate가 차단한다.
 
 ## Established
 
@@ -123,7 +123,7 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - aggregate 후속 mutation 뒤에도 최초 reservation/assignment 응답을 보존하는 immutable operation result.
 - V0 journal bytes를 수정하지 않고 target resource를 batch normalize하는 read-only importer와 source-digest completion marker.
 - partial import target을 resume하지 않고 isolated scope/schema discard 뒤 재실행하는 rollback fixture.
-- isolated PostgreSQL schema를 logical backup/삭제/restore하고 resource/audit/table manifest, import marker와 terminal assignment를 비교하는 cutover rehearsal.
+- isolated PostgreSQL schema를 logical backup/삭제/restore하고 resource/audit/table manifest, import marker와 terminal assignment를 비교하는 import recovery rehearsal.
 - restored target 폐기 뒤 original V0 runtime을 source digest 변화 없이 재기동하는 pre-writer rollback gate.
 - HTTPS discovery/JWKS, asymmetric signature, issuer/audience/time, one-tenant claim과 exact permission scope를 검증하는 provider-neutral OIDC authenticator.
 - ephemeral TLS issuer에서 key rotation, invalid credential, permission denial과 provider-unavailable 401/403/503 mapping을 실행하는 conformance fixture.
@@ -140,9 +140,9 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
-- production backup/PITR topology와 authenticated multi-replica deployment; file reference adapter는 product storage가 아니다.
-- 실제 provider credential mapping/TLS deployment, workload 기반 rate limit, telemetry backend/alerts와 production remote activation.
-- stable/v1 Go API, stable production wire protocol과 실제 external consumer evidence.
+- PostgreSQL backup/PITR 제품 계약과 authenticated multi-replica failure evidence; file reference adapter는 product storage가 아니다.
+- workload 기반 rate limit, telemetry backend/alerts와 표준 runtime packaging.
+- stable/v1 Go API, stable wire protocol과 repository-owned multi-version consumer conformance.
 - stable release 자체; 현재 `stable_admitted: false`다.
 - production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
 - target wait/quality에 기반한 automatic planning-batch admission.
@@ -154,8 +154,8 @@ P0부터 P28 matcher V0 exit와 P29 service productization entry까지 완료되
 - role composition의 hard/soft 경계.
 - mixed-party battle royale과 현실적인 existing-roster backfill 분포.
 - append-only journal에는 아직 compaction, online backup와 numeric recovery SLO가 없다.
-- deployment credential/TLS lifecycle과 production PostgreSQL provider/backup topology.
+- PostgreSQL/OIDC 표준 runtime 승격 순서와 numeric recovery/service SLO.
 
 ## Next Slice
 
-P29는 PostgreSQL authority와 authenticated target match-ticket vertical slice까지 완료되었다. P30은 full lifecycle, V0 import/rollback, OIDC/JWT authentication과 PostgreSQL-backed remote executable을 닫았다. 다음 slice는 deployment identity provider credential mapping, external TLS/private reachability와 provider-specific E2E acceptance다. production database provider와 numeric SLA는 consumer/deployment evidence 전까지 확정하지 않는다.
+P30은 full lifecycle, optional V0 import/recovery, OIDC/JWT authentication, PostgreSQL-backed remote executable과 reference deployment acceptance를 닫았다. 다음 slice는 P31의 첫 구현 단계로 PostgreSQL/OIDC service를 표준 command, container entrypoint와 deployment example로 승격하고 V0 journal runtime을 명시적인 development/reference surface로 분리하는 것이다. numeric SLA와 stable compatibility는 repository-owned workload와 multi-version evidence 전까지 확정하지 않는다.

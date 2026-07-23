@@ -4,7 +4,7 @@
 
 `internal/repository/postgres`는 P29 target persistence의 첫 product adapter다. PostgreSQL primary가 tenant-scoped resource, operation receipt와 redacted audit의 durable authority이며 Redis는 사용하지 않는다.
 
-이 adapter와 `cmd/sema-target-server`의 존재는 현재 V0 `cmd/sema-server` writer cutover를 의미하지 않는다. local backup/restore와 pre-writer V0 rollback rehearsal 및 별도 authenticated listener는 완료했지만 기존 journal/HTTP service는 deployment-specific identity/TLS/E2E acceptance까지 reference surface로 남는다.
+이 adapter와 `cmd/sema-target-server`는 제품형 service runtime의 기반이다. V0 `cmd/sema-server`는 실제 deployed predecessor가 아니라 development/reference 및 optional import compatibility surface다. PostgreSQL/OIDC runtime의 표준 command, image와 deployment example 승격은 P31이 소유한다.
 
 ## Schema Ownership
 
@@ -16,7 +16,7 @@ repository가 소유하는 schema는 `internal/repository/postgres/schema.sql`�
 - `sema_repository_operations`: tenant-scoped idempotency receipt.
 - `sema_repository_audit`: operation kind, time과 resource-kind count만 가진 redacted receipt.
 
-`postgres.Migrate`는 schema를 idempotent하게 설치하고 exact schema version을 확인한다. `cmd/sema-postgres-migrate`가 이를 pre-traffic Job에서 실행하며 service startup은 자동 호출하지 않는다. schema 변경은 versioned migration과 rollback/cutover evidence 없이 기존 statement를 조용히 바꾸지 않는다.
+`postgres.Migrate`는 schema를 idempotent하게 설치하고 exact schema version을 확인한다. `cmd/sema-postgres-migrate`가 이를 service startup 전 별도 Job에서 실행하며 service startup은 자동 호출하지 않는다. schema 변경은 versioned migration과 rollback/recovery evidence 없이 기존 statement를 조용히 바꾸지 않는다.
 
 ## Transaction Boundary
 
@@ -54,11 +54,11 @@ scripts/check-postgres.sh
 SEMA_POSTGRES_TEST_DSN='<test-dsn>' go test -race ./internal/repository/postgres
 ```
 
-test는 매 fixture마다 별도 schema를 만들고 종료 시 제거한다. 같은 script의 cutover rehearsal은 stopped V0 fixture를 import한 isolated schema를 `pg_dump`한 뒤 schema를 삭제하고 `pg_restore`한다. 복원 전후 resource/audit digest와 repository table row count, completion marker와 terminal assignment가 같아야 하며, 복원 target을 폐기한 다음 V0 source를 digest 변화 없이 다시 연다. production database나 shared user data를 대상으로 실행하지 않는다.
+test는 매 fixture마다 별도 schema를 만들고 종료 시 제거한다. 같은 script의 import recovery rehearsal은 stopped V0 fixture를 import한 isolated schema를 `pg_dump`한 뒤 schema를 삭제하고 `pg_restore`한다. 복원 전후 resource/audit digest와 repository table row count, completion marker와 terminal assignment가 같아야 하며, 복원 target을 폐기한 다음 V0 source를 digest 변화 없이 다시 연다. shared database나 user data를 대상으로 실행하지 않는다.
 
 ## Operational Boundary
 
 - credential, TLS root와 provider endpoint는 repository에 기록하지 않는다.
 - connection pool size, statement timeout와 retry budget은 representative authenticated workload 뒤 정한다.
-- local logical backup/restore fixture는 ADR 0024가 소유한다. production backup/PITR, migration runner와 deployment topology는 provider-specific operations milestone이 소유한다.
+- local logical backup/restore fixture는 ADR 0024가 소유한다. PostgreSQL backup/PITR, migration runner와 deployment topology의 제품 계약은 P31 operational evidence가 소유한다.
 - Redis, broker와 outbox는 measured trigger 없이 추가하지 않는다.

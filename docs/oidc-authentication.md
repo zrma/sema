@@ -56,4 +56,4 @@ JWT, raw claim set와 credential은 error response, audit 또는 metrics label�
 
 Sema remote runtime은 generic issuer, audience, tenant claim과 signing-algorithm configuration만 받는다. token을 발급받는 game/backend workload는 deployment-selected mechanism을 사용한다. 같은 cluster의 workload federation, 외부 service account, gateway TLS와 provider property mapping은 private deployment source of truth가 소유한다.
 
-default repository test는 ephemeral HTTPS discovery/JWKS provider를 사용해 issuer/audience/time/claim validation, key rotation, provider outage와 target API 401/403/503 mapping을 실행한다. provider-specific acceptance는 같은 public contract를 실제 deployment에서 다시 검증한다.
+default repository test는 ephemeral HTTPS discovery/JWKS provider를 사용해 issuer/audience/time/claim validation, key rotation, provider outage와 target API 401/403/503 mapping을 실행한다. reference deployment acceptance는 같은 public contract를 conforming provider에서 다시 검증하되 provider identity, endpoint와 credential은 공개 저장소에 기록하지 않는다.

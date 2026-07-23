@@ -4,7 +4,7 @@
 
 `cmd/sema-target-server`는 PostgreSQL repository, provider-neutral OIDC verifier와 authenticated `v0alpha2` target API를 하나의 stateless service process로 조립한다. 실제 identity provider 제품, token acquisition, TLS gateway, database provisioning과 secret delivery는 deployment 책임이다.
 
-기존 `cmd/sema-server`는 V0 journal/reference runtime이며 target server의 alias가 아니다. target writer cutover 전후 rollback 계약을 섞지 않는다.
+기존 `cmd/sema-server`는 V0 journal/reference runtime이며 PostgreSQL service의 alias가 아니다. 두 runtime의 authority와 recovery 계약을 섞지 않으며, 표준 runtime 승격은 P31이 소유한다.
 
 ## Required Configuration
 
@@ -23,11 +23,11 @@ Sema에는 OIDC client ID/secret, token endpoint credential 또는 provider-spec
 ## Startup Order
 
 1. target database/schema를 provisioning하고 credential을 private secret source에 저장한다.
-2. 같은 image의 `sema-postgres-migrate`를 pre-traffic Job으로 실행한다.
+2. 같은 image의 `sema-postgres-migrate`를 service startup 전 migration Job으로 실행한다.
 3. OIDC issuer에 audience, tenant claim과 Sema permission scope를 발급하도록 deployment mapping을 구성한다.
 4. external TLS gateway와 private-only Service/listener reachability를 구성한다.
 5. target server를 시작하고 `/livez`, `/readyz`를 통과시킨다.
-6. 실제 caller token으로 unauthenticated, permission-denied, tenant isolation과 allowed lifecycle을 검증한 뒤 writer traffic을 연다.
+6. 전용 acceptance caller token으로 unauthenticated, permission-denied, tenant isolation과 allowed lifecycle을 검증한다.
 
 로컬 placeholder 형식은 다음과 같다. 실제 값은 tracked shell script나 문서에 저장하지 않는다.
 
@@ -87,8 +87,8 @@ sema-target-smoke
 세 token은 서로 달라야 한다. write token에는 이 문서의 lifecycle endpoint에 필요한 read와
 write scope가 모두 있어야 하고, read token에는 `match_tickets.read`만, other-tenant token에는
 다른 `sema_tenant`와 `match_tickets.read`가 있어야 한다. smoke run은 unique ID의 durable
-acceptance resource를 남기므로 production tenant가 아니라 전용 E2E tenant/database에서
+acceptance resource를 남기므로 일반 caller tenant가 아니라 전용 E2E tenant/database에서
 실행한다. provider outage `503`과 JWKS rotation은 token-only smoke로 만들지 않고 통제된
 deployment failure drill에서 별도로 확인한다.
 
-위 acceptance가 실제 deployment에서 통과하기 전에는 remote runtime executable의 존재를 production cutover 완료로 해석하지 않는다.
+위 acceptance는 provider-neutral runtime을 실제 환경에서 조립할 수 있다는 evidence다. 실제 game traffic, existing deployment 또는 product adoption을 증명하지 않는다.

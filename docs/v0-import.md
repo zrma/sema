@@ -2,7 +2,7 @@
 
 ## Scope
 
-V0 `sema-journal-v1`은 target repository로 복사되는 read-only source다. importer는 source를 in-place migration하거나 repair하지 않는다. target import는 아직 provider-neutral library/fixture이며 production remote executable을 열지 않는다.
+V0 `sema-journal-v1`은 optional compatibility import를 사용할 때 PostgreSQL repository로 복사되는 read-only source다. importer는 source를 in-place migration하거나 repair하지 않는다. 신규 설치는 V0 journal을 요구하지 않으며 이 fixture의 존재가 실제 predecessor deployment를 의미하지 않는다.
 
 ## Preconditions
 
@@ -37,10 +37,10 @@ completion marker 전 오류는 rollback 가능한 V0 source를 바꾸지 않는
 
 completed response만 유실된 경우 same source/import ID retry는 completed marker를 replay한다. 다른 source digest 또는 다른 preexisting resource가 있는 target은 재사용하지 않는다.
 
-## Cutover And Rollback
+## Import Recovery
 
-completion marker만으로 writer cutover를 승인하지 않는다. `scripts/check-postgres.sh`의 local rehearsal은 imported target을 backup/삭제/restore하고 aggregate digest, completion marker와 terminal assignment를 확인한 뒤 target을 폐기해 V0를 digest 변화 없이 다시 연다. 이 단계는 완료되었지만 target authentication/TLS gate와 실제 production backup topology는 별도 승인 대상이다.
+completion marker만으로 imported repository의 recovery readiness를 선언하지 않는다. `scripts/check-postgres.sh`의 local rehearsal은 imported target을 backup/삭제/restore하고 aggregate digest, completion marker와 terminal assignment를 확인한 뒤 target을 폐기해 V0를 digest 변화 없이 다시 연다. 이 단계는 optional import compatibility와 local logical recovery evidence이며 신규 설치나 실제 game traffic transition의 전제 조건이 아니다.
 
-target writer가 시작되기 전에는 V0 binary와 original journal backup으로 rollback할 수 있다. target write가 시작된 뒤 reverse synchronization은 지원하지 않으므로 V0를 다시 writer로 열지 않는다. 그 시점의 rollback은 target PostgreSQL backup restore와 target binary rollback 문제다.
+imported PostgreSQL repository에 새 mutation이 기록되기 전에는 V0 binary와 original journal backup으로 import 시도를 되돌릴 수 있다. 새 mutation이 기록된 뒤 reverse synchronization은 지원하지 않으므로 V0를 다시 writer로 열지 않는다. 그 시점의 recovery는 PostgreSQL backup restore와 compatible service binary의 책임이다.
 
 리허설의 private manifest와 dump는 임시 operator artifact다. source path, DSN, raw payload와 environment identity는 tracked 문서나 일반 CI artifact에 남기지 않고 phase별 aggregate count만 보고한다.

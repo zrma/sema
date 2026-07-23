@@ -1,6 +1,6 @@
 # ADR 0026: Authenticated Remote Runtime
 
-- Status: Accepted
+- Status: Accepted — default runtime rationale superseded by ADR 0027
 - Date: 2026-07-22
 
 ## Context
@@ -19,7 +19,7 @@ Sema는 외부 TLS gateway 뒤의 private application listener로 배포하기�
 - `/livez`와 `/readyz`만 unauthenticated다. readiness는 tenant scope를 읽거나 만들지 않고 PostgreSQL connectivity를 bounded timeout으로 확인한다.
 - target request는 fixed maximum in-flight semaphore, HTTP header/read/write/idle timeout과 기존 1 MiB body limit을 적용한다. capacity를 넘으면 retryable `ResourceExhausted`다.
 - schema migration은 service startup이 암묵적으로 실행하지 않는다. `cmd/sema-postgres-migrate`가 같은 DSN으로 명시적 pre-traffic migration을 실행한다.
-- image에는 target server, migration runner, healthcheck와 HTTPS OIDC용 CA trust bundle을 포함한다. 기본 entrypoint는 cutover 승인 전까지 V0 server로 유지한다.
+- image에는 target server, migration runner, healthcheck와 HTTPS OIDC용 CA trust bundle을 포함한다. 이 milestone에서는 V0 server를 기본 entrypoint로 유지하며 이후 표준 runtime 승격은 ADR 0027과 P31이 소유한다.
 
 ## Consequences
 
@@ -32,7 +32,7 @@ Sema는 외부 TLS gateway 뒤의 private application listener로 배포하기�
 
 ## Alternatives Rejected
 
-- 기존 V0 server를 target runtime으로 교체: rollback/reference surface와 writer cutover를 하나의 binary behavior change로 결합한다.
+- 이 milestone에서 기존 V0 server를 target runtime으로 즉시 교체: reference/import compatibility와 새 service composition을 하나의 binary behavior change로 결합한다.
 - startup automatic migration: 여러 replica rollout과 schema ownership 순서를 application startup에 숨긴다.
 - application에서 provider token을 직접 발급받기: resource server와 caller credential lifecycle을 결합한다.
 - unauthenticated health 외 별도 trusted header path: gateway identity binding 없이 인증 우회 경로가 된다.

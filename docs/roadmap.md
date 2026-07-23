@@ -250,7 +250,7 @@ P15는 game-runtime capacity와 Sema planning batch를 한 profile에 섞었다.
 
 matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional repository/resource contract, PostgreSQL adapter와 provider-neutral authenticated `v0alpha2` match-ticket vertical slice를 닫았다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에 없다.
 
-## P30: Authenticated Service Runtime Cutover
+## P30: Authenticated Service Runtime
 
 - [x] BackfillTicket authenticated command/read service와 atomic demand/session claim
 - [x] tenant-scoped immutable Policy catalog와 authenticated command/read service
@@ -259,10 +259,22 @@ matcher V0의 algorithm-owned contract는 완료되었다. P29가 transactional 
 - [x] reservation confirm/assignment/acknowledgment command service
 - [x] provider-neutral OIDC/JWT authenticator와 tenant/scope claim contract
 - [x] provider token 기반 remote health/auth/tenant/lifecycle smoke runner
-- [ ] deployment identity provider credential lifecycle 결정
+- [x] provider-neutral credential contract와 reference deployment acceptance
 - [x] authenticated PostgreSQL runtime executable과 remote-listener security gate
 - [x] V0 read-only import와 discard-and-retry completion marker
 - [x] rollback과 backup/restore rehearsal
-- [ ] workload 기반 quota/rate limit, pool/timeout과 numeric service SLO
+- [x] 실제 game traffic과 무관한 standalone product scope 명시
 
-provider-neutral lifecycle service, import fixture, local backup/restore/pre-writer rollback rehearsal, OIDC/JWT authenticator와 PostgreSQL remote executable은 완료되었다. 다음 gate는 deployment credential/TLS composition과 provider-specific acceptance다. workload evidence 전에는 production surface나 stable API를 선언하지 않는다.
+provider-neutral lifecycle service, optional import fixture, local backup/restore recovery rehearsal, OIDC/JWT authenticator, PostgreSQL remote executable과 redacted reference deployment acceptance가 완료되었다. 이 milestone은 실제 game traffic 전환을 의미하지 않는다.
+
+## P31: Service Product Readiness
+
+- [x] standalone product scope와 runtime lineage decision
+- [ ] PostgreSQL/OIDC 표준 command, container entrypoint와 deployment example
+- [ ] V0 development/reference 및 optional import compatibility surface 분리
+- [ ] repository-owned reference client와 wire conformance
+- [ ] multi-replica contention, dependency failure와 recovery matrix
+- [ ] workload 기반 admission, pool/timeout과 numeric service SLO
+- [ ] observability, backup/PITR와 stable compatibility admission evidence
+
+P31은 실제 consumer나 production traffic을 기다리는 deployment program이 아니다. 저장소가 스스로 재현할 수 있는 compatibility, availability, load/failure와 recovery evidence로 PoC 형태의 V0에서 제품형 service surface로 전진한다.

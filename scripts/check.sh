@@ -99,6 +99,7 @@ for required_file in \
   docs/decisions/0024-postgresql-cutover-rehearsal.md \
   docs/decisions/0025-provider-neutral-oidc-authentication.md \
   docs/decisions/0026-authenticated-remote-runtime.md \
+  docs/decisions/0027-standalone-product-scope.md \
   docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/migrations/v0alpha3-to-v0alpha4.md \
@@ -147,6 +148,7 @@ for required_file in \
   docs/todo-0039-matcher-v0-exit/spec.md \
   docs/todo-0040-service-productization-entry/spec.md \
   docs/todo-0041-authenticated-service-runtime/spec.md \
+  docs/todo-0042-service-product-readiness/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-postgres.sh \

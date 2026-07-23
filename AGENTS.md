@@ -66,6 +66,8 @@ Baseline ID: `openai-gpt-5.6-2026-07-11`.
 - P27 discovery index는 linear oldest-fitting window와 exact-equivalent해야 한다. stateless plan에 one-time build cost를 숨기지 않고 incremental lifetime은 stateful demand repository/productization boundary가 소유한다.
 - P28 matcher exit 이후 algorithm-owned invariant는 `docs/matcher-conformance.md`가 소유한다. persistence/API 변경이 deterministic replay, party/capacity/disjointness, fairness, freshness와 explicit truncation evidence를 암묵적으로 약화하지 않게 한다.
 - P29 productization entry는 adapter-neutral authority/failure contract부터 시작한다. database/topology/stable compatibility는 fixture, benchmark와 migration evidence 전에 확정하지 않는다.
+- Sema는 기존 매치메이커나 실제 game traffic의 migration program이 아닌 standalone general-purpose matchmaking service다. V0 journal/runtime은 development/reference 및 optional import compatibility surface이고, PostgreSQL/OIDC runtime 승격을 production traffic cutover로 표현하지 않는다.
+- 제품 readiness는 실제 external game integration을 기다리지 않고 repository-owned reference client, compatibility, multi-replica contention, load/failure와 recovery evidence로 판정한다.
 - matcher 장기 순서와 V0 service prototype 이후 persistence/API productization 진입 기준은 `docs/matcher-v0-exit.md`를 따른다.
 - Flow의 `matches_per_cycle`은 fixed fill target이 아니라 proposal upper bound다. 5v5 한 match 분량부터 planning하고 기본 32-match burst를 허용하되 synthetic 처리량을 production capacity나 SLA로 승격하지 않는다.
 - selector가 둘 이상의 proposal을 선택할 수 없으면 redundant anchored candidate graph를 만들지 않는다. single-select fast path를 바꿀 때는 P20 reference benchmark와 multi-proposal diversity fixture를 함께 검증한다.
