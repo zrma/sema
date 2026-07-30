@@ -1,5 +1,7 @@
 schema_version: 1
 module: github.com/zrma/sema
+development_phase: maintenance
+active_development_milestone: none
 license: LICENSE
 entrypoint: docs/HANDOFF.md
 agent_harness: docs/agent-harness.md
@@ -173,6 +175,9 @@ publication:
 release:
   alpha_admitted: false
   stable_admitted: true
+  stable_release: v1.0.0
+  stable_release_commit: 383071a4849994f5768a4ba7f9867e61b8b8d5c1
+  stable_release_workflow_run: 30559193689
   stable_surface: service_wire_v1
   support_owner: repository_maintainers
   supported_previous_minor_releases: 1

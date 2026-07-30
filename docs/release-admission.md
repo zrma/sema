@@ -34,6 +34,8 @@ major version 1 이상은 manifest의 exact `stable_admitted: true`가 추가로
 
 ADR 0033은 stable 범위를 HTTP `/v1` service wire로 한정하고 Go `alpha`를 제외했다. 같은 major의 additive compatibility, critical security exception, 180일/2개 minor deprecation window와 repository maintainer ownership을 승인했다. `v0.3.0`과 `v0.4.0` tagged release의 양방향 matrix도 release asset으로 검증했다. standard runtime, external TLS gateway fixture, reference client/workload, observability와 native PostgreSQL recovery acceptance는 계속 canonical gate가 소유한다. 실제 game integration은 adoption evidence이지 stable admission의 필수 조건이 아니다.
 
+첫 stable baseline인 `v1.0.0`은 local admission과 같은-target Release workflow를 통과했고, `v0.4.0 ↔ v1.0.0` 양방향 matrix를 checksummed release asset으로 게시했다. 이 출고 완료는 stable surface를 넓히지 않으며 이후 저장소 lifecycle은 maintenance mode다.
+
 ## Commands
 
 ```sh

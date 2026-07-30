@@ -10,7 +10,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 
 P31에서는 PostgreSQL primary와 stateless service replica를 표준 runtime으로 승격했다. `sema-conformance`가 OIDC 인증 실패, tenant isolation과 complete lifecycle을, two-replica matrix가 reservation single-winner, restart와 PostgreSQL outage/recovery를 검증한다. `sema-standard-postgres-v1`은 same-tenant concurrent commit deadlock 회귀를 차단하고 64-request admission, 16/2 PostgreSQL pool, 5초 operation deadline과 p95 750ms reference regression budget을 반복 측정한다. 표준 runtime은 bounded Prometheus metric/redacted trace/reference alert를 제공하고 native PostgreSQL checkpoint를 destructive restore한 뒤 operation replay, terminal assignment와 새 API write까지 검증한다.
 
-Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. P31 product-readiness evidence는 완료되었고 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. ADR 0033은 HTTP `/v1`만 stable surface로 정하고 Go `alpha`는 experimental로 유지한다. `v0.3.0`/`v0.4.0` tagged matrix와 180일/2개 minor compatibility 약속을 release gate에 연결해 stable admission은 열렸으며, `v1.0.0` publication과 maintenance handoff가 남았다.
+Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. P31 product-readiness와 마지막 계획 개발 milestone인 P32 Framework Contract Closure를 완료했다. ADR 0033은 HTTP `/v1`만 stable surface로 정하고 Go `alpha`는 experimental로 유지한다. signed `v1.0.0` release, `v0.4.0 ↔ v1.0.0` tagged matrix와 180일/2개 minor compatibility 약속을 검증했으며, 현재 활성 개발 milestone 없이 maintenance mode에 있다.
 
 ## Public Contract
 
@@ -49,7 +49,7 @@ Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가
 - `docs/matcher-conformance.md`: matcher V0 invariant와 executable test matrix.
 - `docs/todo-0040-service-productization-entry/spec.md`: persistence/API 제품화 milestone의 시작 계약.
 - `docs/todo-0042-service-product-readiness/spec.md`: 완료된 표준 runtime, compatibility와 operational evidence milestone.
-- `docs/todo-0043-framework-contract-closure/spec.md`: 활성 stable contract closure와 maintenance handoff milestone.
+- `docs/todo-0043-framework-contract-closure/spec.md`: 완료된 stable contract closure와 maintenance handoff milestone.
 - `docs/repository-adapter-evidence.md`: persistent prototype의 crash/contention evidence와 storage decision outcome.
 - `docs/postgres-repository.md`: PostgreSQL schema, transaction, migration과 no-Redis 운영 경계.
 - `docs/oidc-authentication.md`: provider-neutral JWT claim과 permission mapping 계약.

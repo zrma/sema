@@ -279,9 +279,9 @@ provider-neutral lifecycle service, optional import fixture, local backup/restor
 
 P31은 실제 consumer나 production traffic을 기다리는 deployment program이 아니다. 저장소가 스스로 재현할 수 있는 compatibility, availability, load/failure, observability와 recovery evidence로 PoC 형태의 V0에서 제품형 service surface로 전진했다. `sema-standard-postgres-v1`은 32 concurrent request에서 100-ticket/10-match cycle을 반복하며 explicit 64-request admission, 16/2 connection pool, 5초 operation deadline과 numeric regression budget을 고정한다. P30 wire가 첫 baseline이므로 stable admission은 완료로 가장하지 않고 별도 contract milestone로 defer했다.
 
-## Active Program: Framework Contract Closure
+## Completed Program: Framework Contract Closure
 
-`docs/development-stages.md`는 P0–P28 matcher framework core, P29–P31 reference service runtime과 P32 framework contract closure의 세 단계 lifecycle을 소유한다. P32는 실제 game integration이나 기존 service migration이 아니라 stable contract와 repository-owned cross-version evidence를 닫고 maintenance mode로 전환하는 마지막 계획 개발 단계다.
+`docs/development-stages.md`는 P0–P28 matcher framework core, P29–P31 reference service runtime과 P32 framework contract closure의 세 단계 lifecycle을 소유한다. P32는 실제 game integration이나 기존 service migration이 아니라 stable contract와 repository-owned cross-version evidence를 닫는 마지막 계획 개발 단계였으며, 완료 뒤 maintenance mode로 전환했다.
 
 ## P32: Framework Contract Closure And Maintenance Handoff
 
@@ -290,5 +290,9 @@ P31은 실제 consumer나 production traffic을 기다리는 deployment program�
 - [x] compatibility, security exception, 180일/2개 minor deprecation window와 repository maintainer ownership 결정
 - [x] `v0.3.0`/`v0.4.0` immutable tagged release 기반 previous/current client-service matrix
 - [x] migration, rollback와 end-of-support executable release gate
-- [ ] stable admission과 release evidence
-- [ ] maintenance-only handoff와 active development milestone 종료
+- [x] stable admission과 release evidence
+- [x] maintenance-only handoff와 active development milestone 종료
+
+## Maintenance Mode
+
+계획된 P0–P32 제품 개발은 완료되었고 활성 development milestone은 없다. 기본 작업 범위는 security/dependency/toolchain maintenance, stable contract를 보존하는 bug·conformance·regression 수정, 문서·release reproducibility·supported compatibility matrix 유지다. 새 기능, integration, deployment program 또는 migration은 별도 재개 결정과 새 milestone이 있어야 시작한다.

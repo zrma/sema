@@ -5,7 +5,7 @@
 1. `AGENTS.md`와 `docs/agent-harness.md`를 읽는다.
 2. `jj status`로 기존 변경과 현재 change를 확인한다.
 3. `docs/development-stages.md`, `docs/status.md`, `docs/roadmap.md`, `docs/architecture.md`를 읽는다.
-4. 활성 `docs/todo-*/spec.md`의 objective, acceptance, out-of-scope를 고정한다.
+4. maintenance boundary와 완료된 `docs/todo-0043-framework-contract-closure/spec.md`의 acceptance, out-of-scope를 고정한다.
 5. focused validation 뒤 `scripts/check.sh`로 닫는다.
 
 ## Current Baseline
@@ -75,7 +75,7 @@
 - `cmd/sema-ops-check`가 실제 HTTP lifecycle 부하, 완료 assignment restart replay와 incomplete journal tail 복구를 격리된 임시 runtime에서 검증한다.
 - `Dockerfile`과 loopback-published Compose example이 non-root/read-only/capability-free PostgreSQL/OIDC 표준 runtime을 제공한다. V0 single-writer journal 운영 계약은 별도 compatibility runbook에 있다.
 - reference container profile이 repeated service latency/recovery와 planner/engine/replay allocation budget을 검증하고 CI가 redacted aggregate history를 보존한다.
-- ADR 0033은 HTTP `/v1`만 stable surface로 승인하고 Go `alpha`를 제외했다. migration/end-of-support와 stable release note gate를 연결해 `v1.0.0` local admission이 가능하다.
+- ADR 0033은 HTTP `/v1`만 stable surface로 승인하고 Go `alpha`를 제외했다. migration/end-of-support와 stable release note gate를 연결했고 signed `v1.0.0` release와 tagged compatibility matrix를 검증했다.
 - `cmd/sema-tui`가 실제 loopback HTTP lifecycle 위에서 empty queue로 시작하는 mixed-party arrival, proposal/reservation, concurrent game과 completion을 Unicode animation으로 보여준다.
 - Flow snapshot과 ASCII/reduced-motion fallback이 terminal-independent self-check를 제공하며 demo timing은 production scheduler authority가 아니다.
 - 기본 1,000명 closed population registry가 fixed party로 순차 유입되고 45초 game을 반복하며 hidden true skill 기반 승패 뒤 visible Elo rating을 갱신한다.
@@ -99,9 +99,9 @@
 - production SLA, skill metric, role schema와 database failover/PITR 제품 계약은 아직 결정하지 않았다.
 - publication class는 `public`이며 push 전 repository gate와 machine-local inventory gate를 모두 통과한다.
 
-## Current Work
+## Current Lifecycle
 
-P0 foundation부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. `sema-service`, image, Compose와 primary runbook은 같은 표준 runtime을 가리키고 V0 journal은 optional import 및 development/reference compatibility surface다. reference client, two-replica matrix, standard workload, bounded observability/reference alert와 native destructive recovery gate가 repository-owned evidence를 제공한다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. `/v1` scope, repository maintainer ownership, 180일/2개 minor support policy, `v0.3.0`/`v0.4.0` matrix와 stable admission은 확정되었고 `v1.0.0` publication 뒤 maintenance mode로 전환한다.
+P0 foundation부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime, P31 service product readiness와 P32 Framework Contract Closure까지 세 단계가 모두 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. `sema-service`, image, Compose와 primary runbook은 같은 표준 runtime을 가리키고 V0 journal은 optional import 및 development/reference compatibility surface다. reference client, two-replica matrix, standard workload, bounded observability/reference alert와 native destructive recovery gate가 repository-owned evidence를 제공한다. HTTP `/v1` scope, repository maintainer ownership, 180일/2개 minor support policy와 signed `v1.0.0` release를 검증했다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니며 현재 활성 development milestone 없이 maintenance mode에 있다.
 
 ## Completion Rule
 

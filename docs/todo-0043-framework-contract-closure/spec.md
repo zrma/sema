@@ -1,6 +1,6 @@
 # P32 Framework Contract Closure And Maintenance Handoff Spec
 
-- Status: Active — Stable Admission In Progress
+- Status: Completed — Maintenance Mode
 
 ## Objective
 
@@ -8,7 +8,7 @@ Sema의 세 번째이자 마지막 계획 개발 단계를 닫는다. P31 standa
 
 ## Fixed Inputs
 
-- `docs/development-stages.md`의 Stage 1과 Stage 2는 완료되었고 P32가 유일한 active development milestone이다.
+- `docs/development-stages.md`의 Stage 1과 Stage 2를 이어 P32까지 완료되었고 active development milestone은 없다.
 - Sema는 standalone general-purpose matchmaking service이며 실제 consumer, production traffic 또는 predecessor deployment를 전제하지 않는다.
 - PostgreSQL primary가 durable authority이고 service replica는 stateless하다. provider-neutral OIDC와 external TLS ownership을 유지한다.
 - `p30-v0alpha2`가 첫 service wire compatibility baseline이다. 기존 공개 `v0.1.0`과 `v0.2.0`은 이 wire를 포함하지 않는다.
@@ -26,8 +26,16 @@ Sema의 세 번째이자 마지막 계획 개발 단계를 닫는다. P31 standa
 - [x] service wire를 포함한 `v0.3.0`과 `v0.4.0`을 별도 publication 승인 아래 출고하고 양방향 matrix artifact를 보존한다.
 - [x] migration, rollback limitation과 `/v0alpha2` supported/not-scheduled end-of-support 신호를 compatibility/release gate에 연결한다.
 - [x] canonical local, container, PostgreSQL workload/failure/recovery와 public boundary gate를 통과한 뒤 stable admission을 별도 logical change로 전환한다.
-- [ ] stable release의 remote tag, artifact/checksum, same-target CI를 검증한다.
-- [ ] handoff/status/roadmap을 maintenance mode로 닫고 활성 development milestone을 남기지 않는다.
+- [x] stable release의 remote tag, artifact/checksum, same-target CI를 검증한다.
+- [x] handoff/status/roadmap을 maintenance mode로 닫고 활성 development milestone을 남기지 않는다.
+
+## Completion Evidence
+
+- signed annotated `v1.0.0` tag는 commit `383071a4849994f5768a4ba7f9867e61b8b8d5c1`을 가리킨다.
+- GitHub Release workflow run `30559193689`가 같은 target에서 terminal success로 끝났다.
+- release의 22개 asset은 `SHA256SUMS`를 통과했고 네 public command의 darwin/arm64 artifact가 `v1.0.0`을 보고했다.
+- `wire-compatibility-matrix.json`은 `v0.4.0` commit `c8c4b35ffaa090b7bebe9da8a8f511ced668d3e6`과 `v1.0.0` 사이의 두 client/service 방향을 모두 통과했다.
+- repository 밖의 임시 consumer가 `github.com/zrma/sema/examples/compose@v1.0.0`을 내려받아 실행했다.
 
 ## Acceptance
 

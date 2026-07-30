@@ -49,4 +49,4 @@ GitHub release에서 직접 받은 Unix binary는 archive가 아니므로 execut
 - Go consumer가 tagged module에서 `alpha.Compose` example을 build/test할 수 있는지 확인한다.
 - release note가 stable wire scope, excluded Go alpha, support/deprecation, migration/rollback과 known limitations를 정확히 설명하는지 확인한다.
 
-`v0.3.0`과 `v0.4.0` tag/release 및 첫 matrix asset은 검증되었다. 현재 exact candidate는 `v1.0.0`이며 이 문구 자체는 stable tag/release publication 완료 증거가 아니다.
+`v0.3.0`, `v0.4.0`과 `v1.0.0` signed tag/release를 검증했다. `v1.0.0`은 commit `383071a4849994f5768a4ba7f9867e61b8b8d5c1`을 가리키고 Release workflow run `30559193689`가 terminal success로 끝났다. 게시된 22개 asset의 checksum, 네 host binary version, `v0.4.0 ↔ v1.0.0` matrix의 exact commit과 양방향 결과, tagged external Go consumer 실행을 확인했다.

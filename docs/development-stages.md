@@ -19,9 +19,9 @@ Sema의 장기 개발은 세 개의 굵은 단계로 닫는다. 이 구분은 �
 ## Stage 3: Framework Contract Closure
 
 - 범위: P32.
-- 상태: 진행 중.
+- 상태: 완료.
 - 목표: 실제 서비스 연동이나 기존 매치메이커 교체가 아니라, 독립적인 공통 프레임워크가 장기간 유지할 public contract를 확정하고 저장소를 maintenance mode로 전환한다.
-- 입력: P31 standard runtime, `p30-v0alpha2` first wire baseline, `v0.3.0`/`v0.4.0` tagged matrix, ADR 0033 stable service wire contract와 `stable_admitted: true` release gate.
+- 결과: P31 standard runtime, `p30-v0alpha2` first wire baseline, signed `v0.3.0`/`v0.4.0`/`v1.0.0` release, ADR 0033 stable service wire contract와 executable admission/matrix gate.
 - 완료 증거:
   1. stable public surface와 제외 surface를 명시한다.
   2. compatibility, security exception, migration, rollback, numeric deprecation/support window와 maintenance owner를 승인한다.
@@ -34,7 +34,7 @@ Sema의 장기 개발은 세 개의 굵은 단계로 닫는다. 이 구분은 �
 
 ## Maintenance Mode
 
-Stage 3 완료 뒤 Sema의 계획된 제품 개발은 종료한다. 이후 기본 허용 범위는 다음과 같다.
+현재 lifecycle 상태다. Stage 3 완료로 Sema의 계획된 제품 개발은 종료했으며 활성 development milestone은 없다. 이후 기본 허용 범위는 다음과 같다.
 
 - security, dependency와 toolchain maintenance.
 - stable contract를 보존하는 bug, conformance와 regression 수정.
