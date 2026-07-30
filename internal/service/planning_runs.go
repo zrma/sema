@@ -117,10 +117,8 @@ func (service *PlanningRuns) Execute(
 	if err := repository.ValidateOperation(operation); err != nil {
 		return PlanningRunMutation{}, err
 	}
-	if _, exists, err := service.repository.Replay(ctx, operation); err != nil {
-		return PlanningRunMutation{}, err
-	} else if exists {
-		return service.resume(ctx, scope, runID, true)
+	if replayed, exists, err := service.resumeCapturedOperation(ctx, operation, scope, runID); err != nil || exists {
+		return replayed, err
 	}
 
 	snapshot, err := service.repository.Snapshot(ctx, scope)
@@ -128,6 +126,11 @@ func (service *PlanningRuns) Execute(
 		return PlanningRunMutation{}, err
 	}
 	if _, exists := findResource(snapshot, Key(scope, ResourcePlanningRun, runID)); exists {
+		if replayed, captured, replayErr := service.resumeCapturedOperation(
+			ctx, operation, scope, runID,
+		); replayErr != nil || captured {
+			return replayed, replayErr
+		}
 		return PlanningRunMutation{}, domain.NewFailure(
 			domain.FailureInvalidRevision,
 			"planning run %q is already registered",
@@ -161,6 +164,11 @@ func (service *PlanningRuns) Execute(
 	})
 	if err != nil {
 		if repository.IsConflict(err) {
+			if replayed, captured, replayErr := service.resumeCapturedOperation(
+				ctx, operation, scope, runID,
+			); replayErr != nil || captured {
+				return replayed, replayErr
+			}
 			return PlanningRunMutation{}, domain.NewFailure(
 				domain.FailureInvalidRevision,
 				"planning run %q was registered concurrently",
@@ -170,6 +178,21 @@ func (service *PlanningRuns) Execute(
 		return PlanningRunMutation{}, err
 	}
 	return service.resume(ctx, scope, runID, result.Replayed)
+}
+
+func (service *PlanningRuns) resumeCapturedOperation(
+	ctx context.Context,
+	operation repository.Operation,
+	scope string,
+	runID string,
+) (PlanningRunMutation, bool, error) {
+	if _, exists, err := service.repository.Replay(ctx, operation); err != nil {
+		return PlanningRunMutation{}, false, err
+	} else if !exists {
+		return PlanningRunMutation{}, false, nil
+	}
+	result, err := service.resume(ctx, scope, runID, true)
+	return result, true, err
 }
 
 func (service *PlanningRuns) resume(

@@ -195,7 +195,8 @@ func TestPlanningRunRejectsResultOutsideCapturedSnapshot(t *testing.T) {
 func TestConcurrentPlanningRetryConvergesOnOneCompletedResult(t *testing.T) {
 	owner := repository.NewMemory()
 	seedPlanningDemand(t, owner, "tenant-a", 4)
-	runs, err := service.NewPlanningRuns(owner, func() time.Time { return demandFixtureNow }, nil)
+	retries := newSynchronizedInitialReplayRepository(owner, "execute-concurrent-run")
+	runs, err := service.NewPlanningRuns(retries, func() time.Time { return demandFixtureNow }, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,6 +238,48 @@ func TestConcurrentPlanningRetryConvergesOnOneCompletedResult(t *testing.T) {
 	proposals, err := runs.Proposals(context.Background(), "tenant-a", "concurrent-run")
 	if err != nil || len(proposals.Records) != 1 {
 		t.Fatalf("concurrent planning proposals = %#v err=%v", proposals, err)
+	}
+}
+
+type synchronizedInitialReplayRepository struct {
+	repository.Repository
+	operationID domain.OperationID
+	mu          sync.Mutex
+	calls       int
+	ready       chan struct{}
+}
+
+func newSynchronizedInitialReplayRepository(
+	owner repository.Repository,
+	operationID domain.OperationID,
+) *synchronizedInitialReplayRepository {
+	return &synchronizedInitialReplayRepository{
+		Repository:  owner,
+		operationID: operationID,
+		ready:       make(chan struct{}),
+	}
+}
+
+func (owner *synchronizedInitialReplayRepository) Replay(
+	ctx context.Context,
+	operation repository.Operation,
+) (repository.CommitResult, bool, error) {
+	owner.mu.Lock()
+	if operation.ID != owner.operationID || owner.calls >= 2 {
+		owner.mu.Unlock()
+		return owner.Repository.Replay(ctx, operation)
+	}
+	owner.calls++
+	if owner.calls == 2 {
+		close(owner.ready)
+	}
+	ready := owner.ready
+	owner.mu.Unlock()
+	select {
+	case <-ctx.Done():
+		return repository.CommitResult{}, false, ctx.Err()
+	case <-ready:
+		return repository.CommitResult{}, false, nil
 	}
 }
 
