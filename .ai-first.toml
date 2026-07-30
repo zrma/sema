@@ -1,0 +1,24 @@
+schema_version = 1
+framework_version = "1.0.0"
+source_kind = "release"
+source_revision = "v1.0.0"
+profiles = ["vcs-jj", "public-repository", "openai-agent-guidance"]
+
+[project]
+name = "sema"
+objective = "대기 중인 플레이어·파티와 기존 세션의 빈자리를 대상으로 hard constraint를 만족하는 다양한 후보 조합을 탐색하고, 품질과 운영 비용을 함께 고려한 multi-match `ProposalBatch`와 확정 assignment를 생성한다."
+publication_class = "public"
+
+[overlay]
+agents_first_read = ".ai-first/overlays/agents-first-read.md"
+agents_project = ".ai-first/overlays/agents-project.md"
+harness_project = ".ai-first/overlays/harness-project.md"
+
+[output]
+agents = "AGENTS.md"
+harness = "docs/agent-harness.md"
+standalone_check = ".ai-first/check.py"
+lock = ".ai-first.lock"
+
+[checks]
+publication = "scripts/check-publication-boundary.py"
