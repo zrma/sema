@@ -14,6 +14,8 @@
 
 push, tag, release와 visibility 변경은 이 local admission과 별개의 외부-write 승인이다. public push 전 machine-local private-inventory gate도 별도로 필요하다.
 
+tag workflow는 local admission 뒤에 manifest의 exact previous/current pair를 `scripts/check-wire-compatibility-release.sh`로 실행한다. 이 post-tag gate는 두 annotated tag object가 모두 존재해야 하므로 pre-tag local admission과 구분한다. 정상 matrix JSON은 release artifact와 `SHA256SUMS`에 포함하며 self-test는 이 evidence를 대신하지 않는다.
+
 ## Alpha Admission
 
 manifest의 `alpha_admitted: true`는 `v0.*` candidate가 위 gate를 통과하면 local release admission을 얻는다는 뜻이다. alpha API와 service는 compatibility를 약속하지 않으며 release note에 experimental boundary와 known limits를 유지한다.

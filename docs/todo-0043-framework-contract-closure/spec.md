@@ -22,6 +22,7 @@ Sema의 세 번째이자 마지막 계획 개발 단계를 닫는다. P31 standa
 - [ ] stable 범위를 service wire로 한정할지 public Go `alpha` package까지 포함할지 승인한다.
 - [ ] major/minor compatibility, security exception, numeric deprecation/support window와 maintenance owner를 ADR로 고정한다.
 - [x] immutable tagged service release를 입력으로 previous client → current service와 current client → supported previous service matrix를 실행하는 repository-owned gate를 구현한다.
+- [x] manifest의 exact release pair와 tag workflow를 연결하고 bounded matrix JSON을 checksum 대상 release asset으로 보존한다.
 - [ ] service wire를 포함한 alpha release 두 개 이상을 별도 publication 승인 아래 출고하고 matrix 입력으로 보존한다.
 - [ ] migration, rollback limitation과 end-of-support 신호를 compatibility/release gate에 연결한다.
 - [ ] canonical local, container, PostgreSQL workload/failure/recovery와 public boundary gate를 통과한 뒤 stable admission을 별도 logical change로 전환한다.

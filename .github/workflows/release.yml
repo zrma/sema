@@ -20,9 +20,11 @@ jobs:
           go-version-file: go.mod
           cache: false
       - run: scripts/check-release-admission.sh "$GITHUB_REF_NAME"
+      - run: scripts/check-wire-compatibility-release.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/sema-wire-compatibility"
       - run: scripts/build-release.sh
         env:
           VERSION: ${{ github.ref_name }}
+          WIRE_COMPATIBILITY_REPORT: ${{ runner.temp }}/sema-wire-compatibility/wire-compatibility-matrix.json
       - run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
