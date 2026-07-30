@@ -23,6 +23,7 @@ oidc_authentication: docs/oidc-authentication.md
 remote_runtime: docs/remote-runtime.md
 wire_conformance: docs/wire-conformance.md
 reference_client_command: cmd/sema-conformance
+wire_compatibility_fixture_command: cmd/sema-wire-fixture
 target_smoke_compatibility_command: cmd/sema-target-smoke
 runtime_failure_matrix: docs/runtime-failure-matrix.md
 runtime_failure_matrix_command: cmd/sema-runtime-matrix
@@ -118,6 +119,7 @@ checks:
   oidc_authentication_test: go test -race ./internal/authn/oidc
   target_runtime_test: go test -race ./internal/targetruntime ./internal/serviceapp ./cmd/sema-service ./cmd/sema-target-server ./cmd/sema-postgres-migrate
   wire_conformance_test: go test -race ./internal/wireconformance ./cmd/sema-conformance ./cmd/sema-target-smoke
+  wire_fixture_test: go test -race ./internal/wirefixture ./cmd/sema-wire-fixture
   wire_conformance_smoke: go run ./cmd/sema-conformance -version
   runtime_failure_matrix_smoke: go run ./cmd/sema-runtime-matrix -version
   service_workload_test: go test ./internal/serviceworkload ./cmd/sema-service-workload

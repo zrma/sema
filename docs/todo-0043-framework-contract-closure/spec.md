@@ -18,6 +18,7 @@ Sema의 세 번째이자 마지막 계획 개발 단계를 닫는다. P31 standa
 ## Implementation Sequence
 
 - [x] 세 단계의 상위 lifecycle과 Stage 3 종료 후 maintenance-only 목표를 repository 문서에 고정한다.
+- [x] service, migration과 reference client alpha release artifact 및 tagged-source wire fixture baseline을 제공한다.
 - [ ] stable 범위를 service wire로 한정할지 public Go `alpha` package까지 포함할지 승인한다.
 - [ ] major/minor compatibility, security exception, numeric deprecation/support window와 maintenance owner를 ADR로 고정한다.
 - [ ] immutable tagged service release를 입력으로 previous client → current service와 current client → supported previous service matrix를 실행하는 repository-owned gate를 구현한다.
@@ -51,4 +52,3 @@ stable surface와 support/deprecation 약속은 장기 compatibility 책임을 �
 ## Stop Condition
 
 P32 acceptance를 모두 충족하면 계획된 제품 개발을 종료한다. 이후 작업은 `docs/development-stages.md`의 Maintenance Mode 범위로 제한하며, 새 기능·integration·deployment program은 별도 재개 결정과 새 milestone 없이는 시작하지 않는다.
-

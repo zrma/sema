@@ -50,3 +50,5 @@ scripts/check-postgres.sh
 이 fixture는 current source revision의 wire semantics, OIDC claim mapping과 PostgreSQL authority가 함께 동작함을 검증한다. 별도 HTTPS reverse-proxy fixture는 external TLS termination 뒤의 private HTTP listener를 legacy compatibility client로 실행한다. 특정 provider나 private deployment inventory에 의존하지 않는다.
 
 P30 legacy client의 고정 baseline과 stable 전 cross-version requirement는 `docs/wire-compatibility.md`가 소유한다. 기존 공개 tag에는 `v0alpha2` service가 없으므로 과거 service release와의 교차 호환성을 이미 달성했다고 주장하지 않는다.
+
+`cmd/sema-wire-fixture`는 tagged client-service matrix가 각 immutable source에서 빌드하는 loopback-only test service다. 실제 `v0alpha2` target handler와 in-memory repository를 사용하고 세 test token을 환경으로 받지만 PostgreSQL, OIDC, TLS 또는 deployment readiness를 주장하지 않는다. 해당 운영 경계는 계속 `scripts/check-postgres.sh`와 container/recovery gate가 소유한다. fixture는 non-loopback listen을 거부하고 release artifact에는 포함하지 않는다.

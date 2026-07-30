@@ -5,6 +5,7 @@ repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 version=${VERSION:?VERSION is required}
 dist_dir=${DIST_DIR:-dist}
 targets=${TARGETS:-"darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64"}
+commands="sema-lab sema-service sema-conformance sema-postgres-migrate"
 
 printf '%s\n' "$version" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$' || {
   printf 'release build failed: VERSION must be a semantic version tag\n' >&2
@@ -23,7 +24,9 @@ case "$dist_dir" in
 esac
 
 mkdir -p "$dist_dir"
-find "$dist_dir" -maxdepth 1 -type f -name 'sema-lab_*' -exec rm -f {} +
+for command in $commands; do
+  find "$dist_dir" -maxdepth 1 -type f -name "${command}_*" -exec rm -f {} +
+done
 rm -f "$dist_dir/SHA256SUMS"
 
 for target in $targets; do
@@ -37,15 +40,21 @@ for target in $targets; do
   if [ "$goos" = windows ]; then
     extension=.exe
   fi
-  output="$dist_dir/sema-lab_${version}_${goos}_${goarch}${extension}"
-  CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build \
-    -trimpath \
-    -ldflags "-s -w -X main.version=$version" \
-    -o "$output" \
-    ./cmd/sema-lab
+  for command in $commands; do
+    output="$dist_dir/${command}_${version}_${goos}_${goarch}${extension}"
+    CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build \
+      -trimpath \
+      -ldflags "-s -w -X main.version=$version" \
+      -o "$output" \
+      "./cmd/$command"
+  done
 done
 
 (
   cd "$dist_dir"
-  shasum -a 256 sema-lab_* >SHA256SUMS
+  shasum -a 256 \
+    sema-lab_* \
+    sema-service_* \
+    sema-conformance_* \
+    sema-postgres-migrate_* >SHA256SUMS
 )

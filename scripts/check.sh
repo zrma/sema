@@ -25,6 +25,7 @@ for required_file in \
   cmd/sema-tui/main.go \
   cmd/sema-target-server/main.go \
   cmd/sema-target-smoke/main.go \
+  cmd/sema-wire-fixture/main.go \
   cmd/sema-flow-report/main.go \
   cmd/sema-flow-matrix/main.go \
   deploy/compose.yaml \
@@ -44,6 +45,7 @@ for required_file in \
   internal/runtimevalidation/matrix.go \
   internal/serviceapp/app.go \
   internal/wireconformance/app.go \
+  internal/wirefixture/app.go \
   internal/flow/simulator.go \
   internal/flowmatrix/matrix.go \
   internal/flowui/model.go \
@@ -255,6 +257,7 @@ go run ./examples/compose >/dev/null
 go run ./cmd/sema-server -version >/dev/null
 go run ./cmd/sema-service -version >/dev/null
 go run ./cmd/sema-conformance -version >/dev/null
+go run ./cmd/sema-wire-fixture -version >/dev/null
 go run ./cmd/sema-healthcheck -version >/dev/null
 go run ./cmd/sema-benchmark-gate -version >/dev/null
 go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null

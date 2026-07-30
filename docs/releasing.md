@@ -3,11 +3,11 @@
 ## Distribution Surfaces
 
 - Go module source tag: `github.com/zrma/sema`와 public `alpha` package.
-- `sema-lab` binaries: darwin amd64/arm64, linux amd64/arm64, windows amd64.
+- `sema-lab`, `sema-service`, `sema-conformance`와 `sema-postgres-migrate` binaries: darwin amd64/arm64, linux amd64/arm64, windows amd64.
 - `SHA256SUMS`: release artifact checksum list.
 - `Dockerfile`: local/reproducible deployment artifact이며 현재 public registry publication surface는 아니다.
 
-`scripts/build-release.sh`는 explicit `VERSION`을 binary에 주입하고 deterministic target names로 cross-build한다. `scripts/check-release-build.sh`는 host binary version과 checksum을 검증한다.
+`scripts/build-release.sh`는 explicit `VERSION`을 binary에 주입하고 deterministic target names로 cross-build한다. `scripts/check-release-build.sh`는 네 public command의 host binary version과 checksum을 검증한다. `sema-wire-fixture`는 tagged source에서 cross-version gate가 빌드하는 loopback-only test command이며 release artifact가 아니다.
 
 ## Pre-Tag Gate
 
@@ -38,8 +38,8 @@ build script는 semantic-version-shaped `VERSION`만 허용한다. release가 �
 ## Post-Release Verification
 
 - remote tag와 release가 같은 commit인지 확인한다.
-- 모든 target artifact와 `SHA256SUMS`가 존재하는지 확인한다.
-- host artifact checksum과 `sema-lab -version`을 검증한다.
+- 네 command의 모든 target artifact와 `SHA256SUMS`가 존재하는지 확인한다.
+- host artifact checksum과 네 public command의 `-version`을 검증한다.
 - Go consumer가 tagged module에서 `alpha.Compose` example을 build/test할 수 있는지 확인한다.
 - release note가 alpha compatibility와 known limitations를 정확히 설명하는지 확인한다.
 
