@@ -274,7 +274,7 @@ provider-neutral lifecycle service, optional import fixture, local backup/restor
 - [x] V0 development/reference 및 optional import compatibility surface 분리
 - [x] repository-owned reference client와 wire conformance
 - [x] multi-replica contention, dependency failure와 recovery matrix
-- [ ] workload 기반 admission, pool/timeout과 numeric service SLO
+- [x] workload 기반 admission, pool/timeout과 numeric service SLO
 - [ ] observability, backup/PITR와 stable compatibility admission evidence
 
-P31은 실제 consumer나 production traffic을 기다리는 deployment program이 아니다. 저장소가 스스로 재현할 수 있는 compatibility, availability, load/failure와 recovery evidence로 PoC 형태의 V0에서 제품형 service surface로 전진한다.
+P31은 실제 consumer나 production traffic을 기다리는 deployment program이 아니다. 저장소가 스스로 재현할 수 있는 compatibility, availability, load/failure와 recovery evidence로 PoC 형태의 V0에서 제품형 service surface로 전진한다. `sema-standard-postgres-v1`은 32 concurrent request에서 100-ticket/10-match cycle을 반복하며 explicit 64-request admission, 16/2 connection pool, 5초 operation deadline과 numeric regression budget을 고정한다.

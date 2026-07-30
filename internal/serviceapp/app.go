@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,6 +30,7 @@ const (
 	tlsTerminationEnvironment    = "SEMA_TLS_TERMINATION"
 	externalTLSTermination       = "external"
 	maximumConfiguredConcurrency = 4096
+	maximumConfiguredPoolSize    = 4096
 )
 
 const compatibilityProgramName = "sema-target-server"
@@ -50,9 +52,11 @@ type configuration struct {
 	oidcAlgorithms     []string
 	reservationTTL     time.Duration
 	maxInFlight        int
+	requestTimeout     time.Duration
 	readinessTimeout   time.Duration
 	startupTimeout     time.Duration
 	shutdownTimeout    time.Duration
+	postgresPool       postgresrepository.PoolOptions
 	tlsTerminationMode string
 }
 
@@ -63,7 +67,7 @@ type repositoryOwner interface {
 }
 
 type dependencies struct {
-	openRepository   func(context.Context, string) (repositoryOwner, error)
+	openRepository   func(context.Context, string, postgresrepository.PoolOptions) (repositoryOwner, error)
 	newAuthenticator func(context.Context, oidcauth.Config) (targetapi.Authenticator, error)
 	listen           func(string, string) (net.Listener, error)
 }
@@ -82,8 +86,12 @@ func Run(
 
 func defaultDependencies() dependencies {
 	return dependencies{
-		openRepository: func(ctx context.Context, dsn string) (repositoryOwner, error) {
-			return postgresrepository.Open(ctx, dsn)
+		openRepository: func(
+			ctx context.Context,
+			dsn string,
+			options postgresrepository.PoolOptions,
+		) (repositoryOwner, error) {
+			return postgresrepository.OpenWithOptions(ctx, dsn, options)
 		},
 		newAuthenticator: func(ctx context.Context, config oidcauth.Config) (targetapi.Authenticator, error) {
 			return oidcauth.New(ctx, config)
@@ -136,7 +144,7 @@ func runWithIdentity(
 
 	startupContext, cancelStartup := context.WithTimeout(ctx, config.startupTimeout)
 	defer cancelStartup()
-	owner, err := deps.openRepository(startupContext, config.postgresDSN)
+	owner, err := deps.openRepository(startupContext, config.postgresDSN, config.postgresPool)
 	if err != nil {
 		fmt.Fprintf(stderr, "%s: PostgreSQL repository initialization failed\n", identity.ProgramName)
 		return 1
@@ -152,8 +160,9 @@ func runWithIdentity(
 	}
 	handler, err := targetruntime.New(owner, authenticator, targetruntime.Options{
 		CursorKey: config.cursorKey, ReservationTTL: config.reservationTTL,
-		MaxInFlight: config.maxInFlight, ReadinessTimeout: config.readinessTimeout,
-		ReadinessCheck: owner.Ready,
+		MaxInFlight: config.maxInFlight, RequestTimeout: config.requestTimeout,
+		ReadinessTimeout: config.readinessTimeout,
+		ReadinessCheck:   owner.Ready,
 	})
 	if err != nil {
 		fmt.Fprintf(stderr, "%s: configure target runtime: %v\n", identity.ProgramName, err)
@@ -214,15 +223,44 @@ func parseConfigurationWithName(
 	stderr io.Writer,
 	programName string,
 ) (configuration, bool, error) {
-	config := configuration{}
+	config := configuration{postgresPool: postgresrepository.DefaultPoolOptions()}
 	flags := flag.NewFlagSet(programName, flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	flags.StringVar(&config.listen, "listen", "0.0.0.0:8080", "private TCP listen address behind external TLS termination")
 	flags.DurationVar(&config.reservationTTL, "reservation-ttl", 30*time.Second, "fixed reservation TTL")
-	flags.IntVar(&config.maxInFlight, "max-in-flight", 128, "maximum concurrent target API requests")
+	flags.IntVar(&config.maxInFlight, "max-in-flight", 64, "maximum concurrent target API requests")
+	flags.DurationVar(&config.requestTimeout, "request-timeout", 5*time.Second, "maximum target API operation duration")
 	flags.DurationVar(&config.readinessTimeout, "readiness-timeout", 2*time.Second, "PostgreSQL readiness probe timeout")
 	flags.DurationVar(&config.startupTimeout, "startup-timeout", 15*time.Second, "PostgreSQL and OIDC startup timeout")
 	flags.DurationVar(&config.shutdownTimeout, "shutdown-timeout", 10*time.Second, "graceful shutdown timeout")
+	flags.Var(
+		(*int32Flag)(&config.postgresPool.MaxConnections),
+		"postgres-max-conns",
+		"maximum PostgreSQL connections per service replica",
+	)
+	flags.Var(
+		(*int32Flag)(&config.postgresPool.MinIdleConnections),
+		"postgres-min-idle-conns",
+		"minimum idle PostgreSQL connections per service replica",
+	)
+	flags.DurationVar(
+		&config.postgresPool.MaxConnectionAge,
+		"postgres-max-conn-age",
+		postgresrepository.DefaultMaxConnectionAge,
+		"maximum PostgreSQL connection lifetime",
+	)
+	flags.DurationVar(
+		&config.postgresPool.MaxConnectionIdle,
+		"postgres-max-conn-idle",
+		postgresrepository.DefaultMaxConnectionIdle,
+		"maximum PostgreSQL idle connection duration",
+	)
+	flags.DurationVar(
+		&config.postgresPool.HealthCheckPeriod,
+		"postgres-health-check-period",
+		postgresrepository.DefaultPoolHealthCheck,
+		"PostgreSQL idle connection health-check period",
+	)
 	showVersion := flags.Bool("version", false, "print version")
 	flags.Usage = func() {
 		fmt.Fprintf(stderr, "usage: %s [flags]\n", programName)
@@ -283,11 +321,40 @@ func parseConfigurationWithName(
 		return configuration{}, false, fmt.Errorf("invalid listen address")
 	}
 	if config.reservationTTL <= 0 || config.maxInFlight <= 0 || config.maxInFlight > maximumConfiguredConcurrency ||
+		config.requestTimeout <= 0 ||
 		config.readinessTimeout <= 0 || config.startupTimeout <= 0 || config.shutdownTimeout <= 0 {
 		fmt.Fprintf(stderr, "%s: durations and bounded request concurrency must be positive and safe\n", programName)
 		return configuration{}, false, fmt.Errorf("invalid runtime bounds")
 	}
+	if config.postgresPool.MaxConnections <= 0 ||
+		config.postgresPool.MaxConnections > maximumConfiguredPoolSize ||
+		config.postgresPool.MinIdleConnections < 0 ||
+		config.postgresPool.MinIdleConnections > config.postgresPool.MaxConnections ||
+		config.postgresPool.MaxConnectionAge <= 0 ||
+		config.postgresPool.MaxConnectionIdle <= 0 ||
+		config.postgresPool.HealthCheckPeriod <= 0 {
+		fmt.Fprintf(stderr, "%s: PostgreSQL pool bounds must be positive and internally consistent\n", programName)
+		return configuration{}, false, fmt.Errorf("invalid PostgreSQL pool bounds")
+	}
 	return config, false, nil
+}
+
+type int32Flag int32
+
+func (value *int32Flag) String() string {
+	if value == nil {
+		return "0"
+	}
+	return fmt.Sprintf("%d", *value)
+}
+
+func (value *int32Flag) Set(raw string) error {
+	parsed, err := strconv.ParseInt(raw, 10, 32)
+	if err != nil {
+		return err
+	}
+	*value = int32Flag(parsed)
+	return nil
 }
 
 func requiredEnvironment(lookup func(string) (string, bool), name string) string {

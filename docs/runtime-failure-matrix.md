@@ -58,4 +58,4 @@ shared/user database나 production data에 실행하지 않는다. matrix는 임
 
 ## Boundary
 
-이 evidence는 한 PostgreSQL primary 안의 stateless horizontal replica와 transient dependency loss를 다룬다. PostgreSQL failover product, cross-region primary, backup/PITR, long-duration load, network partition의 모든 형태나 numeric RTO/SLA를 주장하지 않는다. workload admission/pool/timeout과 backup/PITR evidence는 P31의 다음 단계다.
+이 evidence는 한 PostgreSQL primary 안의 stateless horizontal replica와 transient dependency loss를 다룬다. PostgreSQL failover product, cross-region primary, backup/PITR, long-duration load, network partition의 모든 형태나 numeric RTO/SLA를 주장하지 않는다. workload admission/pool/timeout은 `docs/service-workload.md`가 별도로 검증하며 backup/PITR evidence는 P31의 다음 단계다.

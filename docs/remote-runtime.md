@@ -48,7 +48,8 @@ go run ./cmd/sema-service -listen 127.0.0.1:8080
 - external gateway는 client-facing TLS를 종료하고 pod listener는 public ingress에서 직접 접근할 수 없어야 한다.
 - Sema는 `X-Forwarded-*` identity나 unsigned principal header를 신뢰하지 않는다. bearer token을 직접 검증한다.
 - `GET /livez`는 process liveness, `GET /readyz`는 bounded PostgreSQL connectivity다. 두 endpoint는 token을 요구하지 않고 repository/provider detail을 반환하지 않는다.
-- API는 기본 128 concurrent request까지만 admission하고 초과 요청을 retryable 503으로 반환한다. `-max-in-flight`는 1부터 4096까지이며 production 값은 workload evidence로 조정한다.
+- API는 기본 64 concurrent request까지만 admission하고 초과 요청을 retryable `ResourceExhausted` 503으로 반환한다. `-max-in-flight`는 1부터 4096까지이며 production 값은 workload evidence로 조정한다.
+- API operation deadline은 기본 5초다. PostgreSQL pool은 replica당 maximum 16, minimum idle 2 connection을 사용하며 모든 값은 explicit flag로 조정할 수 있다.
 - HTTP server는 32 KiB header, bounded read/write/idle timeout을 사용하고 target handler는 request body를 1 MiB로 제한한다.
 
 OIDC discovery/JWKS는 image의 public CA trust bundle을 사용한다. private CA가 필요하면 deployment가 trust bundle을 안전하게 주입해야 하며 TLS 검증을 끄는 option은 제공하지 않는다.
@@ -71,6 +72,7 @@ OIDC discovery/JWKS는 image의 public CA trust bundle을 사용한다. private 
 - two-replica lifecycle contention이 repository conformance와 같은 single authority 결과를 만든다.
 
 repository-owned two-replica contention, restart와 PostgreSQL connection outage/recovery evidence는 `docs/runtime-failure-matrix.md`가 소유한다.
+repository-owned pool/admission/operation deadline과 numeric regression budget은 `docs/service-workload.md`가 소유한다.
 
 `sema-conformance`는 provider에서 발급한 token으로 health, no-token `401`, 같은
 tenant read-only token의 write `403`, 다른 tenant의 resource non-disclosure와

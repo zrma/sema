@@ -432,6 +432,7 @@ func startReplica(
 		CursorKey:        []byte("runtime-matrix-cursor-key-32-byte"),
 		ReservationTTL:   time.Minute,
 		MaxInFlight:      32,
+		RequestTimeout:   5 * time.Second,
 		ReadinessTimeout: 250 * time.Millisecond,
 		ReadinessCheck:   store.Ready,
 	})

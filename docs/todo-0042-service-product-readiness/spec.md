@@ -21,7 +21,7 @@
 - [x] V0 journal runtime을 명시적인 development/reference 또는 compatibility command로 분리하고 import path를 보존한다.
 - [x] repository-owned reference client와 wire conformance suite로 전체 ticket-to-assignment lifecycle을 검증한다.
 - [x] multi-replica contention, restart, dependency outage와 recovery matrix를 표준 runtime에 대해 실행한다.
-- [ ] workload 기반 admission, database pool/timeout과 service SLO를 sanitized repeatable report로 고정한다.
+- [x] workload 기반 admission, database pool/timeout과 service SLO를 sanitized repeatable report로 고정한다.
 - [ ] metrics, tracing, alerting contract와 PostgreSQL backup/PITR recovery acceptance를 제품 runbook에 연결한다.
 - [ ] compatibility/deprecation policy와 위 evidence가 충족된 뒤 stable admission을 별도 결정한다.
 

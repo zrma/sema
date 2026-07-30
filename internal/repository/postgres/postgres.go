@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,7 +17,51 @@ import (
 	"github.com/zrma/sema/internal/repository"
 )
 
-const maxAuditLimit = 1000
+const (
+	maxAuditLimit             = 1000
+	maximumPoolConnections    = 4096
+	DefaultMaxConnections     = 16
+	DefaultMinIdleConnections = 2
+	DefaultMaxConnectionAge   = 30 * time.Minute
+	DefaultMaxConnectionIdle  = 5 * time.Minute
+	DefaultPoolHealthCheck    = time.Minute
+)
+
+// PoolOptions are explicit process-local PostgreSQL resource bounds. Request
+// deadlines remain an HTTP runtime concern so every repository call inherits
+// the caller's cancellation contract.
+type PoolOptions struct {
+	MaxConnections     int32
+	MinIdleConnections int32
+	MaxConnectionAge   time.Duration
+	MaxConnectionIdle  time.Duration
+	HealthCheckPeriod  time.Duration
+}
+
+// DefaultPoolOptions returns the reference service pool profile.
+func DefaultPoolOptions() PoolOptions {
+	return PoolOptions{
+		MaxConnections:     DefaultMaxConnections,
+		MinIdleConnections: DefaultMinIdleConnections,
+		MaxConnectionAge:   DefaultMaxConnectionAge,
+		MaxConnectionIdle:  DefaultMaxConnectionIdle,
+		HealthCheckPeriod:  DefaultPoolHealthCheck,
+	}
+}
+
+// PoolStats is a sanitized snapshot suitable for aggregate operational
+// evidence. It contains no DSN, database identity, query text, or resource ID.
+type PoolStats struct {
+	MaxConnections       int32
+	TotalConnections     int32
+	IdleConnections      int32
+	AcquiredConnections  int32
+	AcquireCount         int64
+	AcquireDuration      time.Duration
+	EmptyAcquireCount    int64
+	EmptyAcquireWaitTime time.Duration
+	CanceledAcquireCount int64
+}
 
 // Store uses PostgreSQL transactions as the only durable mutation authority.
 // It does not require Redis, a process-local lease owner, or a global writer.
@@ -32,10 +77,23 @@ func New(pool *pgxpool.Pool) (*Store, error) {
 }
 
 func Open(ctx context.Context, connectionString string) (*Store, error) {
+	return OpenWithOptions(ctx, connectionString, DefaultPoolOptions())
+}
+
+// OpenWithOptions creates a repository with explicit, validated pool bounds.
+func OpenWithOptions(
+	ctx context.Context,
+	connectionString string,
+	options PoolOptions,
+) (*Store, error) {
 	if connectionString == "" {
 		return nil, domain.NewFailure(domain.FailureInvalidInput, "postgres connection string is required")
 	}
-	pool, err := pgxpool.New(ctx, connectionString)
+	config, err := poolConfig(connectionString, options)
+	if err != nil {
+		return nil, err
+	}
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("open postgres repository pool: %w", err)
 	}
@@ -48,6 +106,45 @@ func Open(ctx context.Context, connectionString string) (*Store, error) {
 		return nil, err
 	}
 	return &Store{pool: pool}, nil
+}
+
+func poolConfig(connectionString string, options PoolOptions) (*pgxpool.Config, error) {
+	if options.MaxConnections <= 0 || options.MaxConnections > maximumPoolConnections ||
+		options.MinIdleConnections < 0 || options.MinIdleConnections > options.MaxConnections ||
+		options.MaxConnectionAge <= 0 || options.MaxConnectionIdle <= 0 ||
+		options.HealthCheckPeriod <= 0 {
+		return nil, domain.NewFailure(domain.FailureInvalidInput, "postgres pool options are outside safe bounds")
+	}
+	config, err := pgxpool.ParseConfig(connectionString)
+	if err != nil {
+		return nil, fmt.Errorf("parse postgres repository pool configuration: %w", err)
+	}
+	config.MaxConns = options.MaxConnections
+	config.MinConns = 0
+	config.MinIdleConns = options.MinIdleConnections
+	config.MaxConnLifetime = options.MaxConnectionAge
+	config.MaxConnIdleTime = options.MaxConnectionIdle
+	config.HealthCheckPeriod = options.HealthCheckPeriod
+	return config, nil
+}
+
+// Stats returns aggregate pool utilization without exposing connection data.
+func (store *Store) Stats() PoolStats {
+	if store == nil || store.pool == nil {
+		return PoolStats{}
+	}
+	stats := store.pool.Stat()
+	return PoolStats{
+		MaxConnections:       stats.MaxConns(),
+		TotalConnections:     stats.TotalConns(),
+		IdleConnections:      stats.IdleConns(),
+		AcquiredConnections:  stats.AcquiredConns(),
+		AcquireCount:         stats.AcquireCount(),
+		AcquireDuration:      stats.AcquireDuration(),
+		EmptyAcquireCount:    stats.EmptyAcquireCount(),
+		EmptyAcquireWaitTime: stats.EmptyAcquireWaitTime(),
+		CanceledAcquireCount: stats.CanceledAcquireCount(),
+	}
 }
 
 func (store *Store) Close() {
@@ -178,11 +275,9 @@ func (store *Store) Commit(
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
 
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO sema_repository_scopes (scope, version)
-		VALUES ($1, 0)
-		ON CONFLICT (scope) DO NOTHING`, operation.Scope); err != nil {
-		return repository.CommitResult{}, fmt.Errorf("ensure postgres repository scope: %w", err)
+	version, err := reserveScopeVersion(ctx, tx, operation.Scope)
+	if err != nil {
+		return repository.CommitResult{}, err
 	}
 	inserted, err := insertOperationClaim(ctx, tx, operation)
 	if err != nil {
@@ -204,10 +299,6 @@ func (store *Store) Commit(
 		}
 	}
 
-	version, err := nextScopeVersion(ctx, tx, operation.Scope)
-	if err != nil {
-		return repository.CommitResult{}, err
-	}
 	resourceCounts := make(map[string]int)
 	for _, mutation := range normalized {
 		resourceCounts[mutation.Key.Kind]++
@@ -236,16 +327,6 @@ func (store *Store) Commit(
 		) VALUES ($1, $2, $3, $4, $5::jsonb)`,
 		operation.Scope, int64(version), operation.Kind, operation.At, encodedCounts); err != nil {
 		return repository.CommitResult{}, fmt.Errorf("insert postgres audit receipt: %w", err)
-	}
-	scopeTag, err := tx.Exec(ctx, `
-		UPDATE sema_repository_scopes
-		SET version = $2
-		WHERE scope = $1`, operation.Scope, int64(version))
-	if err != nil {
-		return repository.CommitResult{}, fmt.Errorf("advance postgres repository scope: %w", err)
-	}
-	if scopeTag.RowsAffected() != 1 {
-		return repository.CommitResult{}, fmt.Errorf("postgres repository scope disappeared before commit")
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return repository.CommitResult{}, fmt.Errorf("commit postgres repository transaction: %w", err)
@@ -379,23 +460,35 @@ func lockResourceVersion(
 	return repository.Version(rawVersion), nil
 }
 
-func nextScopeVersion(
+// reserveScopeVersion serializes a tenant's mutation transactions before they
+// acquire any resource locks. A prior INSERT-then-FOR-UPDATE sequence allowed
+// concurrent ON CONFLICT tuple locks to form an upgrade deadlock.
+func reserveScopeVersion(
 	ctx context.Context,
 	tx pgx.Tx,
 	scope string,
 ) (repository.Version, error) {
-	var current int64
+	var next int64
 	if err := tx.QueryRow(ctx, `
-		SELECT version
-		FROM sema_repository_scopes
-		WHERE scope = $1
-		FOR UPDATE`, scope).Scan(&current); err != nil {
-		return 0, fmt.Errorf("lock postgres repository scope: %w", err)
+		INSERT INTO sema_repository_scopes (scope, version)
+		VALUES ($1, 1)
+		ON CONFLICT (scope) DO UPDATE
+		SET version = sema_repository_scopes.version + 1
+		WHERE sema_repository_scopes.version >= 0
+		  AND sema_repository_scopes.version < $2
+		RETURNING version`,
+		scope,
+		int64(math.MaxInt64),
+	).Scan(&next); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, fmt.Errorf("postgres repository scope version is invalid or exhausted")
+		}
+		return 0, fmt.Errorf("reserve postgres repository scope version: %w", err)
 	}
-	if current < 0 || current == math.MaxInt64 {
+	if next <= 0 {
 		return 0, fmt.Errorf("postgres repository scope version is invalid or exhausted")
 	}
-	return repository.Version(current + 1), nil
+	return repository.Version(next), nil
 }
 
 func applyMutation(

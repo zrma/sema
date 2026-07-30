@@ -70,6 +70,8 @@ docker compose -f deploy/compose.yaml down
 
 service startup은 schema migration을 암묵적으로 실행하지 않는다. 여러 replica는 같은 schema revision, cursor key, issuer/audience와 reservation TTL을 사용해야 한다.
 
+repository-owned default는 API 64 in-flight, operation deadline 5초, replica당 PostgreSQL maximum 16/minimum idle 2 connection이다. `-max-in-flight`, `-request-timeout`, `-postgres-max-conns`와 `-postgres-min-idle-conns`를 바꾸기 전에는 `docs/service-workload.md`의 profile 또는 deployment-owned representative workload로 tail latency, rejection과 database connection budget을 다시 검증한다.
+
 ## Failure Triage
 
 | Symptom | Expected action |
@@ -79,6 +81,8 @@ service startup은 schema migration을 암묵적으로 실행하지 않는다. �
 | `/readyz` 503 | replica를 traffic에서 제외하고 PostgreSQL connectivity를 조사한다; liveness restart loop를 만들지 않는다 |
 | authentication refresh 503 | provider/JWKS reachability를 조사한다; cached-key token과 신규 key token을 구분한다 |
 | duplicate demand/reservation conflict | operation ID를 유지해 retry하고 PostgreSQL receipt/claim authority로 수렴시킨다 |
+| `ResourceExhausted` 503 | `Retry-After`를 따르고 in-flight/admission metric을 확인한다; pool만 임의로 늘리지 않는다 |
+| `Unavailable` 503 또는 5초 operation deadline | PostgreSQL/OIDC dependency와 pool acquire cancellation을 확인하고 같은 operation ID로 retry한다 |
 | cursor rejection after rollout | 모든 replica의 cursor key와 repository version을 확인한다 |
 
 request, token, DSN, tenant resource와 raw database/log output은 private application data로 취급한다. 공개 issue나 tracked report에는 sanitized aggregate와 redacted 판정만 남긴다.
@@ -99,4 +103,4 @@ scripts/check-postgres.sh
 scripts/check-container.sh
 ```
 
-첫 command는 command composition과 bounded runtime을, PostgreSQL gate는 repository/OIDC lifecycle, two-replica failure matrix 및 logical recovery fixture를, container gate는 standard entrypoint와 호환 binary/restart surface를 확인한다. 실제 provider reference deployment acceptance는 tracked credential 없이 `docs/remote-runtime.md`의 redacted acceptance 절차를 따른다.
+첫 command는 command composition과 bounded runtime을, PostgreSQL gate는 repository/OIDC lifecycle, two-replica failure matrix, 3-run standard service workload 및 logical recovery fixture를, container gate는 standard entrypoint와 호환 binary/restart surface를 확인한다. 실제 provider reference deployment acceptance는 tracked credential 없이 `docs/remote-runtime.md`의 redacted acceptance 절차를 따른다.

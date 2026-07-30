@@ -132,6 +132,8 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - provider token으로 health, 401/403, tenant isolation과 complete assignment lifecycle을 검증하되 token acquisition은 배포 경계에 남기는 `sema-conformance` reference client.
 - disposable PostgreSQL schema, ephemeral TLS OIDC issuer와 표준 service에서 reference client 전체 순서를 실행하는 current-source wire conformance fixture.
 - 별도 pool의 two-replica reservation single-winner, peer terminal completion, replica restart와 PostgreSQL connection outage/readiness/liveness/recovery matrix.
+- same-tenant concurrent scope commit의 PostgreSQL lock-upgrade deadlock을 제거하고 atomic version reservation으로 ordered authority를 보존하는 transaction regression.
+- 3x100 ticket을 3회 실행하는 `sema-standard-postgres-v1`과 explicit 64-request admission, 16/2 connection pool, 5초 operation deadline 및 p95 750ms regression budget.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -143,7 +145,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
 - PostgreSQL backup/PITR와 database failover 제품 계약; file reference adapter는 product storage가 아니다.
-- workload 기반 rate limit, telemetry backend/alerts와 numeric standard runtime SLO.
+- deployment-calibrated rate limit, telemetry backend/alerts와 production SLA.
 - stable/v1 Go API, stable wire protocol과 repository-owned multi-version consumer conformance.
 - stable release 자체; 현재 `stable_admitted: false`다.
 - production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
@@ -156,8 +158,8 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - role composition의 hard/soft 경계.
 - mixed-party battle royale과 현실적인 existing-roster backfill 분포.
 - append-only journal에는 아직 compaction, online backup와 numeric recovery SLO가 없다.
-- PostgreSQL/OIDC pool/timeout/admission 값과 numeric recovery/service SLO.
+- PostgreSQL backup/PITR의 numeric recovery SLO와 deployment-specific capacity calibration.
 
 ## Next Slice
 
-P31의 표준 runtime, current-source wire conformance와 two-replica failure matrix가 완료되었다. `cmd/sema-service`, image entrypoint, Compose와 primary runbook이 PostgreSQL/OIDC authority를 가리키며 `cmd/sema-conformance`가 provider-neutral fixture에서 인증/tenant/lifecycle을 실행한다. `cmd/sema-runtime-matrix`는 reservation single-winner, terminal agreement, replica restart와 PostgreSQL outage/recovery를 검증한다. `cmd/sema-target-server`와 `cmd/sema-target-smoke`는 P30 command compatibility alias이고 `cmd/sema-server`는 V0 development/reference 및 optional import compatibility surface다. 다음 slice는 representative workload 기반 admission, pool/timeout과 numeric service SLO다. stable compatibility는 multi-version evidence 전까지 확정하지 않는다.
+P31의 표준 runtime, current-source wire conformance, two-replica failure matrix와 standard PostgreSQL workload가 완료되었다. `cmd/sema-service`, image entrypoint, Compose와 primary runbook이 PostgreSQL/OIDC authority를 가리키며 `cmd/sema-conformance`가 provider-neutral fixture에서 인증/tenant/lifecycle을 실행한다. `cmd/sema-runtime-matrix`는 reservation single-winner, terminal agreement, replica restart와 PostgreSQL outage/recovery를 검증하고 `cmd/sema-service-workload`는 ordered concurrent commit, admission/pool/timeout과 numeric latency regression을 검증한다. 다음 slice는 표준 runtime의 metrics/tracing/alert contract와 PostgreSQL backup/PITR recovery acceptance다. stable compatibility는 이 evidence와 multi-version conformance 전까지 확정하지 않는다.

@@ -6,7 +6,11 @@ Sema는 플레이어와 파티를 제약 조건에 맞는 게임 세션으로 �
 
 ## Status
 
-P0 architecture foundation부터 P28 matcher V0 exit까지 구현되었다. planner는 multi-proposal이 가능한 snapshot에서 diverse admissible candidate graph를 만든 뒤 ticket/backfill이 겹치지 않는 proposal 집합을 선택한다. backfill priority 안에서 policy의 `PrioritizeWait` 단계에 도달한 feasible demand는 oldest-first service ordering이 batch rank utility보다 앞서므로 지속적인 신규 유입에도 영구히 밀리지 않는다. backfill은 vacancy shape뿐 아니라 `rosterVersion`에 묶인 team별 player/skill/role/latency aggregate에 incoming party를 합친 resulting roster quality를 평가한다. 최대 12 match ticket/2 backfill/2 team의 평가 경로는 모든 admissible disjoint batch를 열거하고, default small-queue planner는 distinct ticket-set alternatives와 Pareto repair로 128-seed differential corpus에서 모두 frontier equivalent를 유지한다. large queue에는 party/skill/role/latency partition을 재사용하면서 기존 oldest-fitting prefix와 정확히 같은 결과를 내는 index seam이 있다. multi-proposal/roster-aware planner fuzz와 linear/indexed discovery fuzz를 포함한 conformance gate가 이 matcher contract를 고정한다. Flow는 5초 planning window에서 한 match 분량부터 partial batch를 허용하고 backlog가 크면 기본 상한 32개까지 한꺼번에 반환한다. deterministic composition부터 순차 queue 유입, assignment confirm, synthetic fixed-duration game, rating 기반 cooldown/복귀와 재현 가능한 wait/throughput/saturation report까지 실행 가능하다. TUI는 player-weighted queue wait와 1500 중심 rating density의 시간 변화를 함께 보여준다. 진행 중인 game 수는 관찰값일 뿐 새 planning을 제한하지 않는다. P29는 tenant-scoped transactional repository와 실제 PostgreSQL authority를 닫았고, P30은 provider-neutral authenticated `v0alpha2` full lifecycle, optional V0 read-only import, local PostgreSQL backup/restore recovery rehearsal, OIDC verifier와 reference deployment acceptance까지 완료했다. target cursor는 tenant와 repository version에 묶이고 historical idempotency retry는 후속 revision 뒤에도 최초 결과로 수렴한다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에 없다. P31에서 `cmd/sema-service`, container entrypoint, Compose와 primary runbook이 이 PostgreSQL/OIDC runtime을 표준 surface로 가리키며, single-writer `cmd/sema-server`는 V0 development/reference 및 optional import compatibility command로 분리되었다. `cmd/sema-conformance`는 ephemeral OIDC와 실제 PostgreSQL fixture에서 인증 실패, tenant isolation, planning, reservation, assignment와 acknowledgment의 current-source wire contract를 검증한다. two-replica failure matrix는 reservation single-winner, peer terminal agreement, replica restart, PostgreSQL outage의 readiness/liveness/API failure와 recovery를 repeatable aggregate로 고정한다. Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. 다음 P31 작업은 workload 기반 admission, pool/timeout과 numeric service SLO다. stable SDK와 multi-version wire contract는 아직 아니며 v1 release는 gate가 차단한다.
+P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authenticated service runtime까지 완료되었다. planner는 immutable snapshot에서 다양한 admissible match candidate를 만들고, ticket/backfill이 겹치지 않는 proposal 집합을 wait-priority, coverage와 quality 순서로 선택한다. Flow/TUI는 1,000명 closed population의 순차 유입, match, synthetic game, rating 변화와 재진입을 보여주지만 game simulation은 Sema service의 책임이 아니다.
+
+P31에서는 PostgreSQL primary와 stateless service replica를 표준 runtime으로 승격했다. `sema-conformance`가 OIDC 인증 실패, tenant isolation과 complete lifecycle을, two-replica matrix가 reservation single-winner, restart와 PostgreSQL outage/recovery를 검증한다. `sema-standard-postgres-v1`은 same-tenant concurrent commit deadlock 회귀를 차단하고 64-request admission, 16/2 PostgreSQL pool, 5초 operation deadline과 p95 750ms reference regression budget을 반복 측정한다.
+
+Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. 다음 P31 작업은 표준 runtime observability와 PostgreSQL backup/PITR recovery acceptance다. stable SDK와 multi-version wire contract는 아직 아니며 v1 release는 gate가 차단한다.
 
 ## Public Contract
 
@@ -14,7 +18,7 @@ P0 architecture foundation부터 P28 matcher V0 exit까지 구현되었다. plan
 - source는 Apache License 2.0으로 공개한다.
 - `github.com/zrma/sema/alpha`만 experimental public Go package이며 현재 marker는 `v0alpha5`이고 source stability를 약속하지 않는다.
 - coordinator, reservation, assignment와 나머지 구현 package는 계속 `internal/`에 둔다.
-- 현재 service integration은 versioned HTTP, durable replay, synchronous response와 assignment polling을 사용하는 single replica다.
+- 현재 standard service는 versioned HTTP, PostgreSQL durable replay, synchronous response와 assignment polling을 사용하는 stateless replica다.
 
 ## Design Direction
 
@@ -50,6 +54,7 @@ P0 architecture foundation부터 P28 matcher V0 exit까지 구현되었다. plan
 - `docs/remote-runtime.md`: authenticated PostgreSQL executable, migration, TLS와 deployment acceptance.
 - `docs/wire-conformance.md`: 표준 reference client, provider-neutral lifecycle fixture와 report contract.
 - `docs/runtime-failure-matrix.md`: two-replica contention, restart와 PostgreSQL outage/recovery evidence.
+- `docs/service-workload.md`: 표준 PostgreSQL service의 admission, pool, timeout과 numeric regression profile.
 - `docs/v0-runtime.md`: V0 single-writer journal development/reference 및 import compatibility runbook.
 - `docs/candidate-discovery.md`: candidate ticket window와 large-queue tradeoff.
 - `docs/public-api.md`: public `alpha.Compose` 범위와 사용법.
@@ -104,6 +109,12 @@ Docker image의 표준 entrypoint와 V0 persistent-volume restart compatibility 
 
 ```sh
 scripts/check-container.sh
+```
+
+표준 PostgreSQL service의 workload, multi-replica failure와 logical recovery gate는 test 전용 disposable database에서 실행한다.
+
+```sh
+scripts/check-postgres.sh
 ```
 
 로컬 change 관리는 `jj`를 사용한다. push, tag, release와 visibility 변경은 별도 외부-write 권한 경계다.

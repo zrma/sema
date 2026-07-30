@@ -22,13 +22,13 @@ repository가 소유하는 schema는 `internal/repository/postgres/schema.sql`�
 
 write path는 다음 순서를 사용한다.
 
-1. operation scope를 확인하고 `(scope, operation_id)`를 unique receipt로 claim한다.
-2. mutation resource를 canonical key order로 `FOR UPDATE`하고 expected storage version을 검증한다.
-3. mutation 준비가 끝난 뒤 scope version row를 `FOR UPDATE`해 다음 version을 배정한다.
-4. resource mutation, finalized operation receipt, audit receipt와 scope version을 같은 transaction에서 기록한다.
+1. atomic scope upsert로 다음 tenant repository version을 예약하고 mutation transaction을 직렬화한다.
+2. `(scope, operation_id)`를 unique receipt로 claim한다.
+3. mutation resource를 canonical key order로 `FOR UPDATE`하고 expected storage version을 검증한다.
+4. resource mutation, finalized operation receipt와 audit receipt를 같은 transaction에서 기록한다.
 5. commit response가 유실되면 같은 operation ID/digest로 retry해 최초 version을 replay한다.
 
-scope version lock은 commit ordering과 lossless audit cursor를 위해 필요하지만 matcher search나 전체 request lifetime 동안 유지하지 않는다. snapshot은 read-only Repeatable Read transaction에서 scope version과 resource set을 함께 읽고 transaction을 닫은 뒤 matcher에 전달한다.
+scope version lock은 commit ordering과 lossless audit cursor를 위해 transaction 시작에 얻지만 matcher search나 전체 request lifetime 동안 유지하지 않는다. scope를 먼저 직렬화하므로 서로 다른 resource를 수정하는 concurrent transaction이 resource lock 뒤 scope lock을 승격하면서 deadlock을 만들지 않는다. snapshot은 read-only Repeatable Read transaction에서 scope version과 resource set을 함께 읽고 transaction을 닫은 뒤 matcher에 전달한다.
 
 ## Concurrency And Failure
 
@@ -48,7 +48,13 @@ scope version lock은 commit ordering과 lossless audit cursor를 위해 필요�
 scripts/check-postgres.sh
 ```
 
-같은 gate의 `sema-runtime-matrix`는 별도 pool을 가진 두 stateless replica의 reservation contention, peer terminal completion, replica restart와 controllable PostgreSQL connection outage/recovery를 실행한다. report와 범위는 `docs/runtime-failure-matrix.md`가 소유한다.
+같은 gate의 `sema-runtime-matrix`는 별도 pool을 가진 두 stateless replica의 reservation contention, peer terminal completion, replica restart와 controllable PostgreSQL connection outage/recovery를 실행한다. `sema-service-workload`는 32개 concurrent request에서 deadlock 없는 ordered commit, pool/admission과 numeric latency budget을 3회 검증한다. report와 범위는 `docs/runtime-failure-matrix.md`와 `docs/service-workload.md`가 소유한다.
+
+sanitized report를 보존하려면 새 output directory를 지정한다.
+
+```sh
+scripts/check-postgres.sh <report-directory>
+```
 
 외부 PostgreSQL에 직접 연결해 test를 실행할 때는 test 전용 database만 사용한다.
 
@@ -61,6 +67,6 @@ test는 매 fixture마다 별도 schema를 만들고 종료 시 제거한다. �
 ## Operational Boundary
 
 - credential, TLS root와 provider endpoint는 repository에 기록하지 않는다.
-- connection pool size, statement timeout와 retry budget은 representative authenticated workload 뒤 정한다.
+- reference service pool/admission/operation timeout은 ADR 0029와 `docs/service-workload.md`가 소유한다. deployment-specific connection budget과 production SLA는 별도 evidence로 calibration한다.
 - local logical backup/restore fixture는 ADR 0024가 소유한다. PostgreSQL backup/PITR, migration runner와 deployment topology의 제품 계약은 P31 operational evidence가 소유한다.
 - Redis, broker와 outbox는 measured trigger 없이 추가하지 않는다.

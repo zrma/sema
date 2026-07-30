@@ -72,12 +72,23 @@ func TestParseConfigurationLoadsProviderNeutralEnvironment(t *testing.T) {
 	environment[oidcAlgorithmsEnvironment] = "RS256,PS256"
 	var stderr bytes.Buffer
 	config, showVersion, err := parseConfiguration(
-		[]string{"-listen", "127.0.0.1:0", "-max-in-flight", "64"}, mapEnvironment(environment), &stderr,
+		[]string{
+			"-listen", "127.0.0.1:0",
+			"-max-in-flight", "64",
+			"-request-timeout", "4s",
+			"-postgres-max-conns", "24",
+			"-postgres-min-idle-conns", "3",
+		},
+		mapEnvironment(environment),
+		&stderr,
 	)
 	if err != nil {
 		t.Fatalf("parse configuration: %v, stderr=%q", err, stderr.String())
 	}
 	if showVersion || config.listen != "127.0.0.1:0" || config.maxInFlight != 64 ||
+		config.requestTimeout != 4*time.Second ||
+		config.postgresPool.MaxConnections != 24 ||
+		config.postgresPool.MinIdleConnections != 3 ||
 		config.oidcTenantClaim != "tenant_id" || len(config.oidcAlgorithms) != 2 ||
 		config.oidcAlgorithms[0] != "RS256" || config.oidcAlgorithms[1] != "PS256" ||
 		len(config.cursorKey) != 32 {
@@ -118,12 +129,38 @@ func TestParseConfigurationRejectsUnsafeTLSAndSecretWithoutEcho(t *testing.T) {
 	}
 }
 
+func TestParseConfigurationRejectsUnsafePoolAndTimeoutBounds(t *testing.T) {
+	tests := map[string][]string{
+		"zero request timeout": {"-request-timeout", "0s"},
+		"zero pool maximum":    {"-postgres-max-conns", "0"},
+		"minimum above max": {
+			"-postgres-max-conns", "2",
+			"-postgres-min-idle-conns", "3",
+		},
+		"zero connection age": {"-postgres-max-conn-age", "0s"},
+	}
+	for name, args := range tests {
+		t.Run(name, func(t *testing.T) {
+			var stderr bytes.Buffer
+			if _, _, err := parseConfiguration(args, mapEnvironment(validEnvironment()), &stderr); err == nil {
+				t.Fatal("unsafe runtime resource bounds were accepted")
+			}
+		})
+	}
+}
+
 func TestRunComposesAndGracefullyStopsRemoteRuntime(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	owner := &closingRepository{Repository: repository.NewMemory()}
 	deps := dependencies{
-		openRepository: func(context.Context, string) (repositoryOwner, error) { return owner, nil },
+		openRepository: func(
+			context.Context,
+			string,
+			postgresrepository.PoolOptions,
+		) (repositoryOwner, error) {
+			return owner, nil
+		},
 		newAuthenticator: func(context.Context, oidcauth.Config) (targetapi.Authenticator, error) {
 			return targetapi.AuthenticatorFunc(func(*http.Request) (targetapi.Principal, error) {
 				return targetapi.Principal{}, targetapi.ErrUnauthenticated
@@ -142,7 +179,13 @@ func TestRunFailsBeforeListeningWhenOIDCConfigurationFails(t *testing.T) {
 	owner := &closingRepository{Repository: repository.NewMemory()}
 	listenCalled := false
 	deps := dependencies{
-		openRepository: func(context.Context, string) (repositoryOwner, error) { return owner, nil },
+		openRepository: func(
+			context.Context,
+			string,
+			postgresrepository.PoolOptions,
+		) (repositoryOwner, error) {
+			return owner, nil
+		},
 		newAuthenticator: func(context.Context, oidcauth.Config) (targetapi.Authenticator, error) {
 			return nil, errors.New("provider configuration rejected")
 		},
@@ -161,7 +204,11 @@ func TestRunFailsBeforeListeningWhenOIDCConfigurationFails(t *testing.T) {
 func TestRunRedactsRepositoryInitializationFailure(t *testing.T) {
 	const sensitiveDetail = "deployment-only database detail"
 	deps := dependencies{
-		openRepository: func(context.Context, string) (repositoryOwner, error) {
+		openRepository: func(
+			context.Context,
+			string,
+			postgresrepository.PoolOptions,
+		) (repositoryOwner, error) {
 			return nil, errors.New(sensitiveDetail)
 		},
 		newAuthenticator: func(context.Context, oidcauth.Config) (targetapi.Authenticator, error) {

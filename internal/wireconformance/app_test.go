@@ -20,7 +20,7 @@ func TestRunValidatesAuthenticatedLifecycle(t *testing.T) {
 		repository.NewMemory(), fixtureAuthenticator(),
 		targetruntime.Options{
 			CursorKey: bytes.Repeat([]byte{7}, 32), ReservationTTL: time.Minute,
-			MaxInFlight: 8, ReadinessTimeout: time.Second,
+			MaxInFlight: 8, RequestTimeout: 5 * time.Second, ReadinessTimeout: time.Second,
 			ReadinessCheck: func(context.Context) error { return nil },
 		},
 	)

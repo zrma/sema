@@ -1,5 +1,7 @@
 # Reference Performance SLO
 
+이 문서의 `sema-reference-container-v1` service run은 V0 journal compatibility runtime을 측정한다. PostgreSQL 표준 service의 별도 pool/admission/timeout profile과 numeric budget은 `docs/service-workload.md`의 `sema-standard-postgres-v1`이 소유한다. 두 profile은 storage와 lifecycle shape가 다르므로 latency 수치를 서로 대체하지 않는다.
+
 ## Claim Boundary
 
 `sema-reference-container-v1`은 repository release regression을 판정하는 target profile이다. 특정 게임의 production SLA, internet-facing response time, queue wait SLO 또는 production storage guarantee가 아니다. 실제 consumer workload와 hardware가 정해지면 별도 profile과 decision으로 calibration한다.

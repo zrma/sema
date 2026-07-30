@@ -21,6 +21,44 @@ const testDSNEnvironment = "SEMA_POSTGRES_TEST_DSN"
 
 var testSchemaSequence atomic.Uint64
 
+func TestPoolConfigUsesExplicitReferenceBounds(t *testing.T) {
+	options := DefaultPoolOptions()
+	config, err := poolConfig("postgres://example.invalid/sema", options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.MaxConns != DefaultMaxConnections ||
+		config.MinConns != 0 ||
+		config.MinIdleConns != DefaultMinIdleConnections ||
+		config.MaxConnLifetime != DefaultMaxConnectionAge ||
+		config.MaxConnIdleTime != DefaultMaxConnectionIdle ||
+		config.HealthCheckPeriod != DefaultPoolHealthCheck {
+		t.Fatalf("pool config = %#v", config)
+	}
+}
+
+func TestPoolConfigRejectsUnsafeBounds(t *testing.T) {
+	tests := map[string]PoolOptions{
+		"zero maximum": {
+			MaxConnectionAge: time.Minute, MaxConnectionIdle: time.Minute, HealthCheckPeriod: time.Minute,
+		},
+		"minimum above max": {
+			MaxConnections: 1, MinIdleConnections: 2,
+			MaxConnectionAge: time.Minute, MaxConnectionIdle: time.Minute, HealthCheckPeriod: time.Minute,
+		},
+		"zero connection age": {
+			MaxConnections: 1, MaxConnectionIdle: time.Minute, HealthCheckPeriod: time.Minute,
+		},
+	}
+	for name, options := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := poolConfig("postgres://example.invalid/sema", options); err == nil {
+				t.Fatal("unsafe pool options were accepted")
+			}
+		})
+	}
+}
+
 func TestPostgresRepositoryConformance(t *testing.T) {
 	dsn := os.Getenv(testDSNEnvironment)
 	if dsn == "" {
@@ -101,6 +139,62 @@ func TestPostgresSeparatePoolsShareOrderedAuthority(t *testing.T) {
 	if len(audit) != 3 || audit[0].Version != seeded.Version ||
 		audit[1].Version != versions[0] || audit[2].Version != versions[1] {
 		t.Fatalf("ordered audit = %#v", audit)
+	}
+}
+
+func TestPostgresConcurrentScopeCommitsDoNotDeadlock(t *testing.T) {
+	dsn := os.Getenv(testDSNEnvironment)
+	if dsn == "" {
+		t.Skip(testDSNEnvironment + " is not set")
+	}
+	owner, _ := postgresFactory(dsn)(t)
+	const commits = 16
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	start := make(chan struct{})
+	results := make(chan repository.CommitResult, commits)
+	errors := make(chan error, commits)
+	var group sync.WaitGroup
+	for index := range commits {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			<-start
+			id := fmt.Sprintf("concurrent-%02d", index)
+			result, err := owner.Commit(
+				ctx,
+				postgresTestOperation(domain.OperationID(id)),
+				[]repository.Mutation{{
+					Key:     repository.Key{Scope: "tenant-a", Kind: "match_ticket", ID: id},
+					Payload: []byte(id),
+				}},
+			)
+			if err != nil {
+				errors <- err
+				return
+			}
+			results <- result
+		}()
+	}
+	close(start)
+	group.Wait()
+	close(results)
+	close(errors)
+	for err := range errors {
+		t.Fatal(err)
+	}
+	versions := make([]repository.Version, 0, commits)
+	for result := range results {
+		versions = append(versions, result.Version)
+	}
+	slices.Sort(versions)
+	if len(versions) != commits {
+		t.Fatalf("completed %d commits; want %d", len(versions), commits)
+	}
+	for index, version := range versions {
+		if version != repository.Version(index+1) {
+			t.Fatalf("versions = %v; want contiguous 1..%d", versions, commits)
+		}
 	}
 }
 

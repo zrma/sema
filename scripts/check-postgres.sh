@@ -4,6 +4,33 @@ set -eu
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$repo_root"
 
+if [ "$#" -gt 1 ]; then
+  printf 'usage: scripts/check-postgres.sh [report-directory]\n' >&2
+  exit 2
+fi
+
+temporary_reports=false
+if [ "$#" -eq 1 ]; then
+  report_dir=$1
+  mkdir -p "$report_dir"
+else
+  report_dir=$(mktemp -d)
+  temporary_reports=true
+fi
+report_dir=$(CDPATH= cd -- "$report_dir" && pwd)
+case "$report_dir" in
+  /|"$repo_root")
+    printf 'postgres check failed: unsafe report directory\n' >&2
+    exit 2
+    ;;
+esac
+for report in runtime-failure-matrix.json service-workload.json; do
+  [ ! -e "$report_dir/$report" ] || {
+    printf 'postgres check failed: report already exists: %s\n' "$report" >&2
+    exit 2
+  }
+done
+
 image="postgres:17.10-alpine3.24@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193"
 container="sema-postgres-check-$$"
 password="sema-integration-only"
@@ -16,6 +43,9 @@ cleanup() {
   if [ -n "$rehearsal_directory" ]; then
     rm -f -- "$rehearsal_directory/v0.journal" "$rehearsal_directory/manifest.json"
     rmdir -- "$rehearsal_directory" >/dev/null 2>&1 || true
+  fi
+  if [ "$temporary_reports" = true ]; then
+    rm -rf "$report_dir"
   fi
 }
 trap cleanup EXIT HUP INT TERM
@@ -53,10 +83,14 @@ address=$(docker port "$container" 5432/tcp | sed -n '1p')
 }
 
 SEMA_POSTGRES_TEST_DSN="postgres://postgres:${password}@${address}/sema_test?sslmode=disable" \
-  go test -race ./internal/repository/postgres ./internal/service ./internal/targetapi ./internal/serviceapp ./internal/runtimevalidation ./cmd/sema-service ./cmd/sema-target-server
+  go test -race ./internal/repository/postgres ./internal/service ./internal/targetapi ./internal/serviceapp ./internal/runtimevalidation ./internal/serviceworkload ./cmd/sema-service ./cmd/sema-target-server ./cmd/sema-service-workload
 
 SEMA_POSTGRES_TEST_DSN="postgres://postgres:${password}@${address}/sema_test?sslmode=disable" \
-  go run ./cmd/sema-runtime-matrix -timeout 45s
+  go run ./cmd/sema-runtime-matrix -timeout 45s >"$report_dir/runtime-failure-matrix.json"
+
+SEMA_POSTGRES_TEST_DSN="postgres://postgres:${password}@${address}/sema_test?sslmode=disable" \
+  go run ./cmd/sema-service-workload -runs 3 -cycles 3 -tickets-per-cycle 100 \
+  -concurrency 32 -timeout 2m -format json >"$report_dir/service-workload.json"
 
 rehearsal_directory=$(mktemp -d "${TMPDIR:-/tmp}/sema-postgres-rehearsal.XXXXXX")
 rehearsal_journal="$rehearsal_directory/v0.journal"
@@ -86,4 +120,4 @@ docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d sema_test \
 go run ./cmd/sema-postgres-rehearsal \
   -phase rollback -journal "$rehearsal_journal" -manifest "$rehearsal_manifest"
 
-printf 'sema postgres repository, import, and recovery rehearsal passed\n'
+printf 'sema postgres repository, workload, import, and recovery rehearsal passed\n'

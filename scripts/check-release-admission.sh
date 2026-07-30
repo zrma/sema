@@ -26,6 +26,11 @@ fi
 
 scripts/check.sh
 scripts/check-container.sh
+if [ -n "${POSTGRES_REPORT_DIR:-}" ]; then
+  scripts/check-postgres.sh "$POSTGRES_REPORT_DIR"
+else
+  scripts/check-postgres.sh
+fi
 if [ -n "${PERFORMANCE_REPORT_DIR:-}" ]; then
   scripts/check-performance.sh "$PERFORMANCE_REPORT_DIR"
 else

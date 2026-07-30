@@ -38,7 +38,7 @@ func TestReadinessFailsClosedWithoutRepositoryDetails(t *testing.T) {
 		return targetapi.Principal{}, targetapi.ErrUnauthenticated
 	}), Options{
 		CursorKey: make([]byte, 32), ReservationTTL: time.Minute,
-		MaxInFlight: 2, ReadinessTimeout: time.Second,
+		MaxInFlight: 2, RequestTimeout: time.Second, ReadinessTimeout: time.Second,
 		ReadinessCheck: func(context.Context) error {
 			return errors.New("private database endpoint is unavailable")
 		},
@@ -73,11 +73,38 @@ func TestAdmissionRejectsExcessWithoutBlockingHealth(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "https://sema.example", nil))
-	if recorder.Code != http.StatusServiceUnavailable || recorder.Header().Get("Retry-After") != "1" {
-		t.Fatalf("overload status = %d, retry-after = %q", recorder.Code, recorder.Header().Get("Retry-After"))
+	if recorder.Code != http.StatusServiceUnavailable ||
+		recorder.Header().Get("Retry-After") != "1" ||
+		recorder.Header().Get("X-Sema-Error-Code") != "ResourceExhausted" {
+		t.Fatalf(
+			"overload status = %d, retry-after = %q, code = %q",
+			recorder.Code,
+			recorder.Header().Get("Retry-After"),
+			recorder.Header().Get("X-Sema-Error-Code"),
+		)
 	}
 	close(release)
 	<-finished
+}
+
+func TestRequestTimeoutCancelsTargetOperation(t *testing.T) {
+	cancelled := make(chan struct{})
+	next := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		<-request.Context().Done()
+		close(cancelled)
+		writer.WriteHeader(http.StatusServiceUnavailable)
+	})
+	handler := withTimeout(next, 10*time.Millisecond)
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "https://sema.example", nil))
+	select {
+	case <-cancelled:
+	case <-time.After(time.Second):
+		t.Fatal("request context was not cancelled")
+	}
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("timeout status = %d", recorder.Code)
+	}
 }
 
 func TestNewRejectsUnsafeOptions(t *testing.T) {
@@ -87,19 +114,25 @@ func TestNewRejectsUnsafeOptions(t *testing.T) {
 	})
 	for name, options := range map[string]Options{
 		"missing cursor key": {
-			ReservationTTL: time.Minute, MaxInFlight: 1, ReadinessTimeout: time.Second,
+			ReservationTTL: time.Minute, MaxInFlight: 1, RequestTimeout: time.Second, ReadinessTimeout: time.Second,
 			ReadinessCheck: func(context.Context) error { return nil },
 		},
 		"zero admission": {
-			CursorKey: make([]byte, 32), ReservationTTL: time.Minute, ReadinessTimeout: time.Second,
+			CursorKey: make([]byte, 32), ReservationTTL: time.Minute, RequestTimeout: time.Second, ReadinessTimeout: time.Second,
+			ReadinessCheck: func(context.Context) error { return nil },
+		},
+		"zero request timeout": {
+			CursorKey: make([]byte, 32), ReservationTTL: time.Minute,
+			MaxInFlight: 1, ReadinessTimeout: time.Second,
 			ReadinessCheck: func(context.Context) error { return nil },
 		},
 		"zero readiness": {
-			CursorKey: make([]byte, 32), ReservationTTL: time.Minute, MaxInFlight: 1,
+			CursorKey: make([]byte, 32), ReservationTTL: time.Minute, MaxInFlight: 1, RequestTimeout: time.Second,
 			ReadinessCheck: func(context.Context) error { return nil },
 		},
 		"missing readiness check": {
-			CursorKey: make([]byte, 32), ReservationTTL: time.Minute, MaxInFlight: 1, ReadinessTimeout: time.Second,
+			CursorKey: make([]byte, 32), ReservationTTL: time.Minute,
+			MaxInFlight: 1, RequestTimeout: time.Second, ReadinessTimeout: time.Second,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -116,7 +149,7 @@ func newTestHandler(t *testing.T, owner repository.Repository) http.Handler {
 		return targetapi.Principal{}, targetapi.ErrUnauthenticated
 	}), Options{
 		CursorKey: make([]byte, 32), ReservationTTL: time.Minute,
-		MaxInFlight: 2, ReadinessTimeout: time.Second,
+		MaxInFlight: 2, RequestTimeout: time.Second, ReadinessTimeout: time.Second,
 		ReadinessCheck: func(context.Context) error { return nil },
 	})
 	if err != nil {

@@ -32,7 +32,13 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - run: scripts/check-postgres.sh
+      - run: scripts/check-postgres.sh "$RUNNER_TEMP/sema-postgres"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sema-postgres-${{ github.run_id }}
+          path: ${{ runner.temp }}/sema-postgres
+          if-no-files-found: error
+          retention-days: 30
 
   performance:
     runs-on: ubuntu-latest

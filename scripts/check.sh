@@ -248,6 +248,7 @@ go run ./cmd/sema-benchmark-gate -version >/dev/null
 go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null
 go run ./cmd/sema-postgres-migrate -version >/dev/null
 go run ./cmd/sema-runtime-matrix -version >/dev/null
+go run ./cmd/sema-service-workload -version >/dev/null
 go run ./cmd/sema-tui -version >/dev/null
 go run ./cmd/sema-target-server -version >/dev/null
 go run ./cmd/sema-target-smoke -version >/dev/null

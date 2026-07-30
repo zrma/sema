@@ -19,6 +19,7 @@ type Options struct {
 	CursorKey        []byte
 	ReservationTTL   time.Duration
 	MaxInFlight      int
+	RequestTimeout   time.Duration
 	ReadinessTimeout time.Duration
 	ReadinessCheck   func(context.Context) error
 }
@@ -36,6 +37,9 @@ func New(
 	}
 	if options.MaxInFlight <= 0 {
 		return nil, fmt.Errorf("target runtime max in-flight requests must be positive")
+	}
+	if options.RequestTimeout <= 0 {
+		return nil, fmt.Errorf("target runtime request timeout must be positive")
 	}
 	if options.ReadinessTimeout <= 0 {
 		return nil, fmt.Errorf("target runtime readiness timeout must be positive")
@@ -65,8 +69,16 @@ func New(
 	})
 	mux.HandleFunc("/livez", healthMethodNotAllowed)
 	mux.HandleFunc("/readyz", healthMethodNotAllowed)
-	mux.Handle("/", bounded(apiHandler, options.MaxInFlight))
+	mux.Handle("/", bounded(withTimeout(apiHandler, options.RequestTimeout), options.MaxInFlight))
 	return mux, nil
+}
+
+func withTimeout(next http.Handler, timeout time.Duration) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		ctx, cancel := context.WithTimeout(request.Context(), timeout)
+		defer cancel()
+		next.ServeHTTP(writer, request.WithContext(ctx))
+	})
 }
 
 func bounded(next http.Handler, maximum int) http.Handler {
@@ -78,6 +90,7 @@ func bounded(next http.Handler, maximum int) http.Handler {
 			next.ServeHTTP(writer, request)
 		default:
 			writer.Header().Set("Retry-After", "1")
+			writer.Header().Set("X-Sema-Error-Code", "ResourceExhausted")
 			writeEnvelope(writer, http.StatusServiceUnavailable, api.Envelope{
 				APIVersion: api.Version,
 				Error: &api.Failure{
