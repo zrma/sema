@@ -177,6 +177,7 @@ for required_file in \
   scripts/check-container.sh \
   scripts/check-postgres.sh \
   scripts/check-performance.sh \
+  scripts/check-wire-compatibility-matrix.sh \
   scripts/check-release-admission.sh \
   scripts/check-release-build.sh \
   go.mod \
@@ -225,7 +226,7 @@ if grep -R -n -F '"github.com/zrma/sema/internal/' examples; then
   exit 1
 fi
 
-sh -n scripts/build-release.sh scripts/check-container.sh scripts/check-postgres.sh scripts/check-performance.sh scripts/check-release-admission.sh scripts/check-release-build.sh
+sh -n scripts/build-release.sh scripts/check-container.sh scripts/check-postgres.sh scripts/check-performance.sh scripts/check-wire-compatibility-matrix.sh scripts/check-release-admission.sh scripts/check-release-build.sh
 
 grep -Eq '^FROM golang:[^ ]+@sha256:[0-9a-f]{64} AS build$' Dockerfile || {
   printf 'repository check failed: container builder must use an exact digest\n' >&2
@@ -271,6 +272,7 @@ go run ./cmd/sema-tui -snapshot -population 40 -game-duration 20s -steps 80 -wid
 go run ./cmd/sema-flow-report -version >/dev/null
 go run ./cmd/sema-flow-report -duration 60s -population 40 -game-duration 20s -max-return-delay 10s -format json >/dev/null
 go run ./cmd/sema-flow-matrix -duration 3s -population 40 -seeds 42,43 -batches 1,2 -parallel 2 -game-duration 20s -arrival-interval 100ms -planning-interval 1s -max-return-delay 10s -format json >/dev/null
+scripts/check-wire-compatibility-matrix.sh --self-test
 scripts/check-release-build.sh
 go test ./internal/discovery -run '^$' -bench '^Benchmark(BuildIndex|WindowSelectionReuse)$' -benchtime=1x
 go test ./internal/planner -run '^$' -bench '^BenchmarkPlan' -benchtime=1x

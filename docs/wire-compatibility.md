@@ -20,8 +20,11 @@
 - legacy compatibility client가 current target handler에서 authentication, authorization, tenant isolation과 terminal lifecycle을 실행한다.
 - external TLS gateway fixture가 HTTPS client → TLS termination → private HTTP listener 순서를 실행한다.
 - standard current client는 PostgreSQL/OIDC fixture에서 같은 lifecycle과 expanded report를 실행한다.
+- `scripts/check-wire-compatibility-matrix.sh <previous-tag> <current-tag>`는 서로 다른 annotated semver tag를 exact commit으로 해석하고 각 source의 reference client와 loopback wire fixture를 별도 빌드해 previous client → current service와 current client → previous service를 실행한다.
 
 이 evidence는 현재 source가 첫 baseline을 보존한다는 뜻이다. 과거 tagged service binary와 current client를 교차 실행한 multi-release evidence는 아니다.
+
+matrix의 `--self-test`는 current source를 양쪽 역할로 실행해 process orchestration, redaction과 report schema만 검증한다. 출력 schema도 `sema.wire-compatibility-matrix-self-test.v1`로 분리하며 tagged multi-release evidence로 계산하지 않는다. 정상 matrix report는 tag/version, exact same-repository commit과 방향별 boolean만 남기고 token, endpoint와 raw payload를 보존하지 않는다.
 
 ## Stable Admission Requirements
 

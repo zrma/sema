@@ -21,6 +21,8 @@ tag/release는 외부 write이며 사용자 승인 없이 실행하지 않는다
 6. branch/bookmark가 remote에 반영된 뒤 같은 commit에 annotated `<version>` tag를 만든다.
 7. tag push 뒤 GitHub workflow의 release와 artifact/checksum을 재조회한다.
 
+cross-version evidence를 만드는 alpha release는 signed annotated tag를 사용한다. release workflow checkout은 이전 tag source를 함께 가져오며 `scripts/check-wire-compatibility-matrix.sh`가 manifest에서 선언한 supported previous/current pair를 실행할 수 있어야 한다. `--self-test` 결과를 tagged evidence로 승격하지 않는다.
+
 CI는 tag가 공개된 뒤의 backstop이므로 machine-local inventory gate를 대체하지 않는다.
 
 ## Automation
