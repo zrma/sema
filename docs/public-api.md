@@ -4,6 +4,8 @@
 
 `github.com/zrma/sema/alpha`는 Sema의 첫 importable Go API다. immutable snapshot을 받아 side-effect-free `ProposalBatch`를 반환하는 composition surface만 제공한다.
 
+ADR 0033의 stable `/v1` service wire 범위에는 이 Go package가 포함되지 않는다. module의 `v1.0.0` tag가 존재해도 `alpha` 이름, marker와 source compatibility는 experimental이며 stable Go API 승격은 별도 milestone과 consumer evidence를 요구한다.
+
 ```go
 batch, err := alpha.Compose(alpha.Snapshot{
     ID:  "cycle-1",

@@ -122,11 +122,13 @@ for required_file in \
   docs/decisions/0030-standard-service-observability.md \
   docs/decisions/0031-standard-service-recovery.md \
   docs/decisions/0032-stable-admission-deferred.md \
+  docs/decisions/0033-stable-service-wire-contract.md \
   internal/wireconformance/testdata/p30-v0alpha2.json \
   docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/migrations/v0alpha3-to-v0alpha4.md \
   docs/migrations/v0alpha4-to-v0alpha5.md \
+  docs/migrations/v0alpha2-to-v1.md \
   docs/REPO_MANIFEST.yaml \
   docs/todo-0001-foundation/spec.md \
   docs/todo-0001-foundation/decisions.md \

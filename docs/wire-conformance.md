@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`cmd/sema-conformance`는 표준 `v0alpha2` service의 repository-owned reference client다. provider-neutral bearer token 세 개만 받아 health, authentication, authorization, tenant isolation과 ticket-to-assignment lifecycle을 실제 HTTP wire에서 검증한다. 실제 게임 session이나 caller-specific token acquisition은 실행하지 않는다.
+`cmd/sema-conformance`는 stable `/v1` service의 repository-owned reference client다. provider-neutral bearer token 세 개만 받아 health, authentication, authorization, tenant isolation과 ticket-to-assignment lifecycle을 실제 HTTP wire에서 검증한다. 실제 게임 session이나 caller-specific token acquisition은 실행하지 않는다.
 
 검증 순서는 다음과 같다.
 
@@ -37,7 +37,7 @@ export SEMA_TARGET_OTHER_TENANT_TOKEN='<other-tenant-match-ticket-read-token>'
 sema-conformance
 ```
 
-`cmd/sema-target-smoke`와 `sema.target-smoke.v1` report는 P30 command/report compatibility를 위해 같은 구현 위에 보존한다. 신규 automation은 `sema-conformance`와 `sema.wire-conformance.v1`을 사용한다.
+`cmd/sema-target-smoke`와 `sema.target-smoke.v1` report는 P30 `/v0alpha2` command/report compatibility를 위해 같은 구현 위에 보존한다. 신규 automation은 `/v1`을 기본으로 하는 `sema-conformance`와 `sema.wire-conformance.v1`을 사용한다. tagged predecessor 검사처럼 alpha route가 필요한 경우에만 `sema-conformance -api-version v0alpha2`를 명시한다.
 
 ## Repository-Owned Fixture
 
@@ -49,6 +49,6 @@ scripts/check-postgres.sh
 
 이 fixture는 current source revision의 wire semantics, OIDC claim mapping과 PostgreSQL authority가 함께 동작함을 검증한다. 별도 HTTPS reverse-proxy fixture는 external TLS termination 뒤의 private HTTP listener를 legacy compatibility client로 실행한다. 특정 provider나 private deployment inventory에 의존하지 않는다.
 
-P30 legacy client의 고정 baseline과 stable 전 cross-version requirement는 `docs/wire-compatibility.md`가 소유한다. 기존 공개 tag에는 `v0alpha2` service가 없으므로 과거 service release와의 교차 호환성을 이미 달성했다고 주장하지 않는다.
+P30 legacy client의 고정 baseline과 stable cross-version requirement는 `docs/wire-compatibility.md`가 소유한다. `v0.3.0`과 `v0.4.0`의 tagged matrix가 첫 immutable alpha evidence이며 stable successor도 supported predecessor/current 양방향 검사를 반복한다.
 
-`cmd/sema-wire-fixture`는 tagged client-service matrix가 각 immutable source에서 빌드하는 loopback-only test service다. 실제 `v0alpha2` target handler와 in-memory repository를 사용하고 세 test token을 환경으로 받지만 PostgreSQL, OIDC, TLS 또는 deployment readiness를 주장하지 않는다. 해당 운영 경계는 계속 `scripts/check-postgres.sh`와 container/recovery gate가 소유한다. fixture는 non-loopback listen을 거부하고 release artifact에는 포함하지 않는다.
+`cmd/sema-wire-fixture`는 tagged client-service matrix가 각 immutable source에서 빌드하는 loopback-only test service다. current source에서는 `/v1`과 `/v0alpha2` target handler가 같은 in-memory repository를 사용한다. 세 test token을 환경으로 받지만 PostgreSQL, OIDC, TLS 또는 deployment readiness를 주장하지 않는다. 해당 운영 경계는 계속 `scripts/check-postgres.sh`와 container/recovery gate가 소유한다. fixture는 non-loopback listen을 거부하고 release artifact에는 포함하지 않는다.

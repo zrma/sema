@@ -99,6 +99,8 @@ standard_service_resource_profile_decision: docs/decisions/0029-standard-service
 standard_service_observability_decision: docs/decisions/0030-standard-service-observability.md
 standard_service_recovery_decision: docs/decisions/0031-standard-service-recovery.md
 stable_admission_decision: docs/decisions/0032-stable-admission-deferred.md
+stable_service_wire_decision: docs/decisions/0033-stable-service-wire-contract.md
+stable_wire_migration: docs/migrations/v0alpha2-to-v1.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -170,5 +172,10 @@ publication:
 release:
   alpha_admitted: true
   stable_admitted: false
+  stable_surface: service_wire_v1
+  support_owner: repository_maintainers
+  supported_previous_minor_releases: 1
+  minimum_support_days: 180
+  minimum_deprecation_minor_releases: 2
   wire_compatibility_previous: v0.3.0
   wire_compatibility_current: v0.4.0

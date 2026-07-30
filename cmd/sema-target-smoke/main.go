@@ -20,6 +20,7 @@ func main() {
 			ProgramName:  "sema-target-smoke",
 			Version:      version,
 			ReportSchema: "sema.target-smoke.v1",
+			APIVersion:   "v0alpha2",
 		},
 	))
 }

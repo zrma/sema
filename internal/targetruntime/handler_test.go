@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	api "github.com/zrma/sema/internal/api/v0alpha2"
 	"github.com/zrma/sema/internal/observability"
 	"github.com/zrma/sema/internal/repository"
 	"github.com/zrma/sema/internal/targetapi"
@@ -29,11 +30,28 @@ func TestHandlerExposesHealthWithoutWeakeningTargetAuthentication(t *testing.T) 
 		}
 	}
 
-	request := httptest.NewRequest(http.MethodGet, "https://sema.example/v0alpha2/match-tickets", nil)
-	recorder := httptest.NewRecorder()
-	handler.ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusUnauthorized {
-		t.Fatalf("target API status = %d, body = %s", recorder.Code, recorder.Body.String())
+	for path, expectedVersion := range map[string]string{
+		"/v0alpha2/match-tickets": api.Version,
+		"/v1/match-tickets":       targetapi.StableAPIVersion,
+	} {
+		request := httptest.NewRequest(http.MethodGet, "https://sema.example"+path, nil)
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, request)
+		var envelope api.Envelope
+		if err := json.Unmarshal(recorder.Body.Bytes(), &envelope); err != nil {
+			t.Fatal(err)
+		}
+		if recorder.Code != http.StatusUnauthorized ||
+			envelope.APIVersion != expectedVersion ||
+			envelope.Error == nil ||
+			envelope.Error.Code != "Unauthenticated" {
+			t.Fatalf(
+				"target API path=%s status=%d envelope=%#v",
+				path,
+				recorder.Code,
+				envelope,
+			)
+		}
 	}
 }
 
@@ -89,6 +107,31 @@ func TestAdmissionRejectsExcessWithoutBlockingHealth(t *testing.T) {
 	}
 	close(release)
 	<-finished
+}
+
+func TestAdmissionEnvelopeUsesBoundStableVersion(t *testing.T) {
+	recorder := &stableResponseRecorder{ResponseRecorder: httptest.NewRecorder()}
+	writeEnvelope(recorder, http.StatusServiceUnavailable, api.Envelope{
+		APIVersion: api.Version,
+		Error: &api.Failure{
+			Code: "ResourceExhausted", Message: "capacity is exhausted", Retryable: true,
+		},
+	})
+	var envelope api.Envelope
+	if err := json.Unmarshal(recorder.Body.Bytes(), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	if envelope.APIVersion != targetapi.StableAPIVersion {
+		t.Fatalf("API version = %q; want %q", envelope.APIVersion, targetapi.StableAPIVersion)
+	}
+}
+
+type stableResponseRecorder struct {
+	*httptest.ResponseRecorder
+}
+
+func (*stableResponseRecorder) SemaAPIVersion() string {
+	return targetapi.StableAPIVersion
 }
 
 func TestSharedAdmissionMetricsRetainRejectedEndpointPattern(t *testing.T) {

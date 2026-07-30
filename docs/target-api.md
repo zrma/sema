@@ -2,7 +2,7 @@
 
 ## Status
 
-`v0alpha2`는 PostgreSQL target repository 위에서 검증하는 authenticated service boundary다. 현재 구현은 immutable `Policy` catalog, `MatchTicket`/`BackfillTicket` ingestion, repository-versioned planning run/result와 reservation/assignment lifecycle을 연결하며 stable compatibility나 production listener를 제공하지 않는다. 기존 `v0alpha1` journal service와 route semantics를 조용히 바꾸지 않는다.
+`/v1`은 PostgreSQL target repository 위에서 검증하는 stable authenticated service boundary다. 현재 구현은 immutable `Policy` catalog, `MatchTicket`/`BackfillTicket` ingestion, repository-versioned planning run/result와 reservation/assignment lifecycle을 연결한다. `/v0alpha2`는 같은 authority와 lifecycle을 가리키는 compatibility alias이고 response envelope marker만 요청 prefix에 맞춘다. 기존 `/v0alpha1` journal service와 route semantics는 별도 development/reference surface로 유지한다.
 
 ## Authentication And Tenant Scope
 
@@ -25,9 +25,9 @@ token validation protocol은 provider-neutral OIDC/JWT로 정했다. issuer와 a
 
 | Method | Path | Permission | Semantics |
 |---|---|---|---|
-| `PUT` | `/v0alpha2/policies/{version}` | `policies.write` | immutable version-to-content registration |
-| `GET` | `/v0alpha2/policies/{version}` | `policies.read` | registered policy poll |
-| `GET` | `/v0alpha2/policies` | `policies.read` | registered policy page |
+| `PUT` | `/v1/policies/{version}` | `policies.write` | immutable version-to-content registration |
+| `GET` | `/v1/policies/{version}` | `policies.read` | registered policy poll |
+| `GET` | `/v1/policies` | `policies.read` | registered policy page |
 
 policy version은 canonical rule content의 fingerprint에 묶인다. 같은 content 재등록은 별도 operation receipt를 남기지만 payload content는 바꾸지 않으며, 같은 version에 다른 content를 등록하면 `PolicyConflict`다. role requirement 순서는 canonicalize하고 relaxation 순서는 policy semantics로 보존한다. repository payload는 `sema.policy.v1` schema와 검증된 fingerprint를 함께 저장하며 read 때 content로 fingerprint를 다시 계산한다.
 
@@ -35,10 +35,10 @@ policy version은 canonical rule content의 fingerprint에 묶인다. 같은 con
 
 | Method | Path | Permission | Semantics |
 |---|---|---|---|
-| `PUT` | `/v0alpha2/match-tickets/{ticket_id}` | `match_tickets.write` | create 또는 higher-revision replace |
-| `GET` | `/v0alpha2/match-tickets/{ticket_id}` | `match_tickets.read` | active resource poll |
-| `GET` | `/v0alpha2/match-tickets` | `match_tickets.read` | active resource page |
-| `DELETE` | `/v0alpha2/match-tickets/{ticket_id}?revision=<exact>` | `match_tickets.write` | exact-revision tombstone |
+| `PUT` | `/v1/match-tickets/{ticket_id}` | `match_tickets.write` | create 또는 higher-revision replace |
+| `GET` | `/v1/match-tickets/{ticket_id}` | `match_tickets.read` | active resource poll |
+| `GET` | `/v1/match-tickets` | `match_tickets.read` | active resource page |
+| `DELETE` | `/v1/match-tickets/{ticket_id}?revision=<exact>` | `match_tickets.write` | exact-revision tombstone |
 
 모든 mutation은 정확히 하나의 `Idempotency-Key` header를 요구한다. 같은 tenant에서 같은 key와 canonical command digest를 재시도하면 후속 revision 변경이나 cancellation이 이미 일어났더라도 최초 commit version을 반환한다. 같은 key를 다른 command에 사용하면 `IdempotencyConflict`다.
 
@@ -48,10 +48,10 @@ repository payload는 wire envelope와 별개인 `sema.match-ticket.v1` schema�
 
 | Method | Path | Permission | Semantics |
 |---|---|---|---|
-| `PUT` | `/v0alpha2/backfill-tickets/{ticket_id}` | `backfill_tickets.write` | create 또는 higher-revision/monotonic-roster replace |
-| `GET` | `/v0alpha2/backfill-tickets/{ticket_id}` | `backfill_tickets.read` | active resource poll |
-| `GET` | `/v0alpha2/backfill-tickets` | `backfill_tickets.read` | active resource page |
-| `DELETE` | `/v0alpha2/backfill-tickets/{ticket_id}?revision=<exact>&roster_version=<exact>` | `backfill_tickets.write` | exact freshness tombstone |
+| `PUT` | `/v1/backfill-tickets/{ticket_id}` | `backfill_tickets.write` | create 또는 higher-revision/monotonic-roster replace |
+| `GET` | `/v1/backfill-tickets/{ticket_id}` | `backfill_tickets.read` | active resource poll |
+| `GET` | `/v1/backfill-tickets` | `backfill_tickets.read` | active resource page |
+| `DELETE` | `/v1/backfill-tickets/{ticket_id}?revision=<exact>&roster_version=<exact>` | `backfill_tickets.write` | exact freshness tombstone |
 
 replacement는 session identity를 바꾸지 않고 ticket revision을 전진시켜야 한다. roster version은 뒤로 갈 수 없으며 같은 roster version에서 vacancy shape나 existing roster aggregate를 변경할 수 없다. exact cancellation은 BackfillTicket tombstone과 session claim 해제를 한 transaction에서 기록한다.
 
@@ -61,10 +61,10 @@ replacement는 session identity를 바꾸지 않고 ticket revision을 전진시
 
 | Method | Path | Permission | Semantics |
 |---|---|---|---|
-| `POST` | `/v0alpha2/planning-runs/{run_id}` | `planning_runs.write` | policy version으로 immutable snapshot capture, matcher 실행과 result completion |
-| `GET` | `/v0alpha2/planning-runs/{run_id}` | `planning_runs.read` | `planning` 또는 `completed` 상태 poll |
-| `GET` | `/v0alpha2/planning-runs/{run_id}/proposals` | `planning_runs.read` | immutable proposal page |
-| `GET` | `/v0alpha2/planning-runs/{run_id}/unmatched` | `planning_runs.read` | immutable unmatched ticket page |
+| `POST` | `/v1/planning-runs/{run_id}` | `planning_runs.write` | policy version으로 immutable snapshot capture, matcher 실행과 result completion |
+| `GET` | `/v1/planning-runs/{run_id}` | `planning_runs.read` | `planning` 또는 `completed` 상태 poll |
+| `GET` | `/v1/planning-runs/{run_id}/proposals` | `planning_runs.read` | immutable proposal page |
+| `GET` | `/v1/planning-runs/{run_id}/unmatched` | `planning_runs.read` | immutable unmatched ticket page |
 
 POST body는 `policy_version`만 받는다. capture commit은 policy와 active demand의 exact repository version을 `sema.planning-snapshot.v1` payload로 저장하고 transaction을 닫는다. matcher는 저장된 snapshot으로 transaction 밖에서 실행한다. completion은 `planning_run`, 모든 `proposal`과 `planning_unmatched` resource를 한 atomic commit에 기록한다. capture 뒤 matcher가 중단되면 같은 `Idempotency-Key` retry가 현재 queue를 다시 읽지 않고 저장된 snapshot부터 재개한다.
 
@@ -74,11 +74,11 @@ planning command는 현재 synchronous HTTP response로 completion까지 기다�
 
 | Method | Path | Permission | Semantics |
 |---|---|---|---|
-| `POST` | `/v0alpha2/reservations/{reservation_id}` | `reservations.write` | authoritative `proposal_id`의 current demand를 atomic claim |
-| `GET` | `/v0alpha2/reservations/{reservation_id}` | `reservations.read` | active 또는 terminal reservation poll |
-| `GET` | `/v0alpha2/reservations` | `reservations.read` | active와 terminal reservation page |
-| `POST` | `/v0alpha2/reservations/{reservation_id}/cancel` | `reservations.write` | active reservation과 모든 demand claim을 atomic cancel |
-| `POST` | `/v0alpha2/reservations/{reservation_id}/confirm` | `reservations.write` | current freshness 재검증, demand 소비와 pending assignment atomic create |
+| `POST` | `/v1/reservations/{reservation_id}` | `reservations.write` | authoritative `proposal_id`의 current demand를 atomic claim |
+| `GET` | `/v1/reservations/{reservation_id}` | `reservations.read` | active 또는 terminal reservation poll |
+| `GET` | `/v1/reservations` | `reservations.read` | active와 terminal reservation page |
+| `POST` | `/v1/reservations/{reservation_id}/cancel` | `reservations.write` | active reservation과 모든 demand claim을 atomic cancel |
+| `POST` | `/v1/reservations/{reservation_id}/confirm` | `reservations.write` | current freshness 재검증, demand 소비와 pending assignment atomic create |
 
 reserve body는 `proposal_id`만 받고 placement, ticket list와 expiry를 client가 제출할 수 없다. service는 저장된 proposal을 읽어 현재 ticket revision과 optional backfill session/roster version을 다시 검증하고, reservation과 ticket별 `demand_reservation_claim`을 한 commit으로 만든다. 같은 demand를 경쟁하는 replica 중 claim CAS winner만 성공한다.
 
@@ -92,9 +92,9 @@ confirm body는 `assignment_id`만 받는다. service는 reservation이 참조�
 
 | Method | Path | Permission | Semantics |
 |---|---|---|---|
-| `GET` | `/v0alpha2/assignments/{assignment_id}` | `assignments.read` | pending 또는 terminal assignment poll |
-| `GET` | `/v0alpha2/assignments` | `assignments.read` | pending과 terminal assignment page |
-| `POST` | `/v0alpha2/assignments/{assignment_id}/acknowledgments` | `assignments.write` | external application outcome의 idempotent terminal 기록 |
+| `GET` | `/v1/assignments/{assignment_id}` | `assignments.read` | pending 또는 terminal assignment poll |
+| `GET` | `/v1/assignments` | `assignments.read` | pending과 terminal assignment page |
+| `POST` | `/v1/assignments/{assignment_id}/acknowledgments` | `assignments.write` | external application outcome의 idempotent terminal 기록 |
 
 acknowledgment body는 `completed`, `cancelled` 또는 `failed` outcome과 outcome별 detail만 받는다. `Idempotency-Key`가 operation ID이며 response의 acknowledgment에 기록된다. 서로 다른 terminal outcome 경쟁은 assignment storage version CAS로 하나만 commit한다. 같은 operation retry는 original result를 반환하고 다른 terminal transition은 `InvalidTransition`이다.
 
@@ -126,6 +126,6 @@ strict JSON decoding, 1 MiB body limit, bounded identifier와 allowlisted query 
 
 - PostgreSQL/OIDC service와 repository-owned current-source wire conformance를 repeatable standard runtime contract로 유지한다.
 - repository-owned pool/admission/timeout과 numeric regression budget은 `docs/service-workload.md`가 정한다. deployment quota/rate limit과 production SLA는 실제 consumer workload evidence로 별도 calibration한다.
-- multi-version compatibility와 PostgreSQL backup/PITR evidence를 추가한다.
+- `/v1`과 supported compatibility alias의 tagged multi-version evidence를 유지하고 deployment-specific PostgreSQL backup/PITR은 별도 운영 책임으로 둔다.
 
-optional V0 import의 local backup/restore와 pre-writer recovery gate는 `scripts/check-postgres.sh`가 검증한다. P31은 PostgreSQL/OIDC service를 표준 entrypoint로 승격했고 기존 V0와 P30 command compatibility를 보존한다. 이 repository runtime promotion은 existing deployment나 game traffic을 전제로 하지 않으며, 위 readiness 항목 전에는 `v0alpha2`를 stable contract로 선언하지 않는다.
+optional V0 import의 local backup/restore와 pre-writer recovery gate는 `scripts/check-postgres.sh`가 검증한다. P31은 PostgreSQL/OIDC service를 표준 entrypoint로 승격했고 기존 V0와 P30 command compatibility를 보존한다. P32는 `/v1`을 stable wire로 승인하고 `/v0alpha2`를 ADR 0033의 지원 기간 동안 compatibility alias로 유지한다. 이 contract closure는 existing deployment나 game traffic을 전제로 하지 않는다.

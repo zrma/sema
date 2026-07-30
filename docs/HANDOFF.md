@@ -44,7 +44,7 @@
 - ADR 0017이 PostgreSQL primary를 durable authority로 채택하고 stateless service replica를 허용하며 Redis를 baseline에서 제외한다.
 - `internal/repository/postgres`가 explicit schema migration, resource CAS, ordered scope version과 atomic operation/audit receipt를 구현한다.
 - Docker-isolated PostgreSQL gate가 공통 conformance와 separate-pool ordered commit을 실제 database에서 검증한다.
-- `internal/targetapi`의 experimental `v0alpha2` match-ticket surface가 provider-neutral principal/permission, tenant isolation과 strict transport validation을 구현한다.
+- `internal/targetapi`의 stable `/v1`과 `/v0alpha2` compatibility alias가 provider-neutral principal/permission, tenant isolation과 strict transport validation을 같은 authority 위에 구현한다.
 - target mutation은 `Idempotency-Key`를 요구하고 repository receipt를 resource validation보다 먼저 resolve해 후속 revision 뒤의 오래된 retry도 최초 결과로 수렴한다.
 - target list/poll은 tenant/kind/filter/order와 repository version에 묶인 HMAC cursor를 사용하며 PostgreSQL composition fixture가 실제 create/get을 검증한다.
 - provider-neutral OIDC adapter가 HTTPS discovery/JWKS, asymmetric signed JWT, exact issuer/audience/time, `sema_tenant`와 permission scope를 검증하고 invalid/provider-unavailable을 분리한다.
@@ -75,7 +75,7 @@
 - `cmd/sema-ops-check`가 실제 HTTP lifecycle 부하, 완료 assignment restart replay와 incomplete journal tail 복구를 격리된 임시 runtime에서 검증한다.
 - `Dockerfile`과 loopback-published Compose example이 non-root/read-only/capability-free PostgreSQL/OIDC 표준 runtime을 제공한다. V0 single-writer journal 운영 계약은 별도 compatibility runbook에 있다.
 - reference container profile이 repeated service latency/recovery와 planner/engine/replay allocation budget을 검증하고 CI가 redacted aggregate history를 보존한다.
-- release admission은 v0 alpha만 허용하며 stable surface/support 승인과 tagged cross-version evidence 전에는 v1 tag를 차단한다.
+- ADR 0033은 HTTP `/v1`만 stable surface로 승인하고 Go `alpha`를 제외했다. release admission은 migration/end-of-support와 stable release note gate가 연결되기 전까지 v1 tag를 차단한다.
 - `cmd/sema-tui`가 실제 loopback HTTP lifecycle 위에서 empty queue로 시작하는 mixed-party arrival, proposal/reservation, concurrent game과 completion을 Unicode animation으로 보여준다.
 - Flow snapshot과 ASCII/reduced-motion fallback이 terminal-independent self-check를 제공하며 demo timing은 production scheduler authority가 아니다.
 - 기본 1,000명 closed population registry가 fixed party로 순차 유입되고 45초 game을 반복하며 hidden true skill 기반 승패 뒤 visible Elo rating을 갱신한다.
@@ -95,13 +95,13 @@
 - selector cardinality가 하나이면 anchored batch alternative를 생략하는 P20 fast path가 50v50, 100K queue와 engine 1,000-ticket을 기존 reference performance budget 안에 유지한다. multi-proposal 또는 backfill 경쟁 경로는 P18 candidate graph를 유지한다.
 - `scripts/check.sh`가 Go format, vet, test, race detector, reference benchmark와 repository gate를 실행한다.
 - repository identity는 `github.com/zrma/sema`이고 source는 Apache-2.0으로 공개한다.
-- `alpha` 외 Go package는 `internal/`에 유지한다. public Go marker는 P26 roster-aware backfill migration을 반영한 `v0alpha5`이며 stable API와 wire compatibility는 아직 제공하지 않는다.
+- `alpha` 외 Go package는 `internal/`에 유지한다. public Go marker는 P26 roster-aware backfill migration을 반영한 `v0alpha5`이며 stable Go API는 제공하지 않는다. stable compatibility는 HTTP `/v1` wire에만 적용한다.
 - production SLA, skill metric, role schema와 database failover/PITR 제품 계약은 아직 결정하지 않았다.
 - publication class는 `public`이며 push 전 repository gate와 machine-local inventory gate를 모두 통과한다.
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. `sema-service`, image, Compose와 primary runbook은 같은 표준 runtime을 가리키고 V0 journal은 optional import 및 development/reference compatibility surface다. reference client, two-replica matrix, standard workload, bounded observability/reference alert와 native destructive recovery gate가 repository-owned evidence를 제공한다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. stable surface, tagged multi-version matrix와 deprecation/support ownership을 승인·검증한 뒤 maintenance mode로 전환하며, 그 전까지 stable v1은 차단한다.
+P0 foundation부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. `sema-service`, image, Compose와 primary runbook은 같은 표준 runtime을 가리키고 V0 journal은 optional import 및 development/reference compatibility surface다. reference client, two-replica matrix, standard workload, bounded observability/reference alert와 native destructive recovery gate가 repository-owned evidence를 제공한다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. `/v1` scope, repository maintainer ownership, 180일/2개 minor support policy와 `v0.3.0`/`v0.4.0` matrix는 확정되었고 migration/release gate와 stable publication을 닫은 뒤 maintenance mode로 전환한다.
 
 ## Completion Rule
 

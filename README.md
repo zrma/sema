@@ -10,7 +10,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 
 P31에서는 PostgreSQL primary와 stateless service replica를 표준 runtime으로 승격했다. `sema-conformance`가 OIDC 인증 실패, tenant isolation과 complete lifecycle을, two-replica matrix가 reservation single-winner, restart와 PostgreSQL outage/recovery를 검증한다. `sema-standard-postgres-v1`은 same-tenant concurrent commit deadlock 회귀를 차단하고 64-request admission, 16/2 PostgreSQL pool, 5초 operation deadline과 p95 750ms reference regression budget을 반복 측정한다. 표준 runtime은 bounded Prometheus metric/redacted trace/reference alert를 제공하고 native PostgreSQL checkpoint를 destructive restore한 뒤 operation replay, terminal assignment와 새 API write까지 검증한다.
 
-Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. P31 product-readiness evidence는 완료되었고 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. P30 `v0alpha2` wire가 첫 compatibility baseline이므로 stable surface, tagged multi-version matrix와 deprecation/support 약속을 승인하고 검증하기 전까지 v1 release는 gate가 차단한다. P32를 닫은 뒤에는 새 integration program으로 이어가지 않고 maintenance mode로 전환한다.
+Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. P31 product-readiness evidence는 완료되었고 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. ADR 0033은 HTTP `/v1`만 stable surface로 정하고 Go `alpha`는 experimental로 유지한다. `v0.3.0`/`v0.4.0` tagged matrix와 180일/2개 minor compatibility 약속을 입력으로 migration/release gate를 닫기 전까지 v1 release는 차단한다. P32를 닫은 뒤에는 새 integration program으로 이어가지 않고 maintenance mode로 전환한다.
 
 ## Public Contract
 
@@ -58,7 +58,7 @@ Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가
 - `docs/runtime-failure-matrix.md`: two-replica contention, restart와 PostgreSQL outage/recovery evidence.
 - `docs/service-workload.md`: 표준 PostgreSQL service의 admission, pool, timeout과 numeric regression profile.
 - `docs/postgres-recovery.md`: native PostgreSQL checkpoint restore와 deployment PITR acceptance contract.
-- `docs/wire-compatibility.md`: P30 wire baseline, alpha deprecation policy와 stable admission requirement.
+- `docs/wire-compatibility.md`: `/v1` stable wire, P30 compatibility baseline과 numeric support/deprecation policy.
 - `docs/v0-runtime.md`: V0 single-writer journal development/reference 및 import compatibility runbook.
 - `docs/candidate-discovery.md`: candidate ticket window와 large-queue tradeoff.
 - `docs/public-api.md`: public `alpha.Compose` 범위와 사용법.

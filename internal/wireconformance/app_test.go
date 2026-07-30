@@ -115,7 +115,7 @@ func TestLegacyCompatibilityClientTraversesExternalTLSGateway(t *testing.T) {
 		context.Background(),
 		config{
 			baseURL: gateway.URL, writeToken: "write-token", readToken: "read-token",
-			otherTenantToken: "other-token", timeout: 5 * time.Second,
+			otherTenantToken: "other-token", apiVersion: "v0alpha2", timeout: 5 * time.Second,
 		},
 		gateway.Client(),
 		bytes.NewReader(bytes.Repeat([]byte{8}, 8)),
@@ -128,6 +128,59 @@ func TestLegacyCompatibilityClientTraversesExternalTLSGateway(t *testing.T) {
 		!result.Unauthenticated || !result.PermissionDenied ||
 		!result.TenantIsolation || !result.LifecycleComplete {
 		t.Fatalf("gateway compatibility report = %#v", result)
+	}
+}
+
+func TestStandardRunValidatesStableLifecycle(t *testing.T) {
+	handler, err := targetruntime.New(
+		repository.NewMemory(), fixtureAuthenticator(),
+		targetruntime.Options{
+			CursorKey: bytes.Repeat([]byte{7}, 32), ReservationTTL: time.Minute,
+			MaxInFlight: 8, RequestTimeout: 5 * time.Second, ReadinessTimeout: time.Second,
+			ReadinessCheck: func(context.Context) error { return nil },
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	environment := map[string]string{
+		writeTokenEnvironment: "write-token", readTokenEnvironment: "read-token",
+		otherTenantTokenEnvironment: "other-token",
+	}
+	lookup := func(name string) (string, bool) {
+		value, exists := environment[name]
+		return value, exists
+	}
+	var stdout, stderr bytes.Buffer
+	code := runWithIdentity(
+		context.Background(),
+		[]string{"-base-url", server.URL, "-allow-http", "-timeout", "5s"},
+		lookup,
+		bytes.NewReader(bytes.Repeat([]byte{9}, 8)),
+		&stdout,
+		&stderr,
+		time.Date(2026, time.July, 30, 0, 0, 0, 0, time.UTC),
+		Identity{
+			ProgramName:  "sema-conformance",
+			Version:      "v1.0.0-test",
+			ReportSchema: "sema.wire-conformance.v1",
+			APIVersion:   "v1",
+		},
+	)
+	if code != 0 {
+		t.Fatalf("exit code = %d, stderr=%q", code, stderr.String())
+	}
+	var result report
+	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Schema != "sema.wire-conformance.v1" || result.RunID == "" ||
+		!result.Health || !result.Unauthenticated || !result.PermissionDenied ||
+		!result.TenantIsolation || !result.LifecycleComplete {
+		t.Fatalf("report = %#v", result)
 	}
 }
 
@@ -266,6 +319,7 @@ func TestRunUsesStandardCommandIdentity(t *testing.T) {
 			ProgramName:  "sema-conformance",
 			Version:      "v0.0.0-test",
 			ReportSchema: "sema.wire-conformance.v1",
+			APIVersion:   "v1",
 		},
 	)
 	if code != 0 || stdout.String() != "sema-conformance v0.0.0-test\n" {

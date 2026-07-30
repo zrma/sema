@@ -1,6 +1,6 @@
 # P32 Framework Contract Closure And Maintenance Handoff Spec
 
-- Status: Active — Contract Decision Required
+- Status: Active — Stable Admission In Progress
 
 ## Objective
 
@@ -19,11 +19,11 @@ Sema의 세 번째이자 마지막 계획 개발 단계를 닫는다. P31 standa
 
 - [x] 세 단계의 상위 lifecycle과 Stage 3 종료 후 maintenance-only 목표를 repository 문서에 고정한다.
 - [x] service, migration과 reference client alpha release artifact 및 tagged-source wire fixture baseline을 제공한다.
-- [ ] stable 범위를 service wire로 한정할지 public Go `alpha` package까지 포함할지 승인한다.
-- [ ] major/minor compatibility, security exception, numeric deprecation/support window와 maintenance owner를 ADR로 고정한다.
+- [x] stable 범위를 HTTP service wire `/v1`로 한정하고 public Go `alpha` package를 제외한다.
+- [x] major/minor compatibility, security exception, numeric deprecation/support window와 repository maintainer ownership을 ADR 0033으로 고정한다.
 - [x] immutable tagged service release를 입력으로 previous client → current service와 current client → supported previous service matrix를 실행하는 repository-owned gate를 구현한다.
 - [x] manifest의 exact release pair와 tag workflow를 연결하고 bounded matrix JSON을 checksum 대상 release asset으로 보존한다.
-- [ ] service wire를 포함한 alpha release 두 개 이상을 별도 publication 승인 아래 출고하고 matrix 입력으로 보존한다.
+- [x] service wire를 포함한 `v0.3.0`과 `v0.4.0`을 별도 publication 승인 아래 출고하고 양방향 matrix artifact를 보존한다.
 - [ ] migration, rollback limitation과 end-of-support 신호를 compatibility/release gate에 연결한다.
 - [ ] canonical local, container, PostgreSQL workload/failure/recovery와 public boundary gate를 통과한 뒤 stable admission을 별도 logical change로 전환한다.
 - [ ] stable release의 remote tag, artifact/checksum, same-target CI를 검증한다.

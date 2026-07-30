@@ -42,6 +42,7 @@ type Identity struct {
 	ProgramName  string
 	Version      string
 	ReportSchema string
+	APIVersion   string
 }
 
 type config struct {
@@ -49,6 +50,7 @@ type config struct {
 	writeToken       string
 	readToken        string
 	otherTenantToken string
+	apiVersion       string
 	timeout          time.Duration
 	allowHTTP        bool
 }
@@ -130,6 +132,7 @@ func run(
 			ProgramName:  compatibilityProgramName,
 			Version:      "dev",
 			ReportSchema: compatibilityReportSchema,
+			APIVersion:   api.Version,
 		},
 	)
 }
@@ -153,7 +156,16 @@ func runWithIdentity(
 	if identity.ReportSchema == "" {
 		identity.ReportSchema = compatibilityReportSchema
 	}
-	configuration, showVersion, err := parseConfigWithName(args, lookupEnvironment, stderr, identity.ProgramName)
+	if identity.APIVersion == "" {
+		identity.APIVersion = api.Version
+	}
+	configuration, showVersion, err := parseConfigWithName(
+		args,
+		lookupEnvironment,
+		stderr,
+		identity.ProgramName,
+		identity.APIVersion,
+	)
 	if err != nil {
 		return 2
 	}
@@ -184,7 +196,7 @@ func parseConfig(
 	lookupEnvironment func(string) (string, bool),
 	stderr io.Writer,
 ) (config, bool, error) {
-	return parseConfigWithName(args, lookupEnvironment, stderr, compatibilityProgramName)
+	return parseConfigWithName(args, lookupEnvironment, stderr, compatibilityProgramName, api.Version)
 }
 
 func parseConfigWithName(
@@ -192,14 +204,21 @@ func parseConfigWithName(
 	lookupEnvironment func(string) (string, bool),
 	stderr io.Writer,
 	programName string,
+	defaultAPIVersion string,
 ) (config, bool, error) {
-	configuration := config{timeout: 45 * time.Second}
+	configuration := config{timeout: 45 * time.Second, apiVersion: defaultAPIVersion}
 	if value, exists := lookupEnvironment(baseURLEnvironment); exists {
 		configuration.baseURL = value
 	}
 	flags := flag.NewFlagSet(programName, flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	flags.StringVar(&configuration.baseURL, "base-url", configuration.baseURL, "target service base URL")
+	flags.StringVar(
+		&configuration.apiVersion,
+		"api-version",
+		configuration.apiVersion,
+		"service wire version: v1 or v0alpha2",
+	)
 	flags.DurationVar(&configuration.timeout, "timeout", configuration.timeout, "whole validation timeout")
 	flags.BoolVar(&configuration.allowHTTP, "allow-http", false, "allow plaintext HTTP for isolated local tests")
 	showVersion := flags.Bool("version", false, "print version")
@@ -231,6 +250,9 @@ func parseConfigWithName(
 func validateConfig(configuration config) error {
 	if configuration.timeout <= 0 {
 		return fmt.Errorf("timeout must be positive")
+	}
+	if configuration.apiVersion != "v1" && configuration.apiVersion != api.Version {
+		return fmt.Errorf("api version must be v1 or %s", api.Version)
 	}
 	parsed, err := url.Parse(configuration.baseURL)
 	if err != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
@@ -283,6 +305,7 @@ func validateWithSchema(
 	}
 	result := report{Schema: reportSchema, RunID: runID}
 	baseURL := strings.TrimSuffix(configuration.baseURL, "/")
+	apiPrefix := "/" + configuration.apiVersion
 
 	if err := expectHealth(ctx, client, baseURL+"/livez"); err != nil {
 		return report{}, fmt.Errorf("liveness: %w", err)
@@ -292,10 +315,10 @@ func validateWithSchema(
 	}
 	result.Health = true
 
-	firstTicketPath := "/v0alpha2/match-tickets/" + runID + "-ticket-1"
+	firstTicketPath := apiPrefix + "/match-tickets/" + runID + "-ticket-1"
 	if err := expectFailure(
 		ctx, client, baseURL, "", http.MethodGet, firstTicketPath, nil,
-		http.StatusUnauthorized, "Unauthenticated",
+		http.StatusUnauthorized, "Unauthenticated", configuration.apiVersion,
 	); err != nil {
 		return report{}, fmt.Errorf("unauthenticated boundary: %w", err)
 	}
@@ -304,7 +327,7 @@ func validateWithSchema(
 	firstTicket := matchTicket(runID+"-ticket-1", now, 1490)
 	if err := expectFailure(
 		ctx, client, baseURL, configuration.readToken, http.MethodPut, firstTicketPath, firstTicket,
-		http.StatusForbidden, "PermissionDenied",
+		http.StatusForbidden, "PermissionDenied", configuration.apiVersion,
 	); err != nil {
 		return report{}, fmt.Errorf("permission boundary: %w", err)
 	}
@@ -312,10 +335,11 @@ func validateWithSchema(
 
 	for index, skill := range []int{1490, 1510, 1495, 1505} {
 		id := fmt.Sprintf("%s-ticket-%d", runID, index+1)
-		if _, err := requestData[api.MatchTicketMutation](
+		if _, err := requestDataForVersion[api.MatchTicketMutation](
 			ctx, client, baseURL, configuration.writeToken,
 			fmt.Sprintf("%s-put-ticket-%d", runID, index+1),
-			http.MethodPut, "/v0alpha2/match-tickets/"+id, matchTicket(id, now, skill),
+			http.MethodPut, apiPrefix+"/match-tickets/"+id, matchTicket(id, now, skill),
+			configuration.apiVersion,
 		); err != nil {
 			return report{}, fmt.Errorf("create match ticket %d: %w", index+1, err)
 		}
@@ -323,7 +347,7 @@ func validateWithSchema(
 
 	if err := expectFailure(
 		ctx, client, baseURL, configuration.otherTenantToken, http.MethodGet, firstTicketPath, nil,
-		http.StatusNotFound, "NotFound",
+		http.StatusNotFound, "NotFound", configuration.apiVersion,
 	); err != nil {
 		return report{}, fmt.Errorf("tenant isolation: %w", err)
 	}
@@ -335,18 +359,18 @@ func validateWithSchema(
 		MaxProposals: 1, MaxSearchNodes: 100_000,
 		RelaxationSteps: []api.RelaxationStep{{AfterWaitMillis: 0, MaxTeamSkillGap: 100}},
 	}
-	if _, err := requestData[api.PolicyMutation](
+	if _, err := requestDataForVersion[api.PolicyMutation](
 		ctx, client, baseURL, configuration.writeToken, runID+"-put-policy",
-		http.MethodPut, "/v0alpha2/policies/"+policyVersion, policy,
+		http.MethodPut, apiPrefix+"/policies/"+policyVersion, policy, configuration.apiVersion,
 	); err != nil {
 		return report{}, fmt.Errorf("register policy: %w", err)
 	}
 
 	planningRunID := runID + "-planning"
-	planning, err := requestData[api.PlanningRunMutation](
+	planning, err := requestDataForVersion[api.PlanningRunMutation](
 		ctx, client, baseURL, configuration.writeToken, runID+"-plan",
-		http.MethodPost, "/v0alpha2/planning-runs/"+planningRunID,
-		api.PlanningRunRequest{PolicyVersion: policyVersion},
+		http.MethodPost, apiPrefix+"/planning-runs/"+planningRunID,
+		api.PlanningRunRequest{PolicyVersion: policyVersion}, configuration.apiVersion,
 	)
 	if err != nil {
 		return report{}, fmt.Errorf("execute planning run: %w", err)
@@ -354,9 +378,9 @@ func validateWithSchema(
 	if planning.Resource.Status != "completed" || planning.Resource.ProposalCount != 1 {
 		return report{}, fmt.Errorf("planning run did not produce exactly one completed proposal")
 	}
-	proposals, err := requestData[api.ProposalPage](
+	proposals, err := requestDataForVersion[api.ProposalPage](
 		ctx, client, baseURL, configuration.writeToken, "", http.MethodGet,
-		"/v0alpha2/planning-runs/"+planningRunID+"/proposals", nil,
+		apiPrefix+"/planning-runs/"+planningRunID+"/proposals", nil, configuration.apiVersion,
 	)
 	if err != nil {
 		return report{}, fmt.Errorf("read proposal: %w", err)
@@ -366,26 +390,26 @@ func validateWithSchema(
 	}
 
 	reservationID := runID + "-reservation"
-	if _, err := requestData[api.ReservationMutation](
+	if _, err := requestDataForVersion[api.ReservationMutation](
 		ctx, client, baseURL, configuration.writeToken, runID+"-reserve",
-		http.MethodPost, "/v0alpha2/reservations/"+reservationID,
-		api.ReservationRequest{ProposalID: proposals.Items[0].Proposal.ID},
+		http.MethodPost, apiPrefix+"/reservations/"+reservationID,
+		api.ReservationRequest{ProposalID: proposals.Items[0].Proposal.ID}, configuration.apiVersion,
 	); err != nil {
 		return report{}, fmt.Errorf("reserve proposal: %w", err)
 	}
 
 	assignmentID := runID + "-assignment"
-	if _, err := requestData[api.AssignmentMutation](
+	if _, err := requestDataForVersion[api.AssignmentMutation](
 		ctx, client, baseURL, configuration.writeToken, runID+"-confirm",
-		http.MethodPost, "/v0alpha2/reservations/"+reservationID+"/confirm",
-		api.ConfirmReservationRequest{AssignmentID: assignmentID},
+		http.MethodPost, apiPrefix+"/reservations/"+reservationID+"/confirm",
+		api.ConfirmReservationRequest{AssignmentID: assignmentID}, configuration.apiVersion,
 	); err != nil {
 		return report{}, fmt.Errorf("confirm reservation: %w", err)
 	}
-	completed, err := requestData[api.AssignmentMutation](
+	completed, err := requestDataForVersion[api.AssignmentMutation](
 		ctx, client, baseURL, configuration.writeToken, runID+"-acknowledge",
-		http.MethodPost, "/v0alpha2/assignments/"+assignmentID+"/acknowledgments",
-		api.AcknowledgeAssignmentRequest{Outcome: "completed"},
+		http.MethodPost, apiPrefix+"/assignments/"+assignmentID+"/acknowledgments",
+		api.AcknowledgeAssignmentRequest{Outcome: "completed"}, configuration.apiVersion,
 	)
 	if err != nil {
 		return report{}, fmt.Errorf("acknowledge assignment: %w", err)
@@ -433,7 +457,7 @@ func expectHealth(ctx context.Context, client *http.Client, endpoint string) err
 	return nil
 }
 
-func requestData[T any](
+func requestDataForVersion[T any](
 	ctx context.Context,
 	client *http.Client,
 	baseURL string,
@@ -442,6 +466,7 @@ func requestData[T any](
 	method string,
 	path string,
 	body any,
+	expectedVersion string,
 ) (T, error) {
 	var zero T
 	response, err := performRequest(ctx, client, baseURL, token, operationID, method, path, body)
@@ -464,7 +489,7 @@ func requestData[T any](
 			Method: method, Path: path, Status: response.StatusCode, Code: code, Retryable: retryable,
 		}
 	}
-	if envelope.APIVersion != api.Version {
+	if envelope.APIVersion != expectedVersion {
 		return zero, fmt.Errorf("%s %s returned API version %q", method, path, envelope.APIVersion)
 	}
 	var data T
@@ -486,7 +511,17 @@ func RequestData[T any](
 	path string,
 	body any,
 ) (T, error) {
-	return requestData[T](ctx, client, baseURL, token, operationID, method, path, body)
+	return requestDataForVersion[T](
+		ctx,
+		client,
+		baseURL,
+		token,
+		operationID,
+		method,
+		path,
+		body,
+		api.Version,
+	)
 }
 
 func expectFailure(
@@ -499,6 +534,7 @@ func expectFailure(
 	body any,
 	wantStatus int,
 	wantCode string,
+	expectedVersion string,
 ) error {
 	response, err := performRequest(ctx, client, baseURL, token, "", method, path, body)
 	if err != nil {
@@ -509,7 +545,7 @@ func expectFailure(
 	if err != nil {
 		return err
 	}
-	if response.StatusCode != wantStatus || envelope.APIVersion != api.Version ||
+	if response.StatusCode != wantStatus || envelope.APIVersion != expectedVersion ||
 		envelope.Error == nil || envelope.Error.Code != wantCode {
 		code := ""
 		if envelope.Error != nil {

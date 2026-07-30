@@ -24,11 +24,10 @@ manifest의 `alpha_admitted: true`는 `v0.*` candidate가 위 gate를 통과하�
 
 major version 1 이상은 manifest의 exact `stable_admitted: true`가 추가로 필요하다. 현재 값은 false이며 다음 blocker가 남아 있다.
 
-- stable 범위를 service wire만으로 할지 public Go alpha package까지 포함할지에 대한 명시적 승인.
-- service wire를 포함한 tagged release 두 개 이상의 previous/current cross-version conformance.
-- stable major/minor compatibility, security exception, numeric deprecation/support window와 support owner.
+- migration, rollback limitation과 end-of-support 신호의 executable release gate 연결.
+- stable release note와 exact predecessor/current matrix pair.
 
-standard runtime, external TLS gateway fixture, reference client/workload, observability와 native PostgreSQL recovery acceptance는 완료되었다. P30 `v0alpha2`가 첫 wire baseline이고 기존 공개 tag에는 이 service가 없으므로 multi-release evidence를 가정하지 않는다. 실제 game integration은 adoption evidence이지 stable admission의 필수 조건이 아니다. blocker를 해결할 때는 compatibility/support decision과 executable cross-version evidence를 먼저 추가하고 마지막 change에서 admission flag를 바꾼다.
+ADR 0033은 stable 범위를 HTTP `/v1` service wire로 한정하고 Go `alpha`를 제외했다. 같은 major의 additive compatibility, critical security exception, 180일/2개 minor deprecation window와 repository maintainer ownership을 승인했다. `v0.3.0`과 `v0.4.0` tagged release의 양방향 matrix도 release asset으로 검증했다. standard runtime, external TLS gateway fixture, reference client/workload, observability와 native PostgreSQL recovery acceptance는 계속 canonical gate가 소유한다. 실제 game integration은 adoption evidence이지 stable admission의 필수 조건이 아니다. 남은 gate를 연결한 마지막 change에서만 admission flag를 바꾼다.
 
 ## Commands
 

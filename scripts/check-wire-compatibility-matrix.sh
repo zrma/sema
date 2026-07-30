@@ -163,6 +163,11 @@ run_direction() {
   error_log="$temporary_root/run/${direction}-fixture-error.log"
   client_report="$temporary_root/run/${direction}-client.json"
   client_error="$temporary_root/run/${direction}-client-error.log"
+  client_api_args=
+  if [ "$client_prefix" = current ] && [ "$service_prefix" = previous ] &&
+    "$temporary_root/bin/${client_prefix}-client" -h 2>&1 | grep -Fq -- '-api-version'; then
+    client_api_args="-api-version v0alpha2"
+  fi
 
   SEMA_TARGET_WRITE_TOKEN="$write_token" \
     SEMA_TARGET_READ_TOKEN="$read_token" \
@@ -195,6 +200,7 @@ run_direction() {
     SEMA_TARGET_READ_TOKEN="$read_token" \
     SEMA_TARGET_OTHER_TENANT_TOKEN="$other_token" \
     "$temporary_root/bin/${client_prefix}-client" \
+    $client_api_args \
     -base-url "http://$address" -allow-http -timeout 15s \
     >"$client_report" 2>"$client_error"
   grep -Fq '"schema":"sema.wire-conformance.v1"' "$client_report" &&

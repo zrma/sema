@@ -20,6 +20,7 @@ func main() {
 			ProgramName:  "sema-conformance",
 			Version:      version,
 			ReportSchema: "sema.wire-conformance.v1",
+			APIVersion:   "v1",
 		},
 	))
 }

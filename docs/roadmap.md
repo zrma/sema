@@ -286,9 +286,9 @@ P31은 실제 consumer나 production traffic을 기다리는 deployment program�
 ## P32: Framework Contract Closure And Maintenance Handoff
 
 - [x] 세 단계 lifecycle과 terminal maintenance-mode 목표 문서화
-- [ ] stable service/public Go surface scope 승인
-- [ ] compatibility, security exception, numeric deprecation/support window와 maintenance owner 결정
-- [ ] immutable tagged release 기반 previous/current client-service matrix
+- [x] stable HTTP `/v1` surface 승인과 public Go `alpha` 제외
+- [x] compatibility, security exception, 180일/2개 minor deprecation window와 repository maintainer ownership 결정
+- [x] `v0.3.0`/`v0.4.0` immutable tagged release 기반 previous/current client-service matrix
 - [ ] migration, rollback와 end-of-support executable release gate
 - [ ] stable admission과 release evidence
 - [ ] maintenance-only handoff와 active development milestone 종료

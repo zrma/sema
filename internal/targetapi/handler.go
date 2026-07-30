@@ -27,6 +27,9 @@ const (
 	maxRequestBytes = 1 << 20
 	defaultPageSize = 50
 	maxPageSize     = 200
+
+	// StableAPIVersion is the canonical stable service-wire marker.
+	StableAPIVersion = "v1"
 )
 
 var identifierPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
@@ -87,49 +90,53 @@ func New(
 		}
 		mux.Handle(pattern, endpoint)
 	}
-	handle("GET /v0alpha2/match-tickets", server.listMatchTickets)
-	handle("GET /v0alpha2/match-tickets/{ticket_id}", server.getMatchTicket)
-	handle("PUT /v0alpha2/match-tickets/{ticket_id}", server.putMatchTicket)
-	handle("DELETE /v0alpha2/match-tickets/{ticket_id}", server.deleteMatchTicket)
-	handle("GET /v0alpha2/backfill-tickets", server.listBackfillTickets)
-	handle("GET /v0alpha2/backfill-tickets/{ticket_id}", server.getBackfillTicket)
-	handle("PUT /v0alpha2/backfill-tickets/{ticket_id}", server.putBackfillTicket)
-	handle("DELETE /v0alpha2/backfill-tickets/{ticket_id}", server.deleteBackfillTicket)
-	handle("GET /v0alpha2/policies", server.listPolicies)
-	handle("GET /v0alpha2/policies/{version}", server.getPolicy)
-	handle("PUT /v0alpha2/policies/{version}", server.putPolicy)
-	handle("POST /v0alpha2/planning-runs/{run_id}", server.postPlanningRun)
-	handle("GET /v0alpha2/planning-runs/{run_id}", server.getPlanningRun)
-	handle("GET /v0alpha2/planning-runs/{run_id}/proposals", server.listPlanningRunProposals)
-	handle("GET /v0alpha2/planning-runs/{run_id}/unmatched", server.listPlanningRunUnmatched)
-	handle("POST /v0alpha2/reservations/{reservation_id}", server.postReservation)
-	handle("GET /v0alpha2/reservations/{reservation_id}", server.getReservation)
-	handle("GET /v0alpha2/reservations", server.listReservations)
-	handle("POST /v0alpha2/reservations/{reservation_id}/cancel", server.cancelReservation)
-	handle("POST /v0alpha2/reservations/{reservation_id}/confirm", server.confirmReservation)
-	handle("GET /v0alpha2/assignments/{assignment_id}", server.getAssignment)
-	handle("GET /v0alpha2/assignments", server.listAssignments)
-	handle("POST /v0alpha2/assignments/{assignment_id}/acknowledgments", server.acknowledgeAssignment)
-	handle("/v0alpha2/match-tickets", methodNotAllowed("GET"))
-	handle("/v0alpha2/match-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
-	handle("/v0alpha2/backfill-tickets", methodNotAllowed("GET"))
-	handle("/v0alpha2/backfill-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
-	handle("/v0alpha2/policies", methodNotAllowed("GET"))
-	handle("/v0alpha2/policies/{version}", methodNotAllowed("GET, PUT"))
-	handle("/v0alpha2/planning-runs/{run_id}", methodNotAllowed("GET, POST"))
-	handle("/v0alpha2/planning-runs/{run_id}/proposals", methodNotAllowed("GET"))
-	handle("/v0alpha2/planning-runs/{run_id}/unmatched", methodNotAllowed("GET"))
-	handle("/v0alpha2/reservations", methodNotAllowed("GET"))
-	handle("/v0alpha2/reservations/{reservation_id}", methodNotAllowed("GET, POST"))
-	handle("/v0alpha2/reservations/{reservation_id}/cancel", methodNotAllowed("POST"))
-	handle("/v0alpha2/reservations/{reservation_id}/confirm", methodNotAllowed("POST"))
-	handle("/v0alpha2/assignments", methodNotAllowed("GET"))
-	handle("/v0alpha2/assignments/{assignment_id}", methodNotAllowed("GET"))
-	handle("/v0alpha2/assignments/{assignment_id}/acknowledgments", methodNotAllowed("POST"))
+	registerRoutes := func(prefix string) {
+		handle("GET "+prefix+"/match-tickets", server.listMatchTickets)
+		handle("GET "+prefix+"/match-tickets/{ticket_id}", server.getMatchTicket)
+		handle("PUT "+prefix+"/match-tickets/{ticket_id}", server.putMatchTicket)
+		handle("DELETE "+prefix+"/match-tickets/{ticket_id}", server.deleteMatchTicket)
+		handle("GET "+prefix+"/backfill-tickets", server.listBackfillTickets)
+		handle("GET "+prefix+"/backfill-tickets/{ticket_id}", server.getBackfillTicket)
+		handle("PUT "+prefix+"/backfill-tickets/{ticket_id}", server.putBackfillTicket)
+		handle("DELETE "+prefix+"/backfill-tickets/{ticket_id}", server.deleteBackfillTicket)
+		handle("GET "+prefix+"/policies", server.listPolicies)
+		handle("GET "+prefix+"/policies/{version}", server.getPolicy)
+		handle("PUT "+prefix+"/policies/{version}", server.putPolicy)
+		handle("POST "+prefix+"/planning-runs/{run_id}", server.postPlanningRun)
+		handle("GET "+prefix+"/planning-runs/{run_id}", server.getPlanningRun)
+		handle("GET "+prefix+"/planning-runs/{run_id}/proposals", server.listPlanningRunProposals)
+		handle("GET "+prefix+"/planning-runs/{run_id}/unmatched", server.listPlanningRunUnmatched)
+		handle("POST "+prefix+"/reservations/{reservation_id}", server.postReservation)
+		handle("GET "+prefix+"/reservations/{reservation_id}", server.getReservation)
+		handle("GET "+prefix+"/reservations", server.listReservations)
+		handle("POST "+prefix+"/reservations/{reservation_id}/cancel", server.cancelReservation)
+		handle("POST "+prefix+"/reservations/{reservation_id}/confirm", server.confirmReservation)
+		handle("GET "+prefix+"/assignments/{assignment_id}", server.getAssignment)
+		handle("GET "+prefix+"/assignments", server.listAssignments)
+		handle("POST "+prefix+"/assignments/{assignment_id}/acknowledgments", server.acknowledgeAssignment)
+		handle(prefix+"/match-tickets", methodNotAllowed("GET"))
+		handle(prefix+"/match-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
+		handle(prefix+"/backfill-tickets", methodNotAllowed("GET"))
+		handle(prefix+"/backfill-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
+		handle(prefix+"/policies", methodNotAllowed("GET"))
+		handle(prefix+"/policies/{version}", methodNotAllowed("GET, PUT"))
+		handle(prefix+"/planning-runs/{run_id}", methodNotAllowed("GET, POST"))
+		handle(prefix+"/planning-runs/{run_id}/proposals", methodNotAllowed("GET"))
+		handle(prefix+"/planning-runs/{run_id}/unmatched", methodNotAllowed("GET"))
+		handle(prefix+"/reservations", methodNotAllowed("GET"))
+		handle(prefix+"/reservations/{reservation_id}", methodNotAllowed("GET, POST"))
+		handle(prefix+"/reservations/{reservation_id}/cancel", methodNotAllowed("POST"))
+		handle(prefix+"/reservations/{reservation_id}/confirm", methodNotAllowed("POST"))
+		handle(prefix+"/assignments", methodNotAllowed("GET"))
+		handle(prefix+"/assignments/{assignment_id}", methodNotAllowed("GET"))
+		handle(prefix+"/assignments/{assignment_id}/acknowledgments", methodNotAllowed("POST"))
+	}
+	registerRoutes("/" + api.Version)
+	registerRoutes("/" + StableAPIVersion)
 	handle("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writeError(writer, apiError{status: http.StatusNotFound, code: "NotFound", message: "endpoint was not found"})
 	})
-	return recoverPanics(mux), nil
+	return withResponseAPIVersion(recoverPanics(mux)), nil
 }
 
 type server struct {
@@ -527,6 +534,56 @@ func writeFailure(writer http.ResponseWriter, err error) {
 	writeError(writer, mapped)
 }
 
+type apiVersionResponseWriter struct {
+	http.ResponseWriter
+	apiVersion string
+}
+
+func (writer *apiVersionResponseWriter) SemaAPIVersion() string {
+	return writer.apiVersion
+}
+
+func (writer *apiVersionResponseWriter) Unwrap() http.ResponseWriter {
+	return writer.ResponseWriter
+}
+
+// ResponseAPIVersion returns the API marker bound to the current response.
+// Middleware wrappers that implement Unwrap are traversed without exposing
+// request paths, credentials, or resource identities.
+func ResponseAPIVersion(writer http.ResponseWriter) string {
+	for writer != nil {
+		if versioned, ok := writer.(interface{ SemaAPIVersion() string }); ok {
+			if version := versioned.SemaAPIVersion(); version != "" {
+				return version
+			}
+		}
+		unwrapper, ok := writer.(interface{ Unwrap() http.ResponseWriter })
+		if !ok {
+			break
+		}
+		next := unwrapper.Unwrap()
+		if next == writer {
+			break
+		}
+		writer = next
+	}
+	return api.Version
+}
+
+func withResponseAPIVersion(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		version := api.Version
+		if request.URL.Path == "/"+StableAPIVersion ||
+			strings.HasPrefix(request.URL.Path, "/"+StableAPIVersion+"/") {
+			version = StableAPIVersion
+		}
+		next.ServeHTTP(&apiVersionResponseWriter{
+			ResponseWriter: writer,
+			apiVersion:     version,
+		}, request)
+	})
+}
+
 func writeData(writer http.ResponseWriter, status int, data any) {
 	writeEnvelope(writer, status, api.Envelope{APIVersion: api.Version, Data: data})
 }
@@ -541,6 +598,7 @@ func writeError(writer http.ResponseWriter, failure apiError) {
 }
 
 func writeEnvelope(writer http.ResponseWriter, status int, envelope api.Envelope) {
+	envelope.APIVersion = ResponseAPIVersion(writer)
 	if envelope.Error != nil {
 		writer.Header().Set("X-Sema-Error-Code", envelope.Error.Code)
 	}

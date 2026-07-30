@@ -128,6 +128,13 @@ func writeHealth(writer http.ResponseWriter, status int, value string) {
 }
 
 func writeEnvelope(writer http.ResponseWriter, status int, value any) {
+	switch envelope := value.(type) {
+	case api.Envelope:
+		envelope.APIVersion = targetapi.ResponseAPIVersion(writer)
+		value = envelope
+	case *api.Envelope:
+		envelope.APIVersion = targetapi.ResponseAPIVersion(writer)
+	}
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Cache-Control", "no-store")
 	writer.Header().Set("X-Content-Type-Options", "nosniff")

@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning/reservation/assignment lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30은 optional V0 read-only import, local PostgreSQL backup/restore recovery, provider-neutral OIDC/JWT authentication, 별도 service executable과 reference deployment acceptance를 닫았고 P31은 표준 runtime surface와 repository-owned compatibility, availability, load/failure 및 recovery evidence를 닫았다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계이며, stable public surface와 support policy를 승인하고 tagged cross-version evidence를 완성한 뒤 maintenance mode로 전환한다. 그 전까지 source/service는 experimental alpha이고 v1 release gate는 차단한다.
+P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `/v1`과 `/v0alpha2` compatibility lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30은 optional V0 read-only import, local PostgreSQL backup/restore recovery, provider-neutral OIDC/JWT authentication, 별도 service executable과 reference deployment acceptance를 닫았고 P31은 표준 runtime surface와 repository-owned compatibility, availability, load/failure 및 recovery evidence를 닫았다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. ADR 0033의 stable `/v1` scope와 numeric support policy, `v0.3.0`/`v0.4.0` tagged matrix는 확정되었고 migration/release gate와 stable publication 뒤 maintenance mode로 전환한다.
 
 ## Established
 
@@ -109,7 +109,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticate
 - PostgreSQL-owned schema, explicit migration, Read Committed CAS commit과 Repeatable Read snapshot adapter.
 - 실제 pinned PostgreSQL에서 공통 conformance, separate-pool ordered commit과 reopen replay를 실행하는 integration gate.
 - PostgreSQL primary, stateless service replica와 no-Redis baseline을 확정한 ADR 0017.
-- 인증 adapter에서만 tenant를 결정하고 permission을 repository lookup 전에 검증하는 experimental target `v0alpha2` boundary.
+- 인증 adapter에서만 tenant를 결정하고 permission을 repository lookup 전에 검증하는 stable target `/v1` boundary와 `/v0alpha2` compatibility alias.
 - higher-revision match-ticket resource, exact tombstone, historical operation replay와 PostgreSQL-backed create/poll fixture.
 - tenant/kind/filter/order와 repository version에 묶인 HMAC opaque cursor 및 stale-page restart contract.
 - BackfillTicket higher-revision/monotonic-roster replace, exact freshness cancel과 authenticated polling/page.
@@ -149,7 +149,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticate
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
 - managed PostgreSQL backup schedule/WAL retention/failover 제품, numeric RPO/RTO와 deployment-specific PITR 운영 계약.
 - deployment-calibrated rate limit, telemetry backend/retention/receiver와 production SLA.
-- stable/v1 Go API, stable wire protocol과 repository-owned multi-version consumer conformance.
+- stable/v1 Go API. ADR 0033의 stable service wire 범위에서 제외되어 public `alpha`는 experimental이다.
 - stable release 자체; 현재 `stable_admitted: false`다.
 - production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
 - target wait/quality에 기반한 automatic planning-batch admission.
@@ -162,9 +162,9 @@ P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticate
 - mixed-party battle royale과 현실적인 existing-roster backfill 분포.
 - append-only journal에는 아직 compaction, online backup와 numeric recovery SLO가 없다.
 - PostgreSQL PITR의 numeric recovery SLO, retention/support owner와 deployment-specific capacity calibration.
-- stable 범위를 service wire로 한정할지 public Go alpha package까지 포함할지에 대한 승인.
-- service wire가 포함된 tagged release 두 개 이상의 cross-version conformance.
+- future stable Go API의 별도 scope, package와 consumer evidence.
+- `/v0alpha2`의 실제 end-of-support version/date는 successor release cadence에 맞춰 공지해야 한다.
 
 ## Active Slice
 
-P32 Framework Contract Closure가 활성 milestone이다. 먼저 stable 범위를 service wire로 한정할지 public Go `alpha` package까지 포함할지와 numeric support/deprecation 책임을 승인한다. 그 계약을 입력으로 immutable tagged service release의 previous/current 양방향 matrix, migration/end-of-support gate와 stable admission을 순서대로 닫는다. P32 완료 뒤에는 실제 service integration이나 migration program으로 이어가지 않고 maintenance-only 상태로 전환한다. 그 전까지 `stable_admitted: false`를 유지한다.
+P32 Framework Contract Closure가 활성 milestone이다. stable 범위는 HTTP `/v1`, owner는 repository maintainers, 지원 기간은 successor 후 180일과 두 번의 후속 minor 중 더 긴 기간으로 승인되었다. `v0.3.0`/`v0.4.0` 양방향 matrix를 입력으로 migration/end-of-support gate와 stable admission을 닫는다. P32 완료 뒤에는 실제 service integration이나 migration program으로 이어가지 않고 maintenance-only 상태로 전환한다. 그 전까지 `stable_admitted: false`를 유지한다.

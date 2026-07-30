@@ -64,7 +64,7 @@ reserve와 confirm은 planning 당시 queue version 전체를 잠그지 않는�
 
 ## API Resource Model
 
-모든 target identity와 operation ID의 idempotency 범위는 tenant scope 안이다. resource key는 `(tenant scope, resource kind, resource ID)`다. 첫 experimental transport 이름은 `v0alpha2`이며 stable compatibility는 consumer review 전까지 확정하지 않는다. 다음 operation semantics는 adapter와 무관하게 유지하고 persistent prototype과 storage 결정 evidence는 `docs/repository-adapter-evidence.md`가 소유한다.
+모든 target identity와 operation ID의 idempotency 범위는 tenant scope 안이다. resource key는 `(tenant scope, resource kind, resource ID)`다. 첫 experimental transport 이름은 `v0alpha2`였고 P32는 같은 authority를 사용하는 `/v1`을 stable service wire로 승인했다. `/v0alpha2`는 ADR 0033의 numeric support window 동안 compatibility alias로 유지한다. 다음 operation semantics는 adapter와 무관하게 유지하고 persistent prototype과 storage 결정 evidence는 `docs/repository-adapter-evidence.md`가 소유한다.
 
 | Resource | Commands | Reads and delivery |
 |---|---|---|
