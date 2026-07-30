@@ -53,6 +53,7 @@ for required_file in \
   docs/HANDOFF.md \
   docs/status.md \
   docs/roadmap.md \
+  docs/development-stages.md \
   docs/architecture.md \
   docs/domain-model.md \
   docs/lifecycle.md \
@@ -169,6 +170,7 @@ for required_file in \
   docs/todo-0040-service-productization-entry/spec.md \
   docs/todo-0041-authenticated-service-runtime/spec.md \
   docs/todo-0042-service-product-readiness/spec.md \
+  docs/todo-0043-framework-contract-closure/spec.md \
   scripts/build-release.sh \
   scripts/check-container.sh \
   scripts/check-postgres.sh \

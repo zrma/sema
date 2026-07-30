@@ -23,7 +23,7 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 ## Source Of Truth
 
 - 제품 목적과 용어: `README.md`; 시스템 경계와 invariant: `docs/architecture.md`.
-- 현재 baseline과 리스크: `docs/status.md`; milestone 순서와 non-goals: `docs/roadmap.md`.
+- 장기 세 단계 lifecycle과 종료점: `docs/development-stages.md`; 현재 baseline과 리스크: `docs/status.md`; milestone 순서와 non-goals: `docs/roadmap.md`.
 - 무컨텍스트 시작점: `docs/HANDOFF.md`; 현재 작업 계약: 활성 `docs/todo-*/spec.md`.
 - repository entrypoint와 검증 선언: `docs/REPO_MANIFEST.yaml`.
 
@@ -95,6 +95,7 @@ Tracked artifact contract: raw tool output와 정확한 로컬 환경 evidence�
 ## Related Documents
 
 - Navigation: `docs/HANDOFF.md`.
+- Long-term lifecycle: `docs/development-stages.md`.
 - Current state and direction: `docs/status.md`, `docs/roadmap.md`.
 - Architecture: `docs/architecture.md`.
 - Workloads and decisions: `docs/reference-workloads.md`, `docs/decisions/0001-implementation-baseline.md`.

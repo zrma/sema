@@ -4,7 +4,7 @@
 
 1. `AGENTS.md`와 `docs/agent-harness.md`를 읽는다.
 2. `jj status`로 기존 변경과 현재 change를 확인한다.
-3. `docs/status.md`, `docs/roadmap.md`, `docs/architecture.md`를 읽는다.
+3. `docs/development-stages.md`, `docs/status.md`, `docs/roadmap.md`, `docs/architecture.md`를 읽는다.
 4. 활성 `docs/todo-*/spec.md`의 objective, acceptance, out-of-scope를 고정한다.
 5. focused validation 뒤 `scripts/check.sh`로 닫는다.
 
@@ -101,7 +101,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. `sema-service`, image, Compose와 primary runbook은 같은 표준 runtime을 가리키고 V0 journal은 optional import 및 development/reference compatibility surface다. reference client, two-replica matrix, standard workload, bounded observability/reference alert와 native destructive recovery gate가 repository-owned evidence를 제공한다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 다음 단계는 stable surface, tagged multi-version matrix와 deprecation/support ownership을 승인하는 contract decision이며 그 전까지 stable v1은 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. `sema-service`, image, Compose와 primary runbook은 같은 표준 runtime을 가리키고 V0 journal은 optional import 및 development/reference compatibility surface다. reference client, two-replica matrix, standard workload, bounded observability/reference alert와 native destructive recovery gate가 repository-owned evidence를 제공한다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. stable surface, tagged multi-version matrix와 deprecation/support ownership을 승인·검증한 뒤 maintenance mode로 전환하며, 그 전까지 stable v1은 차단한다.
 
 ## Completion Rule
 

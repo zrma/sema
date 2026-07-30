@@ -1,0 +1,54 @@
+# P32 Framework Contract Closure And Maintenance Handoff Spec
+
+- Status: Active — Contract Decision Required
+
+## Objective
+
+Sema의 세 번째이자 마지막 계획 개발 단계를 닫는다. P31 standard service를 실제 게임에 연동하거나 기존 매치메이커를 대체하지 않고, 독립적인 공통 프레임워크가 유지할 stable contract와 cross-version evidence를 완성한 뒤 저장소를 maintenance mode로 전환한다.
+
+## Fixed Inputs
+
+- `docs/development-stages.md`의 Stage 1과 Stage 2는 완료되었고 P32가 유일한 active development milestone이다.
+- Sema는 standalone general-purpose matchmaking service이며 실제 consumer, production traffic 또는 predecessor deployment를 전제하지 않는다.
+- PostgreSQL primary가 durable authority이고 service replica는 stateless하다. provider-neutral OIDC와 external TLS ownership을 유지한다.
+- `p30-v0alpha2`가 첫 service wire compatibility baseline이다. 기존 공개 `v0.1.0`과 `v0.2.0`은 이 wire를 포함하지 않는다.
+- 현재 source와 service는 alpha이며 `release.stable_admitted`는 `false`다.
+- public Go `alpha` package와 service wire는 독립적인 compatibility surface다.
+
+## Implementation Sequence
+
+- [x] 세 단계의 상위 lifecycle과 Stage 3 종료 후 maintenance-only 목표를 repository 문서에 고정한다.
+- [ ] stable 범위를 service wire로 한정할지 public Go `alpha` package까지 포함할지 승인한다.
+- [ ] major/minor compatibility, security exception, numeric deprecation/support window와 maintenance owner를 ADR로 고정한다.
+- [ ] immutable tagged service release를 입력으로 previous client → current service와 current client → supported previous service matrix를 실행하는 repository-owned gate를 구현한다.
+- [ ] service wire를 포함한 alpha release 두 개 이상을 별도 publication 승인 아래 출고하고 matrix 입력으로 보존한다.
+- [ ] migration, rollback limitation과 end-of-support 신호를 compatibility/release gate에 연결한다.
+- [ ] canonical local, container, PostgreSQL workload/failure/recovery와 public boundary gate를 통과한 뒤 stable admission을 별도 logical change로 전환한다.
+- [ ] stable release의 remote tag, artifact/checksum, same-target CI를 검증한다.
+- [ ] handoff/status/roadmap을 maintenance mode로 닫고 활성 development milestone을 남기지 않는다.
+
+## Acceptance
+
+- stable surface, version compatibility와 support/deprecation 책임이 모호하지 않다.
+- supported tagged predecessor/current 조합을 양방향으로 실행하며 current-source fixture를 multi-release evidence로 대신하지 않는다.
+- stable release gate가 scope, matrix, migration/support policy와 기존 operational gate를 모두 기계적으로 확인한다.
+- 실제 game integration, production traffic 또는 private deployment inventory 없이 repository-owned fixture로 결과를 재현한다.
+- `stable_admitted: true`는 모든 blocker가 제거된 마지막 change에서만 설정된다.
+- Stage 3 완료 뒤 문서가 Sema를 기능 개발 완료·maintenance-only 상태로 일관되게 설명한다.
+
+## Out Of Scope
+
+- 실제 게임 backend 연동, player login, production MMR/rating calibration.
+- 기존 매치메이커, queue, database 또는 traffic의 migration/cutover.
+- 특정 OIDC provider, Kubernetes distribution, managed PostgreSQL 제품 또는 private deployment의 표준화.
+- production-calibrated SLA, cross-region multi-primary, broker, Redis, streaming/event platform과 public SDK 확장.
+- evidence 없이 stable surface를 넓히거나 P31 operational readiness만으로 v1을 선언하는 작업.
+
+## Decision And Publication Gates
+
+stable surface와 support/deprecation 약속은 장기 compatibility 책임을 바꾸므로 명시적 승인이 필요하다. push 권한은 change publication에만 적용하며 tag, release와 `stable_admitted` 전환은 각각 별도 출고 경계로 검증한다. public 출고 전에는 repository publication gate와 권한 있는 machine-local private-inventory gate를 모두 통과한다.
+
+## Stop Condition
+
+P32 acceptance를 모두 충족하면 계획된 제품 개발을 종료한다. 이후 작업은 `docs/development-stages.md`의 Maintenance Mode 범위로 제한하며, 새 기능·integration·deployment program은 별도 재개 결정과 새 milestone 없이는 시작하지 않는다.
+

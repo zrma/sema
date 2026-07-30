@@ -10,7 +10,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 
 P31에서는 PostgreSQL primary와 stateless service replica를 표준 runtime으로 승격했다. `sema-conformance`가 OIDC 인증 실패, tenant isolation과 complete lifecycle을, two-replica matrix가 reservation single-winner, restart와 PostgreSQL outage/recovery를 검증한다. `sema-standard-postgres-v1`은 same-tenant concurrent commit deadlock 회귀를 차단하고 64-request admission, 16/2 PostgreSQL pool, 5초 operation deadline과 p95 750ms reference regression budget을 반복 측정한다. 표준 runtime은 bounded Prometheus metric/redacted trace/reference alert를 제공하고 native PostgreSQL checkpoint를 destructive restore한 뒤 operation replay, terminal assignment와 새 API write까지 검증한다.
 
-Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. P31 product-readiness evidence는 완료되었다. P30 `v0alpha2` wire가 첫 compatibility baseline이므로 stable surface, tagged multi-version matrix와 deprecation/support 약속을 별도 승인하기 전까지 v1 release는 gate가 차단한다.
+Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. P31 product-readiness evidence는 완료되었고 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. P30 `v0alpha2` wire가 첫 compatibility baseline이므로 stable surface, tagged multi-version matrix와 deprecation/support 약속을 승인하고 검증하기 전까지 v1 release는 gate가 차단한다. P32를 닫은 뒤에는 새 integration program으로 이어가지 않고 maintenance mode로 전환한다.
 
 ## Public Contract
 
@@ -36,6 +36,7 @@ Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가
 - `docs/HANDOFF.md`: 무컨텍스트 작업 시작점.
 - `docs/status.md`: 현재 구현 상태와 리스크.
 - `docs/roadmap.md`: milestone 순서와 완료 기준.
+- `docs/development-stages.md`: 세 개의 장기 개발 단계와 maintenance-mode 종료점.
 - `docs/architecture.md`: 초기 시스템 경계와 핵심 invariant.
 - `docs/domain-model.md`: entity identity, freshness, ownership 계약.
 - `docs/lifecycle.md`: ticket, reservation, assignment 전이와 typed failure.
@@ -48,6 +49,7 @@ Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가
 - `docs/matcher-conformance.md`: matcher V0 invariant와 executable test matrix.
 - `docs/todo-0040-service-productization-entry/spec.md`: persistence/API 제품화 milestone의 시작 계약.
 - `docs/todo-0042-service-product-readiness/spec.md`: 완료된 표준 runtime, compatibility와 operational evidence milestone.
+- `docs/todo-0043-framework-contract-closure/spec.md`: 활성 stable contract closure와 maintenance handoff milestone.
 - `docs/repository-adapter-evidence.md`: persistent prototype의 crash/contention evidence와 storage decision outcome.
 - `docs/postgres-repository.md`: PostgreSQL schema, transaction, migration과 no-Redis 운영 경계.
 - `docs/oidc-authentication.md`: provider-neutral JWT claim과 permission mapping 계약.

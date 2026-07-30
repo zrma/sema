@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning/reservation/assignment lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30은 optional V0 read-only import, local PostgreSQL backup/restore recovery, provider-neutral OIDC/JWT authentication, 별도 service executable과 reference deployment acceptance를 닫았고 P31은 표준 runtime surface와 repository-owned compatibility, availability, load/failure 및 recovery evidence를 닫았다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. source/service는 계속 experimental alpha이며 다음 contract decision에서 stable surface와 support policy가 승인될 때까지 v1 release gate를 차단한다.
+P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `v0alpha2` policy/demand/planning/reservation/assignment lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30은 optional V0 read-only import, local PostgreSQL backup/restore recovery, provider-neutral OIDC/JWT authentication, 별도 service executable과 reference deployment acceptance를 닫았고 P31은 표준 runtime surface와 repository-owned compatibility, availability, load/failure 및 recovery evidence를 닫았다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계이며, stable public surface와 support policy를 승인하고 tagged cross-version evidence를 완성한 뒤 maintenance mode로 전환한다. 그 전까지 source/service는 experimental alpha이고 v1 release gate는 차단한다.
 
 ## Established
 
@@ -165,6 +165,6 @@ P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticate
 - stable 범위를 service wire로 한정할지 public Go alpha package까지 포함할지에 대한 승인.
 - service wire가 포함된 tagged release 두 개 이상의 cross-version conformance.
 
-## Next Slice
+## Active Slice
 
-P31 service product readiness는 완료되었다. `cmd/sema-service`, image, Compose와 primary runbook이 PostgreSQL/OIDC authority를 가리키고 reference client, two-replica failure matrix, standard workload, bounded observability/reference alerts와 native PostgreSQL destructive recovery acceptance를 repository gate가 반복한다. `p30-v0alpha2`가 첫 compatibility baseline이며 기존 tagged release에는 이 service가 없다. 다음 milestone은 자동 구현 작업이 아니라 stable surface, support/deprecation window와 tagged cross-version matrix를 승인하는 명시적 contract decision이다. 그 전까지 `stable_admitted: false`를 유지한다.
+P32 Framework Contract Closure가 활성 milestone이다. 먼저 stable 범위를 service wire로 한정할지 public Go `alpha` package까지 포함할지와 numeric support/deprecation 책임을 승인한다. 그 계약을 입력으로 immutable tagged service release의 previous/current 양방향 matrix, migration/end-of-support gate와 stable admission을 순서대로 닫는다. P32 완료 뒤에는 실제 service integration이나 migration program으로 이어가지 않고 maintenance-only 상태로 전환한다. 그 전까지 `stable_admitted: false`를 유지한다.

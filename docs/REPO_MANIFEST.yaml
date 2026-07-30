@@ -5,6 +5,7 @@ entrypoint: docs/HANDOFF.md
 agent_harness: docs/agent-harness.md
 status: docs/status.md
 roadmap: docs/roadmap.md
+development_stages: docs/development-stages.md
 architecture: docs/architecture.md
 lab: cmd/sema-lab
 lab_guide: docs/sema-lab.md
@@ -14,6 +15,7 @@ matcher_conformance: docs/matcher-conformance.md
 service_productization_entry: docs/todo-0040-service-productization-entry/spec.md
 authenticated_service_runtime: docs/todo-0041-authenticated-service-runtime/spec.md
 service_product_readiness: docs/todo-0042-service-product-readiness/spec.md
+framework_contract_closure: docs/todo-0043-framework-contract-closure/spec.md
 repository_adapter_evidence: docs/repository-adapter-evidence.md
 postgres_repository: docs/postgres-repository.md
 target_api: docs/target-api.md
