@@ -19,7 +19,7 @@
 
 HTTP path, query와 body에는 tenant field가 없다. handler는 인증과 permission 확인을 repository lookup보다 먼저 수행하고, repository key의 scope는 항상 authenticated principal에서만 만든다. credential 부재/거부는 `Unauthenticated`, provider 장애는 retryable `AuthenticationUnavailable`, permission 부족은 `PermissionDenied`다.
 
-token validation protocol은 provider-neutral OIDC/JWT로 정했다. issuer와 audience는 deployment configuration이고 default tenant claim은 `sema_tenant`, permission은 standard string `scope`에서 exact vocabulary로 변환한다. token acquisition credential과 TLS termination은 deployment 책임이다. `cmd/sema-target-server`가 PostgreSQL target handler를 bounded authenticated remote listener로 제공하며 상세 composition은 `docs/remote-runtime.md`에 있다.
+token validation protocol은 provider-neutral OIDC/JWT로 정했다. issuer와 audience는 deployment configuration이고 default tenant claim은 `sema_tenant`, permission은 standard string `scope`에서 exact vocabulary로 변환한다. token acquisition credential과 TLS termination은 deployment 책임이다. `cmd/sema-service`가 PostgreSQL target handler를 bounded authenticated remote listener로 제공하며 `cmd/sema-target-server`는 command compatibility alias다. 상세 composition은 `docs/remote-runtime.md`에 있다.
 
 ## Policy Operations
 
@@ -128,4 +128,4 @@ strict JSON decoding, 1 MiB body limit, bounded identifier와 allowlisted query 
 - quota/rate limit, database pool/timeout과 numeric SLO를 실제 workload evidence로 정한다.
 - repository-owned reference client, multi-version compatibility와 multi-replica failure/recovery evidence를 추가한다.
 
-optional V0 import의 local backup/restore와 pre-writer recovery gate는 `scripts/check-postgres.sh`가 검증한다. P31은 현재 기본 V0 entrypoint를 PostgreSQL/OIDC service로 승격하는 순서와 compatibility를 검증한다. 이 승격은 existing production traffic의 cutover가 아니며, 위 readiness 항목 전에는 `v0alpha2`를 stable contract로 선언하지 않는다.
+optional V0 import의 local backup/restore와 pre-writer recovery gate는 `scripts/check-postgres.sh`가 검증한다. P31은 PostgreSQL/OIDC service를 표준 entrypoint로 승격했고 기존 V0와 P30 command compatibility를 보존한다. 이 repository runtime promotion은 existing deployment나 game traffic을 전제로 하지 않으며, 위 readiness 항목 전에는 `v0alpha2`를 stable contract로 선언하지 않는다.

@@ -1,6 +1,6 @@
 //go:build darwin || linux
 
-package main
+package serviceapp
 
 import (
 	"bytes"
@@ -36,6 +36,21 @@ func TestRunPrintsVersionWithoutRuntimeEnvironment(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run(context.Background(), []string{"-version"}, emptyEnvironment, &stdout, &stderr, dependencies{})
 	if code != 0 || stdout.String() != "sema-target-server dev\n" {
+		t.Fatalf("exit code = %d, stdout=%q, stderr=%q", code, stdout.String(), stderr.String())
+	}
+}
+
+func TestRunUsesStandardCommandIdentity(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := Run(
+		context.Background(),
+		[]string{"-version"},
+		emptyEnvironment,
+		&stdout,
+		&stderr,
+		Identity{ProgramName: "sema-service", Version: "v0.0.0-test"},
+	)
+	if code != 0 || stdout.String() != "sema-service v0.0.0-test\n" {
 		t.Fatalf("exit code = %d, stdout=%q, stderr=%q", code, stdout.String(), stderr.String())
 	}
 }

@@ -1,31 +1,52 @@
+x-sema-image: &sema-image
+  build:
+    context: ..
+    args:
+      VERSION: dev
+  image: sema:local
+
 services:
+  migrate:
+    <<: *sema-image
+    entrypoint:
+      - /usr/local/bin/sema-postgres-migrate
+    environment:
+      SEMA_POSTGRES_DSN: "${SEMA_POSTGRES_DSN:?SEMA_POSTGRES_DSN is required}"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+
   sema:
-    build:
-      context: ..
-      args:
-        VERSION: dev
-    image: sema:local
+    <<: *sema-image
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      SEMA_POSTGRES_DSN: "${SEMA_POSTGRES_DSN:?SEMA_POSTGRES_DSN is required}"
+      SEMA_CURSOR_KEY_BASE64: "${SEMA_CURSOR_KEY_BASE64:?SEMA_CURSOR_KEY_BASE64 is required}"
+      SEMA_OIDC_ISSUER: "${SEMA_OIDC_ISSUER:?SEMA_OIDC_ISSUER is required}"
+      SEMA_OIDC_AUDIENCE: "${SEMA_OIDC_AUDIENCE:?SEMA_OIDC_AUDIENCE is required}"
+      SEMA_OIDC_TENANT_CLAIM: "${SEMA_OIDC_TENANT_CLAIM:-sema_tenant}"
+      SEMA_OIDC_SIGNING_ALGORITHMS: "${SEMA_OIDC_SIGNING_ALGORITHMS:-RS256}"
+      SEMA_TLS_TERMINATION: external
     command:
       - -listen
       - 0.0.0.0:8080
-      - -journal
-      - /var/lib/sema/sema.journal
       - -reservation-ttl
       - 30s
-      - -allow-unauthenticated-remote
     ports:
       - 127.0.0.1:8080:8080
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=16m
-    volumes:
-      - sema-data:/var/lib/sema
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
     stop_grace_period: 15s
     restart: unless-stopped
-
-volumes:
-  sema-data: {}

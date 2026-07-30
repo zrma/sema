@@ -270,8 +270,8 @@ provider-neutral lifecycle service, optional import fixture, local backup/restor
 ## P31: Service Product Readiness
 
 - [x] standalone product scope와 runtime lineage decision
-- [ ] PostgreSQL/OIDC 표준 command, container entrypoint와 deployment example
-- [ ] V0 development/reference 및 optional import compatibility surface 분리
+- [x] PostgreSQL/OIDC 표준 command, container entrypoint와 deployment example
+- [x] V0 development/reference 및 optional import compatibility surface 분리
 - [ ] repository-owned reference client와 wire conformance
 - [ ] multi-replica contention, dependency failure와 recovery matrix
 - [ ] workload 기반 admission, pool/timeout과 numeric service SLO

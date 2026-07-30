@@ -2,110 +2,101 @@
 
 ## Supported Deployment Envelope
 
-현재 service deployment baseline은 local POSIX volume을 소유한 single Linux container와 정확히 하나의 journal writer다. replica 수는 1이며 같은 journal volume을 두 process나 두 container에 동시에 mount하지 않는다. horizontal coordination, external database와 journal compaction은 지원하지 않는다.
+표준 runtime은 `cmd/sema-service`가 제공하는 provider-neutral OIDC authenticated `v0alpha2` API다. PostgreSQL primary가 durable mutation authority이고 service replica는 stateless하다. Redis, broker, 실제 게임 session 실행과 token 발급은 Sema runtime의 baseline이 아니다.
 
-HTTP API에는 built-in authentication과 TLS가 없다. 기본 image는 container loopback만 listen한다. `deploy/compose.yaml`은 명시적 unsafe flag를 사용하지만 host의 `127.0.0.1`에만 port를 publish한다. remote client가 필요하면 승인된 authentication/TLS/rate-limit gateway 뒤의 private network에 두고 direct service port를 외부에 publish하지 않는다.
+client-facing TLS는 승인된 gateway/load balancer가 종료하고 Sema listener는 private network에서만 접근 가능해야 한다. process는 `SEMA_TLS_TERMINATION=external`이 없으면 시작하지 않으며 bearer token을 직접 검증한다. provider 제품별 설정, endpoint, credential과 private deployment inventory는 deployment-owned다.
 
 ## Container Contract
 
+- default entrypoint: `/usr/local/bin/sema-service`.
 - runtime identity: numeric non-root `65532:65532`.
-- root filesystem: read-only 가능.
-- writable paths: `/var/lib/sema` durable volume과 `/tmp` bounded tmpfs.
-- Linux capabilities: none; privilege escalation disabled.
-- journal: `/var/lib/sema/sema.journal`, mode `0600`.
-- health: image `HEALTHCHECK`가 loopback `/readyz`를 조회한다.
+- root filesystem: read-only 가능; `/tmp`만 bounded tmpfs로 제공한다.
+- durable state: container volume이 아니라 `SEMA_POSTGRES_DSN`의 migrated PostgreSQL schema.
+- capabilities: none; privilege escalation disabled.
+- health: `/livez`는 process, `/readyz`는 bounded PostgreSQL connectivity.
 - shutdown: `SIGTERM` 뒤 최대 10초 graceful HTTP drain; deployment stop grace는 15초 이상.
 
-image의 builder base는 exact Go/Alpine multi-platform digest로 고정하고 runtime은 `scratch`다. base digest 변경은 container gate와 publication scan을 같은 change에서 다시 통과해야 한다.
+image에는 explicit migration runner인 `sema-postgres-migrate`, V0 compatibility command인 `sema-server`, P30 command compatibility를 위한 `sema-target-server`도 포함한다. 이 둘은 default entrypoint가 아니다.
 
-## Local Deployment Example
+## Required Configuration
+
+다음 값은 runtime secret/configuration source에서 주입한다. 실제 값은 tracked file이나 command history에 남기지 않는다.
+
+| Environment | Secret | Purpose |
+|---|---:|---|
+| `SEMA_POSTGRES_DSN` | yes | migrated PostgreSQL connection string |
+| `SEMA_CURSOR_KEY_BASE64` | yes | 최소 32-byte cursor HMAC key의 base64 표현 |
+| `SEMA_OIDC_ISSUER` | no | exact HTTPS discovery issuer |
+| `SEMA_OIDC_AUDIENCE` | no | expected access-token audience |
+| `SEMA_TLS_TERMINATION` | no | `external` |
+| `SEMA_OIDC_TENANT_CLAIM` | no | optional; 기본 `sema_tenant` |
+| `SEMA_OIDC_SIGNING_ALGORITHMS` | no | optional asymmetric allowlist; 기본 `RS256` |
+
+Sema resource server에는 OIDC client secret이나 token acquisition credential을 주입하지 않는다. claim와 permission contract는 `docs/oidc-authentication.md`, startup security boundary는 `docs/remote-runtime.md`가 소유한다.
+
+## Deployment Example
+
+`deploy/compose.yaml`은 external PostgreSQL과 OIDC provider를 요구하는 local reference composition이다. migration service가 성공한 뒤 표준 service가 시작되고 host port는 `127.0.0.1:8080`에만 bind된다.
 
 ```sh
+export SEMA_POSTGRES_DSN='<postgres-dsn>'
+export SEMA_CURSOR_KEY_BASE64='<base64-encoded-random-32-byte-or-longer-key>'
+export SEMA_OIDC_ISSUER='https://<identity-provider>/<issuer-path>/'
+export SEMA_OIDC_AUDIENCE='sema'
+
 docker compose -f deploy/compose.yaml up --build -d
 docker compose -f deploy/compose.yaml ps
 ```
 
-service는 host `127.0.0.1:8080`에서만 접근한다. 종료는 다음 순서다.
+`migrate`가 성공하지 않거나 OIDC discovery가 완료되지 않으면 service listener는 열리지 않는다. local example의 loopback publish는 client-facing TLS를 제공하지 않으므로 실제 remote route의 대체물이 아니다.
+
+종료는 다음과 같다.
 
 ```sh
 docker compose -f deploy/compose.yaml stop
 docker compose -f deploy/compose.yaml down
 ```
 
-`down`은 named volume을 제거하지 않는다. `down --volumes`는 journal을 삭제하므로 명시적인 데이터 폐기 작업에서만 사용한다.
+표준 service는 local journal volume을 만들지 않는다. PostgreSQL 데이터 제거·backup·restore는 database 운영 경계에서 별도로 승인하고 실행한다.
 
-## Health And Telemetry
+## Startup And Readiness
 
-- `/livez`: process가 HTTP를 처리한다.
-- `/readyz`: journal runtime이 open이고 poisoned/closed 상태가 아니다.
-- `/metrics`: process-local request counter와 latency histogram.
-- `/v0alpha1/audit`: redacted durable decision summary.
+1. target PostgreSQL database/schema와 least-privilege credential을 준비한다.
+2. service binary와 같은 revision의 `sema-postgres-migrate`를 one-shot Job으로 실행한다.
+3. OIDC issuer에 audience, tenant claim과 Sema permission scope mapping을 구성한다.
+4. external TLS gateway와 private listener reachability를 구성한다.
+5. `sema-service`를 시작하고 `/livez`, `/readyz`를 확인한다.
+6. repository-owned acceptance caller로 no-token 401, insufficient-scope 403, tenant isolation과 allowed lifecycle을 검증한다.
 
-readiness failure, non-zero restart loop 또는 metric의 5xx 증가는 새 mutation을 중단하고 journal owner를 하나로 고정한 뒤 조사한다. trace/audit exporter는 raw identity를 노출하지 않지만 journal file과 container stderr는 private application data로 취급한다.
-
-## Backup
-
-online backup은 지원하지 않는다. 일관된 backup은 다음 순서를 지킨다.
-
-1. ingress/producer를 quiesce하고 in-flight request가 끝날 때까지 기다린다.
-2. container를 graceful stop해 writer lock을 해제한다.
-3. stopped volume의 journal을 operator-owned encrypted backup에 snapshot한다.
-4. backup의 size와 cryptographic digest를 private inventory에 기록한다.
-5. 원본 container를 다시 시작하고 readiness를 확인한다.
-
-backup, digest, host/volume identity와 raw journal은 public repository나 일반 CI artifact에 기록하지 않는다.
-
-## Restore And Recovery
-
-1. producer를 중지하고 service container를 stop한다.
-2. current journal을 private incident archive로 보존한다.
-3. 같은 schema와 reservation TTL로 만들어진 verified backup을 stopped volume에 복원한다.
-4. file owner를 runtime identity, permission을 `0600`으로 유지한다.
-5. service를 한 replica로 시작하고 readiness, audit sequence와 expected assignment read model을 확인한다.
-6. producer는 기존 idempotency ID로 uncertain operation을 retry한다.
-
-newline 없는 마지막 record는 startup에서 제거된다. newline이 완성된 record의 checksum/schema/sequence 오류는 자동 수리하지 않고 startup을 실패시킨다. 손상된 complete record를 삭제하거나 건너뛰지 말고 known-good backup으로 복원한다.
+service startup은 schema migration을 암묵적으로 실행하지 않는다. 여러 replica는 같은 schema revision, cursor key, issuer/audience와 reservation TTL을 사용해야 한다.
 
 ## Failure Triage
 
 | Symptom | Expected action |
 |---|---|
-| second-writer lock failure | duplicate replica를 중지하고 volume owner를 하나로 만든다 |
-| reservation TTL mismatch | original configured TTL로 시작하고 configuration drift를 수정한다 |
-| journal checksum/sequence failure | writer를 중지하고 known-good offline backup으로 복원한다 |
-| readiness 503 after I/O failure | mutation을 차단하고 disk health/capacity와 private logs를 조사한다 |
-| restart 후 client timeout | 같은 snapshot/reservation/assignment/operation ID로 poll 또는 retry한다 |
-| volume capacity growth | 새 ingestion을 제한하고 offline backup을 만든다; ad-hoc compaction은 하지 않는다 |
+| startup 전에 PostgreSQL failure | listener가 열리지 않은 상태를 유지하고 DSN reachability/schema migration을 확인한다 |
+| startup OIDC discovery failure | issuer/TLS trust와 discovery document를 확인하고 credential을 log에 출력하지 않는다 |
+| `/readyz` 503 | replica를 traffic에서 제외하고 PostgreSQL connectivity를 조사한다; liveness restart loop를 만들지 않는다 |
+| authentication refresh 503 | provider/JWKS reachability를 조사한다; cached-key token과 신규 key token을 구분한다 |
+| duplicate demand/reservation conflict | operation ID를 유지해 retry하고 PostgreSQL receipt/claim authority로 수렴시킨다 |
+| cursor rejection after rollout | 모든 replica의 cursor key와 repository version을 확인한다 |
 
-## Upgrade And Rollback
+request, token, DSN, tenant resource와 raw database/log output은 private application data로 취급한다. 공개 issue나 tracked report에는 sanitized aggregate와 redacted 판정만 남긴다.
 
-upgrade 전 offline backup과 full release gate를 통과한다. replica 1을 stop하고 새 image digest로 교체한 뒤 readiness/replay를 확인한다. 현재 `sema-journal-v1` schema를 바꾸는 release는 별도 migration decision 없이는 허용하지 않는다.
+## Upgrade And Recovery
 
-rollback은 target binary가 existing journal schema와 configuration을 읽을 수 있을 때만 수행한다. startup 검증이 실패하면 반복 재시작하지 말고 이전 image와 pre-upgrade backup을 사용해 stopped-volume restore를 수행한다.
+binary rollout 전에 migration Job을 실행하고 compatible schema가 확인된 뒤 stateless replica를 점진적으로 교체한다. rollback binary가 현재 schema와 wire contract를 읽을 수 있는지 확인하지 않은 상태에서 image만 되돌리지 않는다.
+
+PostgreSQL backup encryption, retention, PITR, restore location과 RPO/RTO는 deployment 책임이다. 현재 repository gate는 disposable PostgreSQL의 logical backup/restore와 semantic manifest equality를 검증하지만 제품 backup/PITR acceptance는 P31의 남은 항목이다. 따라서 이 문서는 아직 특정 numeric recovery promise를 선언하지 않는다.
+
+optional V0 journal import/recovery와 single-writer compatibility runtime은 `docs/v0-import.md`와 `docs/v0-runtime.md`를 따른다. 신규 설치는 V0 journal을 요구하지 않는다.
 
 ## Validation
 
 ```sh
-scripts/check-container.sh
-go run ./cmd/sema-ops-check -cycles 100 -tickets-per-cycle 20 -concurrency 16 -timeout 2m
-```
-
-첫 command는 image user/version, in-image lifecycle validation, read-only/capability-reduced startup과 volume-backed restart를 확인한다. 두 번째 command는 외부 state를 건드리지 않는 bounded local soak 예다.
-
-## PostgreSQL Import Recovery Rehearsal
-
-위 container 절차는 V0 development/reference runtime의 운영 계약이다. optional V0 import와 PostgreSQL logical recovery evidence는 다음 disposable gate가 소유한다.
-
-```sh
+go test -race ./internal/serviceapp ./internal/targetruntime ./internal/authn/oidc
 scripts/check-postgres.sh
+scripts/check-container.sh
 ```
 
-이 gate는 pinned test PostgreSQL 안에서 isolated schema만 사용해 stopped V0 fixture import, custom-format logical backup, target schema 삭제, restore와 semantic manifest 비교를 수행한다. 복원된 import completion marker와 terminal assignment를 읽은 뒤 target schema를 다시 폐기하고 original V0 journal을 기존 TTL로 재기동한다. journal open/close 전후 source digest가 달라지면 실패한다.
-
-private manifest에는 source digest/record count, repository version, resource/audit digest, metadata/scope/operation authority digest와 repository table별 row count만 mode `0600`으로 임시 저장한다. DSN, raw resource, journal path, dump와 environment identity는 tracked 문서나 일반 CI artifact에 보존하지 않는다.
-
-이 local logical restore는 PostgreSQL backup 제품 계약을 대신하지 않는다. encryption, retention, PITR, access control, restore location과 RPO/RTO는 P31 operational evidence에서 별도 검증한다. imported repository의 첫 새 mutation 뒤에는 V0 reverse rollback을 금지하며 compatible service binary와 PostgreSQL backup으로만 복구한다.
-
-## Target Remote Runtime
-
-PostgreSQL-backed remote process의 generic startup, migration, health, OIDC, external TLS와 private-listener acceptance는 `docs/remote-runtime.md`가 소유한다. 실제 endpoint, credential, certificate, cluster route와 provider inventory는 이 공개 runbook에 기록하지 않는다.
+첫 command는 command composition과 bounded runtime을, PostgreSQL gate는 repository/OIDC lifecycle 및 logical recovery fixture를, container gate는 standard entrypoint와 호환 binary/restart surface를 확인한다. 실제 provider reference deployment acceptance는 tracked credential 없이 `docs/remote-runtime.md`의 redacted acceptance 절차를 따른다.

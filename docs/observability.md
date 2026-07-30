@@ -1,5 +1,7 @@
 # Observability Baseline
 
+이 문서의 metric/trace/audit surface는 V0 `cmd/sema-server` baseline이다. 표준 `cmd/sema-service`의 metrics, tracing와 alerting contract는 P31의 남은 operational evidence이며 현재 health endpoint 외의 동일 surface를 주장하지 않는다.
+
 ## Operational Endpoints
 
 - `GET /livez`: HTTP process가 요청을 처리하는지 확인한다.

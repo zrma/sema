@@ -20,6 +20,6 @@ func main() {
 		os.LookupEnv,
 		os.Stdout,
 		os.Stderr,
-		serviceapp.Identity{ProgramName: "sema-target-server", Version: version},
+		serviceapp.Identity{ProgramName: "sema-service", Version: version},
 	))
 }

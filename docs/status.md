@@ -47,7 +47,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - complete plan decision audit와 snapshot ID idempotency, torn-tail recovery, corruption refusal와 single-writer lock.
 - explicit `v0alpha1` HTTP DTO와 policy/ticket/backfill/plan/reservation/assignment endpoint.
 - server-owned clock, durable proposal ID authority와 restart-safe synchronous/polling delivery.
-- loopback-default `sema-server`, bounded strict JSON, typed failure mapping과 graceful shutdown.
+- V0 compatibility용 loopback-default `sema-server`, bounded strict JSON, typed failure mapping과 graceful shutdown.
 - low-cardinality Prometheus metrics, W3C request trace와 liveness/readiness endpoint.
 - raw payload를 제외한 paged durable decision audit summary.
 - 실제 HTTP lifecycle 부하, process restart와 incomplete journal tail 복구를 묶은 격리형 operational validator.
@@ -141,7 +141,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
 - PostgreSQL backup/PITR 제품 계약과 authenticated multi-replica failure evidence; file reference adapter는 product storage가 아니다.
-- workload 기반 rate limit, telemetry backend/alerts와 표준 runtime packaging.
+- workload 기반 rate limit, telemetry backend/alerts와 표준 runtime의 multi-replica operational evidence.
 - stable/v1 Go API, stable wire protocol과 repository-owned multi-version consumer conformance.
 - stable release 자체; 현재 `stable_admitted: false`다.
 - production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
@@ -154,8 +154,8 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - role composition의 hard/soft 경계.
 - mixed-party battle royale과 현실적인 existing-roster backfill 분포.
 - append-only journal에는 아직 compaction, online backup와 numeric recovery SLO가 없다.
-- PostgreSQL/OIDC 표준 runtime 승격 순서와 numeric recovery/service SLO.
+- PostgreSQL/OIDC multi-replica failure/recovery 순서와 numeric recovery/service SLO.
 
 ## Next Slice
 
-P30은 full lifecycle, optional V0 import/recovery, OIDC/JWT authentication, PostgreSQL-backed remote executable과 reference deployment acceptance를 닫았다. 다음 slice는 P31의 첫 구현 단계로 PostgreSQL/OIDC service를 표준 command, container entrypoint와 deployment example로 승격하고 V0 journal runtime을 명시적인 development/reference surface로 분리하는 것이다. numeric SLA와 stable compatibility는 repository-owned workload와 multi-version evidence 전까지 확정하지 않는다.
+P31의 표준 runtime slice가 완료되어 `cmd/sema-service`, image entrypoint, Compose와 primary runbook이 PostgreSQL/OIDC authority를 가리킨다. `cmd/sema-target-server`는 command compatibility alias이고 `cmd/sema-server`는 V0 development/reference 및 optional import compatibility surface다. 다음 slice는 repository-owned reference client와 multi-version wire conformance다. numeric SLA와 stable compatibility는 representative workload와 multi-version evidence 전까지 확정하지 않는다.

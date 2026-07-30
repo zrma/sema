@@ -25,19 +25,27 @@ docker info >/dev/null 2>&1 || {
   exit 1
 }
 
-docker compose -f deploy/compose.yaml config -q
+SEMA_POSTGRES_DSN='postgres://sema:check-only@database.example.invalid/sema' \
+SEMA_CURSOR_KEY_BASE64='QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE=' \
+SEMA_OIDC_ISSUER='https://identity.example.invalid/' \
+SEMA_OIDC_AUDIENCE='sema' \
+  docker compose -f deploy/compose.yaml config -q
 docker build --pull=false --build-arg VERSION=v0.0.0-test -t "$image" . >/dev/null
 
 [ "$(docker image inspect --format '{{.Config.User}}' "$image")" = "65532:65532" ] || {
   printf 'container check failed: image user is not the unprivileged runtime identity\n' >&2
   exit 1
 }
-docker run --rm "$image" -version | grep -Fxq 'sema-server v0.0.0-test' || {
-  printf 'container check failed: embedded server version is incorrect\n' >&2
+docker run --rm "$image" -version | grep -Fxq 'sema-service v0.0.0-test' || {
+  printf 'container check failed: standard service version is incorrect\n' >&2
+  exit 1
+}
+docker run --rm --entrypoint /usr/local/bin/sema-server "$image" -version | grep -Fxq 'sema-server v0.0.0-test' || {
+  printf 'container check failed: V0 compatibility server version is incorrect\n' >&2
   exit 1
 }
 docker run --rm --entrypoint /usr/local/bin/sema-target-server "$image" -version | grep -Fxq 'sema-target-server v0.0.0-test' || {
-  printf 'container check failed: embedded target server version is incorrect\n' >&2
+  printf 'container check failed: target compatibility server version is incorrect\n' >&2
   exit 1
 }
 docker run --rm --entrypoint /usr/local/bin/sema-target-smoke "$image" -version | grep -Fxq 'sema-target-smoke v0.0.0-test' || {
@@ -57,6 +65,7 @@ docker run --rm --entrypoint /usr/local/bin/sema-ops-check "$image" \
 
 docker volume create "$volume" >/dev/null
 container=$(docker run -d \
+  --entrypoint /usr/local/bin/sema-server \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,size=16m \
   --cap-drop ALL \

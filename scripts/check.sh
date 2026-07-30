@@ -14,6 +14,7 @@ for required_file in \
   alpha/compose.go \
   alpha/types.go \
   cmd/sema-server/main.go \
+  cmd/sema-service/main.go \
   cmd/sema-healthcheck/main.go \
   cmd/sema-benchmark-gate/main.go \
   cmd/sema-ops-check/main.go \
@@ -35,6 +36,7 @@ for required_file in \
   internal/performance/report.go \
   internal/repository/postgres/postgres.go \
   internal/repository/postgres/schema.sql \
+  internal/serviceapp/app.go \
   internal/flow/simulator.go \
   internal/flowmatrix/matrix.go \
   internal/flowui/model.go \
@@ -63,6 +65,7 @@ for required_file in \
   docs/observability.md \
   docs/operational-validation.md \
   docs/operations-runbook.md \
+  docs/v0-runtime.md \
   docs/performance-slo.md \
   docs/release-admission.md \
   docs/postgres-repository.md \
@@ -100,6 +103,7 @@ for required_file in \
   docs/decisions/0025-provider-neutral-oidc-authentication.md \
   docs/decisions/0026-authenticated-remote-runtime.md \
   docs/decisions/0027-standalone-product-scope.md \
+  docs/decisions/0028-standard-service-runtime.md \
   docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/migrations/v0alpha3-to-v0alpha4.md \
@@ -208,8 +212,9 @@ grep -Eq '^FROM golang:[^ ]+@sha256:[0-9a-f]{64} AS build$' Dockerfile || {
   exit 1
 }
 
-grep -Fq '127.0.0.1:8080:8080' deploy/compose.yaml || {
-  printf 'repository check failed: unauthenticated deployment must bind host loopback\n' >&2
+grep -Fq '127.0.0.1:8080:8080' deploy/compose.yaml &&
+  grep -Fq 'SEMA_TLS_TERMINATION: external' deploy/compose.yaml || {
+  printf 'repository check failed: standard deployment must bind host loopback and declare external TLS ownership\n' >&2
   exit 1
 }
 
@@ -230,6 +235,7 @@ go run ./cmd/sema-lab -format json diagnostic-bounded-quality-gap diagnostic-can
 go run ./cmd/sema-lab -format json batch-frontier-mixed-party-backfill diagnostic-batch-frontier-gap >/dev/null
 go run ./examples/compose >/dev/null
 go run ./cmd/sema-server -version >/dev/null
+go run ./cmd/sema-service -version >/dev/null
 go run ./cmd/sema-healthcheck -version >/dev/null
 go run ./cmd/sema-benchmark-gate -version >/dev/null
 go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null

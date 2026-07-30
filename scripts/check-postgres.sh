@@ -53,7 +53,7 @@ address=$(docker port "$container" 5432/tcp | sed -n '1p')
 }
 
 SEMA_POSTGRES_TEST_DSN="postgres://postgres:${password}@${address}/sema_test?sslmode=disable" \
-  go test -race ./internal/repository/postgres ./internal/service ./internal/targetapi ./cmd/sema-target-server
+  go test -race ./internal/repository/postgres ./internal/service ./internal/targetapi ./internal/serviceapp ./cmd/sema-service ./cmd/sema-target-server
 
 rehearsal_directory=$(mktemp -d "${TMPDIR:-/tmp}/sema-postgres-rehearsal.XXXXXX")
 rehearsal_journal="$rehearsal_directory/v0.journal"
@@ -83,4 +83,4 @@ docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d sema_test \
 go run ./cmd/sema-postgres-rehearsal \
   -phase rollback -journal "$rehearsal_journal" -manifest "$rehearsal_manifest"
 
-printf 'sema postgres repository and cutover rehearsal passed\n'
+printf 'sema postgres repository, import, and recovery rehearsal passed\n'

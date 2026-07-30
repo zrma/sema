@@ -48,8 +48,9 @@
 - target mutation은 `Idempotency-Key`를 요구하고 repository receipt를 resource validation보다 먼저 resolve해 후속 revision 뒤의 오래된 retry도 최초 결과로 수렴한다.
 - target list/poll은 tenant/kind/filter/order와 repository version에 묶인 HMAC cursor를 사용하며 PostgreSQL composition fixture가 실제 create/get을 검증한다.
 - provider-neutral OIDC adapter가 HTTPS discovery/JWKS, asymmetric signed JWT, exact issuer/audience/time, `sema_tenant`와 permission scope를 검증하고 invalid/provider-unavailable을 분리한다.
-- `cmd/sema-target-server`가 PostgreSQL과 OIDC를 별도 authenticated runtime으로 조립하고 explicit external TLS owner, secret-only DSN/cursor key, bounded admission과 tenant-free readiness 없이는 listener를 열지 않는다.
-- `cmd/sema-postgres-migrate`는 application startup과 분리된 pre-traffic schema migration을 제공하고 container는 OIDC HTTPS용 CA bundle을 포함한다. 기본 entrypoint는 아직 V0 server다.
+- `cmd/sema-service`가 PostgreSQL과 OIDC를 표준 authenticated runtime으로 조립하고 explicit external TLS owner, secret-only DSN/cursor key, bounded admission과 tenant-free readiness 없이는 listener를 열지 않는다.
+- `cmd/sema-postgres-migrate`는 application startup과 분리된 pre-start schema migration을 제공하고 container는 OIDC HTTPS용 CA bundle을 포함한다. image와 Compose의 기본 entrypoint는 `sema-service`다.
+- `cmd/sema-target-server`는 P30 command compatibility alias이고 `cmd/sema-server`는 V0 development/reference 및 optional import compatibility command다.
 - `cmd/sema-target-smoke`가 provider에서 발급된 세 종류의 bearer token만 받아 health, 401/403, tenant isolation과 planning-to-assignment completion을 검증하며 credential acquisition은 deployment에 남긴다.
 - BackfillTicket target API는 ticket/roster freshness를 함께 전진시키고 exact cancel하며 같은 historical idempotency와 pagination contract를 사용한다.
 - `demand_identity`와 `backfill_session_claim` resource가 Match/Backfill ID 충돌과 session별 active backfill 경쟁을 PostgreSQL transaction 하나로 직렬화한다.
@@ -66,7 +67,7 @@
 - HTTP server clock과 durable proposal ID lookup이 TTL manipulation과 forged placement를 service boundary에서 차단한다.
 - `/metrics`, W3C request trace, liveness/readiness와 redacted paged audit가 bounded operational evidence를 제공한다.
 - `cmd/sema-ops-check`가 실제 HTTP lifecycle 부하, 완료 assignment restart replay와 incomplete journal tail 복구를 격리된 임시 runtime에서 검증한다.
-- `Dockerfile`과 loopback-only Compose example이 non-root/read-only/capability-free single-writer deployment를 제공하고 operations runbook이 offline backup/restore를 고정한다.
+- `Dockerfile`과 loopback-published Compose example이 non-root/read-only/capability-free PostgreSQL/OIDC 표준 runtime을 제공한다. V0 single-writer journal 운영 계약은 별도 compatibility runbook에 있다.
 - reference container profile이 repeated service latency/recovery와 planner/engine/replay allocation budget을 검증하고 CI가 redacted aggregate history를 보존한다.
 - release admission은 v0 alpha만 허용하며 stable API/transport/consumer evidence 전에는 v1 tag를 차단한다.
 - `cmd/sema-tui`가 실제 loopback HTTP lifecycle 위에서 empty queue로 시작하는 mixed-party arrival, proposal/reservation, concurrent game과 completion을 Unicode animation으로 보여준다.
@@ -94,7 +95,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit, P29 service productization entry와 P30 authenticated service runtime까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. authenticated `v0alpha2` full lifecycle, provider-neutral OIDC와 별도 PostgreSQL service executable이 tenant isolation, historical idempotency, pagination/polling, bounded admission, PostgreSQL composition과 reference deployment acceptance를 검증한다. V0 journal은 source를 수정하지 않는 optional import 및 development/reference surface로 남고 기본 container entrypoint는 아직 V0 server다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P31은 PostgreSQL/OIDC runtime을 표준 surface로 승격하고 repository-owned reference client, compatibility와 multi-replica/load/failure/recovery evidence를 닫는다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit, P29 service productization entry와 P30 authenticated service runtime까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. authenticated `v0alpha2` full lifecycle과 provider-neutral OIDC runtime이 tenant isolation, historical idempotency, pagination/polling, bounded admission, PostgreSQL composition과 reference deployment acceptance를 검증한다. P31에서 `sema-service`, image, Compose와 primary runbook이 같은 표준 runtime을 가리키고 V0 journal은 source를 수정하지 않는 optional import 및 development/reference compatibility surface로 분리되었다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 다음 작업은 repository-owned reference client/wire conformance와 multi-replica/load/failure/recovery evidence다. traffic calibration 없는 frontier, roster aggregate와 synthetic priority boundary는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
 
 ## Completion Rule
 

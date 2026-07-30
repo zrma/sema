@@ -2,9 +2,9 @@
 
 ## Boundary
 
-`cmd/sema-target-server`는 PostgreSQL repository, provider-neutral OIDC verifier와 authenticated `v0alpha2` target API를 하나의 stateless service process로 조립한다. 실제 identity provider 제품, token acquisition, TLS gateway, database provisioning과 secret delivery는 deployment 책임이다.
+`cmd/sema-service`는 PostgreSQL repository, provider-neutral OIDC verifier와 authenticated `v0alpha2` target API를 하나의 stateless service process로 조립하는 표준 command다. 실제 identity provider 제품, token acquisition, TLS gateway, database provisioning과 secret delivery는 deployment 책임이다.
 
-기존 `cmd/sema-server`는 V0 journal/reference runtime이며 PostgreSQL service의 alias가 아니다. 두 runtime의 authority와 recovery 계약을 섞지 않으며, 표준 runtime 승격은 P31이 소유한다.
+P30에서 사용한 `cmd/sema-target-server`는 같은 구현을 호출하는 command compatibility alias다. 기존 `cmd/sema-server`는 V0 journal development/reference 및 optional import compatibility runtime이며 PostgreSQL service의 alias가 아니다. 두 runtime의 authority와 recovery 계약을 섞지 않는다.
 
 ## Required Configuration
 
@@ -26,7 +26,7 @@ Sema에는 OIDC client ID/secret, token endpoint credential 또는 provider-spec
 2. 같은 image의 `sema-postgres-migrate`를 service startup 전 migration Job으로 실행한다.
 3. OIDC issuer에 audience, tenant claim과 Sema permission scope를 발급하도록 deployment mapping을 구성한다.
 4. external TLS gateway와 private-only Service/listener reachability를 구성한다.
-5. target server를 시작하고 `/livez`, `/readyz`를 통과시킨다.
+5. `sema-service`를 시작하고 `/livez`, `/readyz`를 통과시킨다.
 6. 전용 acceptance caller token으로 unauthenticated, permission-denied, tenant isolation과 allowed lifecycle을 검증한다.
 
 로컬 placeholder 형식은 다음과 같다. 실제 값은 tracked shell script나 문서에 저장하지 않는다.
@@ -39,7 +39,7 @@ export SEMA_OIDC_AUDIENCE='sema'
 export SEMA_TLS_TERMINATION='external'
 
 go run ./cmd/sema-postgres-migrate
-go run ./cmd/sema-target-server -listen 127.0.0.1:8080
+go run ./cmd/sema-service -listen 127.0.0.1:8080
 ```
 
 ## Listener And Health

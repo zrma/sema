@@ -4,7 +4,7 @@
 
 `internal/repository/postgres`는 P29 target persistence의 첫 product adapter다. PostgreSQL primary가 tenant-scoped resource, operation receipt와 redacted audit의 durable authority이며 Redis는 사용하지 않는다.
 
-이 adapter와 `cmd/sema-target-server`는 제품형 service runtime의 기반이다. V0 `cmd/sema-server`는 실제 deployed predecessor가 아니라 development/reference 및 optional import compatibility surface다. PostgreSQL/OIDC runtime의 표준 command, image와 deployment example 승격은 P31이 소유한다.
+이 adapter와 `cmd/sema-service`는 표준 제품형 service runtime이다. `cmd/sema-target-server`는 P30 command compatibility alias이고 V0 `cmd/sema-server`는 실제 deployed predecessor가 아니라 development/reference 및 optional import compatibility surface다.
 
 ## Schema Ownership
 

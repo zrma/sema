@@ -53,7 +53,7 @@ flowchart LR
 - public `alpha` package는 immutable composition input/output을 internal model과 명시적으로 변환하고 planner만 호출한다. coordinator lifecycle과 internal type은 노출하지 않는다.
 - `internal/durable`은 coordinator mutation과 plan decision을 한 writer에서 직렬화하고 synced journal을 restart recovery와 audit authority로 사용한다.
 - `cmd/sema-server`는 explicit `v0alpha1` DTO를 변환하고 server clock과 durable proposal lookup을 사용한다. client placement는 reserve authority가 아니다.
-- `cmd/sema-target-server`는 PostgreSQL target repository, provider-neutral OIDC와 `v0alpha2` handler를 별도 stateless remote runtime으로 조립한다. `cmd/sema-postgres-migrate`가 schema를 traffic 전 명시적으로 설치하며 V0 command를 제자리에서 교체하지 않는다.
+- `cmd/sema-service`는 PostgreSQL target repository, provider-neutral OIDC와 `v0alpha2` handler를 표준 stateless remote runtime으로 조립한다. `cmd/sema-target-server`는 같은 구현의 command compatibility alias다. `cmd/sema-postgres-migrate`가 schema를 startup 전 명시적으로 설치하며 V0 command를 제자리에서 교체하지 않는다.
 - `internal/observability`은 route-pattern metric/trace와 redacted audit만 노출하고 resource identity를 label/span으로 사용하지 않는다.
 - `internal/repository`는 tenant-scoped resource storage version, atomic CAS mutation, operation receipt와 redacted audit의 adapter-neutral contract를 소유한다.
 - `internal/service`는 repository-versioned immutable planning input과 target resource kind를 소유한다. candidate index는 같은 repository version에서만 사용할 수 있는 derived state다.
@@ -88,7 +88,7 @@ flowchart LR
 - planning snapshot capture 뒤 matcher search 중에는 storage transaction을 열어 두지 않는다. immutable snapshot과 proposal record는 audit authority로 남고 reserve는 현재 resource freshness를 다시 검증한다.
 - related ticket/backfill/reservation/assignment mutation만 같은 transaction에 묶고 unrelated ingress는 진행할 수 있다.
 - candidate index는 repository commit version을 따라가거나 snapshot에서 rebuild한다. version mismatch에서는 index result를 사용하지 않는다.
-- current journal은 V0 development/reference 및 optional import source다. PostgreSQL primary가 제품형 durable write authority이고 service는 stateless replica로 확장한다. Redis는 baseline에 없으며 candidate index는 PostgreSQL snapshot version에서 rebuild 가능한 derived state다. experimental `v0alpha2` boundary는 OIDC adapter에서 tenant/permission을 결정하고 full lifecycle idempotency와 version-bound pagination을 검증한다. 별도 PostgreSQL/OIDC executable과 reference deployment acceptance까지 완료되었으며 P31이 이를 표준 runtime surface로 승격한다.
+- current journal은 V0 development/reference 및 optional import source다. PostgreSQL primary가 제품형 durable write authority이고 service는 stateless replica로 확장한다. Redis는 baseline에 없으며 candidate index는 PostgreSQL snapshot version에서 rebuild 가능한 derived state다. experimental `v0alpha2` boundary는 OIDC adapter에서 tenant/permission을 결정하고 full lifecycle idempotency와 version-bound pagination을 검증한다. P31의 `cmd/sema-service`, image, Compose와 primary runbook이 이 PostgreSQL/OIDC runtime을 표준 surface로 승격했다.
 
 ## Failure Model
 

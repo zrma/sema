@@ -26,8 +26,10 @@ api_compatibility: docs/api-compatibility.md
 releasing: docs/releasing.md
 durable_runtime: docs/durable-runtime.md
 service_api: docs/service-api.md
-service_command: cmd/sema-server
-target_service_command: cmd/sema-target-server
+service_command: cmd/sema-service
+target_service_compatibility_command: cmd/sema-target-server
+v0_service_command: cmd/sema-server
+v0_runtime: docs/v0-runtime.md
 postgres_migration_command: cmd/sema-postgres-migrate
 observability: docs/observability.md
 operational_validation: docs/operational-validation.md
@@ -76,6 +78,7 @@ postgres_cutover_decision: docs/decisions/0024-postgresql-cutover-rehearsal.md
 oidc_authentication_decision: docs/decisions/0025-provider-neutral-oidc-authentication.md
 remote_runtime_decision: docs/decisions/0026-authenticated-remote-runtime.md
 standalone_product_scope_decision: docs/decisions/0027-standalone-product-scope.md
+standard_service_runtime_decision: docs/decisions/0028-standard-service-runtime.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -95,7 +98,7 @@ checks:
   postgres_repository_test: scripts/check-postgres.sh
   target_api_test: go test ./internal/targetapi
   oidc_authentication_test: go test -race ./internal/authn/oidc
-  target_runtime_test: go test -race ./internal/targetruntime ./cmd/sema-target-server ./cmd/sema-postgres-migrate
+  target_runtime_test: go test -race ./internal/targetruntime ./internal/serviceapp ./cmd/sema-service ./cmd/sema-target-server ./cmd/sema-postgres-migrate
   alpha_test: go test ./alpha
   example_consumer: go run ./examples/compose
   release_build: scripts/check-release-build.sh
@@ -103,6 +106,7 @@ checks:
   durable_replay_benchmark: go test ./internal/durable -run ^$ -bench ^BenchmarkOpenReplay$ -benchtime=1x
   service_test: go test ./internal/httpapi ./cmd/sema-server
   service_smoke: go run ./cmd/sema-server -version
+  standard_service_smoke: go run ./cmd/sema-service -version
   observability_test: go test ./internal/observability ./internal/httpapi ./internal/durable
   operational_validation_test: go test ./internal/operational ./cmd/sema-ops-check
   operational_validation_smoke: go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s

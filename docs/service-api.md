@@ -2,7 +2,7 @@
 
 ## Scope
 
-`cmd/sema-server`는 `internal/durable.Runtime` 위에서 experimental JSON/HTTP API를 제공한다. ticket와 backfill session demand를 ingest하고, durable planning/reservation/assignment lifecycle을 별도 process consumer가 실행할 수 있게 한다.
+`cmd/sema-server`는 `internal/durable.Runtime` 위에서 experimental JSON/HTTP API를 제공하는 V0 development/reference 및 optional import compatibility command다. 신규 설치의 표준 PostgreSQL/OIDC service는 `docs/target-api.md`와 `docs/operations-runbook.md`를 따른다. 이 V0 runtime은 ticket와 backfill session demand를 ingest하고 durable planning/reservation/assignment lifecycle을 별도 process consumer가 실행할 수 있게 한다.
 
 이 schema는 `v0alpha1`이며 stable compatibility를 약속하지 않는다. Go `alpha` package와 목적은 다르지만 둘 다 composition semantics를 공유한다.
 
