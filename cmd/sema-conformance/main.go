@@ -17,9 +17,9 @@ func main() {
 		os.Stdout,
 		os.Stderr,
 		wireconformance.Identity{
-			ProgramName:  "sema-target-smoke",
+			ProgramName:  "sema-conformance",
 			Version:      version,
-			ReportSchema: "sema.target-smoke.v1",
+			ReportSchema: "sema.wire-conformance.v1",
 		},
 	))
 }

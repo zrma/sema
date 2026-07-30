@@ -1,4 +1,4 @@
-package main
+package wireconformance
 
 import (
 	"bytes"
@@ -177,6 +177,25 @@ func TestRunPrintsVersionWithoutConfiguration(t *testing.T) {
 	}
 	if stdout.String() != "sema-target-smoke dev\n" {
 		t.Fatalf("version output = %q", stdout.String())
+	}
+}
+
+func TestRunUsesStandardCommandIdentity(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := Run(
+		context.Background(),
+		[]string{"-version"},
+		func(string) (string, bool) { return "", false },
+		&stdout,
+		&stderr,
+		Identity{
+			ProgramName:  "sema-conformance",
+			Version:      "v0.0.0-test",
+			ReportSchema: "sema.wire-conformance.v1",
+		},
+	)
+	if code != 0 || stdout.String() != "sema-conformance v0.0.0-test\n" {
+		t.Fatalf("exit code = %d, stdout=%q, stderr=%q", code, stdout.String(), stderr.String())
 	}
 }
 

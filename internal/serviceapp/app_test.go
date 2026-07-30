@@ -28,6 +28,7 @@ import (
 	"github.com/zrma/sema/internal/repository"
 	postgresrepository "github.com/zrma/sema/internal/repository/postgres"
 	"github.com/zrma/sema/internal/targetapi"
+	"github.com/zrma/sema/internal/wireconformance"
 )
 
 const postgresTestDSNEnvironment = "SEMA_POSTGRES_TEST_DSN"
@@ -241,9 +242,9 @@ func TestPostgreSQLAndOIDCEndToEndRuntime(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	exitCode := make(chan int, 1)
 	go func() {
-		exitCode <- run(
+		exitCode <- runWithIdentity(
 			runtimeContext, []string{"-listen", "127.0.0.1:0"}, mapEnvironment(environment),
-			&stdout, &stderr, deps,
+			&stdout, &stderr, deps, Identity{ProgramName: "sema-service", Version: "test"},
 		)
 	}()
 
@@ -257,22 +258,68 @@ func TestPostgreSQLAndOIDCEndToEndRuntime(t *testing.T) {
 	}
 	readyURL := "http://" + runtimeAddress + "/readyz"
 	waitForReady(t, readyURL)
-	assertStatus(t, http.MethodGet, "http://"+runtimeAddress+"/v0alpha2/match-tickets", "", http.StatusUnauthorized)
-
-	claims, err := json.Marshal(map[string]any{
-		"iss": providerServer.URL, "aud": "sema", "sub": "runtime-reader",
-		"exp": time.Now().Add(time.Minute).Unix(), "sema_tenant": "tenant-a", "scope": "match_tickets.read",
-	})
-	if err != nil {
-		t.Fatal(err)
+	conformanceEnvironment := map[string]string{
+		wireconformance.WriteTokenEnvironment: signedToken(
+			t, key, providerServer.URL, "runtime-writer", "tenant-a",
+			"match_tickets.read match_tickets.write policies.read policies.write "+
+				"planning_runs.read planning_runs.write reservations.read reservations.write "+
+				"assignments.read assignments.write",
+		),
+		wireconformance.ReadTokenEnvironment: signedToken(
+			t, key, providerServer.URL, "runtime-reader", "tenant-a", "match_tickets.read",
+		),
+		wireconformance.OtherTenantTokenEnvironment: signedToken(
+			t, key, providerServer.URL, "runtime-other-reader", "tenant-b", "match_tickets.read",
+		),
 	}
-	token := oidctest.SignIDToken(key, "runtime-key", coreoidc.RS256, string(claims))
-	assertStatus(t, http.MethodGet, "http://"+runtimeAddress+"/v0alpha2/match-tickets", token, http.StatusOK)
+	var conformanceStdout, conformanceStderr bytes.Buffer
+	conformanceCode := wireconformance.Run(
+		context.Background(),
+		[]string{"-base-url", "http://" + runtimeAddress, "-allow-http", "-timeout", "15s"},
+		mapEnvironment(conformanceEnvironment),
+		&conformanceStdout,
+		&conformanceStderr,
+		wireconformance.Identity{
+			ProgramName:  "sema-conformance",
+			Version:      "test",
+			ReportSchema: "sema.wire-conformance.v1",
+		},
+	)
+	if conformanceCode != 0 ||
+		!strings.Contains(conformanceStdout.String(), `"schema":"sema.wire-conformance.v1"`) ||
+		!strings.Contains(conformanceStdout.String(), `"lifecycle_complete":true`) {
+		t.Fatalf(
+			"wire conformance: code=%d, stdout=%q, stderr=%q",
+			conformanceCode,
+			conformanceStdout.String(),
+			conformanceStderr.String(),
+		)
+	}
 
 	cancelRuntime()
 	if code := <-exitCode; code != 0 || strings.Contains(stdout.String()+stderr.String(), runtimeDSN) {
 		t.Fatalf("exit code = %d, stdout=%q, stderr=%q", code, stdout.String(), stderr.String())
 	}
+}
+
+func signedToken(
+	t *testing.T,
+	key *rsa.PrivateKey,
+	issuer, subject, tenant, scope string,
+) string {
+	t.Helper()
+	claims, err := json.Marshal(map[string]any{
+		"iss":         issuer,
+		"aud":         "sema",
+		"sub":         subject,
+		"exp":         time.Now().Add(time.Minute).Unix(),
+		"sema_tenant": tenant,
+		"scope":       scope,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return oidctest.SignIDToken(key, "runtime-key", coreoidc.RS256, string(claims))
 }
 
 func withSearchPath(t *testing.T, dsn, schema string) string {
@@ -302,25 +349,6 @@ func waitForReady(t *testing.T, endpoint string) {
 			t.Fatalf("runtime did not become ready: %v", err)
 		}
 		time.Sleep(10 * time.Millisecond)
-	}
-}
-
-func assertStatus(t *testing.T, method, endpoint, bearer string, want int) {
-	t.Helper()
-	request, err := http.NewRequest(method, endpoint, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if bearer != "" {
-		request.Header.Set("Authorization", "Bearer "+bearer)
-	}
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != want {
-		t.Fatalf("%s status = %d; want %d", endpoint, response.StatusCode, want)
 	}
 }
 

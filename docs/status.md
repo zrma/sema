@@ -128,8 +128,10 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - HTTPS discovery/JWKS, asymmetric signature, issuer/audience/time, one-tenant claim과 exact permission scope를 검증하는 provider-neutral OIDC authenticator.
 - ephemeral TLS issuer에서 key rotation, invalid credential, permission denial과 provider-unavailable 401/403/503 mapping을 실행하는 conformance fixture.
 - PostgreSQL schema check와 OIDC discovery 뒤에만 listener를 열고 explicit external TLS owner, secret loading, bounded admission과 tenant-free readiness를 요구하는 target runtime.
-- pre-traffic PostgreSQL migration runner와 HTTPS discovery를 위한 CA trust bundle을 포함하되 V0 default entrypoint를 보존하는 container composition.
-- 실제 provider token으로 health, 401/403, tenant isolation과 complete assignment lifecycle을 검증하되 token acquisition은 배포 경계에 남기는 target smoke runner.
+- pre-start PostgreSQL migration runner와 HTTPS discovery를 위한 CA trust bundle을 포함하고 `sema-service`를 기본 entrypoint로 사용하는 container composition.
+- provider token으로 health, 401/403, tenant isolation과 complete assignment lifecycle을 검증하되 token acquisition은 배포 경계에 남기는 `sema-conformance` reference client.
+- disposable PostgreSQL schema, ephemeral TLS OIDC issuer와 표준 service에서 reference client 전체 순서를 실행하는 current-source wire conformance fixture.
+- 별도 pool의 two-replica reservation single-winner, peer terminal completion, replica restart와 PostgreSQL connection outage/readiness/liveness/recovery matrix.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -140,8 +142,8 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
-- PostgreSQL backup/PITR 제품 계약과 authenticated multi-replica failure evidence; file reference adapter는 product storage가 아니다.
-- workload 기반 rate limit, telemetry backend/alerts와 표준 runtime의 multi-replica operational evidence.
+- PostgreSQL backup/PITR와 database failover 제품 계약; file reference adapter는 product storage가 아니다.
+- workload 기반 rate limit, telemetry backend/alerts와 numeric standard runtime SLO.
 - stable/v1 Go API, stable wire protocol과 repository-owned multi-version consumer conformance.
 - stable release 자체; 현재 `stable_admitted: false`다.
 - production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
@@ -154,8 +156,8 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - role composition의 hard/soft 경계.
 - mixed-party battle royale과 현실적인 existing-roster backfill 분포.
 - append-only journal에는 아직 compaction, online backup와 numeric recovery SLO가 없다.
-- PostgreSQL/OIDC multi-replica failure/recovery 순서와 numeric recovery/service SLO.
+- PostgreSQL/OIDC pool/timeout/admission 값과 numeric recovery/service SLO.
 
 ## Next Slice
 
-P31의 표준 runtime slice가 완료되어 `cmd/sema-service`, image entrypoint, Compose와 primary runbook이 PostgreSQL/OIDC authority를 가리킨다. `cmd/sema-target-server`는 command compatibility alias이고 `cmd/sema-server`는 V0 development/reference 및 optional import compatibility surface다. 다음 slice는 repository-owned reference client와 multi-version wire conformance다. numeric SLA와 stable compatibility는 representative workload와 multi-version evidence 전까지 확정하지 않는다.
+P31의 표준 runtime, current-source wire conformance와 two-replica failure matrix가 완료되었다. `cmd/sema-service`, image entrypoint, Compose와 primary runbook이 PostgreSQL/OIDC authority를 가리키며 `cmd/sema-conformance`가 provider-neutral fixture에서 인증/tenant/lifecycle을 실행한다. `cmd/sema-runtime-matrix`는 reservation single-winner, terminal agreement, replica restart와 PostgreSQL outage/recovery를 검증한다. `cmd/sema-target-server`와 `cmd/sema-target-smoke`는 P30 command compatibility alias이고 `cmd/sema-server`는 V0 development/reference 및 optional import compatibility surface다. 다음 slice는 representative workload 기반 admission, pool/timeout과 numeric service SLO다. stable compatibility는 multi-version evidence 전까지 확정하지 않는다.

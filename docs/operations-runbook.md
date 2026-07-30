@@ -94,9 +94,9 @@ optional V0 journal import/recovery와 single-writer compatibility runtime은 `d
 ## Validation
 
 ```sh
-go test -race ./internal/serviceapp ./internal/targetruntime ./internal/authn/oidc
+go test -race ./internal/serviceapp ./internal/wireconformance ./internal/targetruntime ./internal/authn/oidc
 scripts/check-postgres.sh
 scripts/check-container.sh
 ```
 
-첫 command는 command composition과 bounded runtime을, PostgreSQL gate는 repository/OIDC lifecycle 및 logical recovery fixture를, container gate는 standard entrypoint와 호환 binary/restart surface를 확인한다. 실제 provider reference deployment acceptance는 tracked credential 없이 `docs/remote-runtime.md`의 redacted acceptance 절차를 따른다.
+첫 command는 command composition과 bounded runtime을, PostgreSQL gate는 repository/OIDC lifecycle, two-replica failure matrix 및 logical recovery fixture를, container gate는 standard entrypoint와 호환 binary/restart surface를 확인한다. 실제 provider reference deployment acceptance는 tracked credential 없이 `docs/remote-runtime.md`의 redacted acceptance 절차를 따른다.

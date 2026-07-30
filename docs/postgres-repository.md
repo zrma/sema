@@ -48,6 +48,8 @@ scope version lock은 commit ordering과 lossless audit cursor를 위해 필요�
 scripts/check-postgres.sh
 ```
 
+같은 gate의 `sema-runtime-matrix`는 별도 pool을 가진 두 stateless replica의 reservation contention, peer terminal completion, replica restart와 controllable PostgreSQL connection outage/recovery를 실행한다. report와 범위는 `docs/runtime-failure-matrix.md`가 소유한다.
+
 외부 PostgreSQL에 직접 연결해 test를 실행할 때는 test 전용 database만 사용한다.
 
 ```sh

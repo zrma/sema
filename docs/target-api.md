@@ -124,8 +124,8 @@ strict JSON decoding, 1 MiB body limit, bounded identifier와 allowlisted query 
 
 ## Product Readiness Work
 
-- PostgreSQL/OIDC service를 standard runtime surface로 승격하고 reference deployment acceptance를 repeatable contract로 유지한다.
+- PostgreSQL/OIDC service와 repository-owned current-source wire conformance를 repeatable standard runtime contract로 유지한다.
 - quota/rate limit, database pool/timeout과 numeric SLO를 실제 workload evidence로 정한다.
-- repository-owned reference client, multi-version compatibility와 multi-replica failure/recovery evidence를 추가한다.
+- multi-version compatibility와 PostgreSQL backup/PITR evidence를 추가한다.
 
 optional V0 import의 local backup/restore와 pre-writer recovery gate는 `scripts/check-postgres.sh`가 검증한다. P31은 PostgreSQL/OIDC service를 표준 entrypoint로 승격했고 기존 V0와 P30 command compatibility를 보존한다. 이 repository runtime promotion은 existing deployment나 game traffic을 전제로 하지 않으며, 위 readiness 항목 전에는 `v0alpha2`를 stable contract로 선언하지 않는다.

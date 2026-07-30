@@ -15,10 +15,12 @@ for required_file in \
   alpha/types.go \
   cmd/sema-server/main.go \
   cmd/sema-service/main.go \
+  cmd/sema-conformance/main.go \
   cmd/sema-healthcheck/main.go \
   cmd/sema-benchmark-gate/main.go \
   cmd/sema-ops-check/main.go \
   cmd/sema-postgres-migrate/main.go \
+  cmd/sema-runtime-matrix/main.go \
   cmd/sema-tui/main.go \
   cmd/sema-target-server/main.go \
   cmd/sema-target-smoke/main.go \
@@ -36,7 +38,9 @@ for required_file in \
   internal/performance/report.go \
   internal/repository/postgres/postgres.go \
   internal/repository/postgres/schema.sql \
+  internal/runtimevalidation/matrix.go \
   internal/serviceapp/app.go \
+  internal/wireconformance/app.go \
   internal/flow/simulator.go \
   internal/flowmatrix/matrix.go \
   internal/flowui/model.go \
@@ -70,12 +74,14 @@ for required_file in \
   docs/release-admission.md \
   docs/postgres-repository.md \
   docs/target-api.md \
+  docs/wire-conformance.md \
   docs/oidc-authentication.md \
   docs/sema-flow.md \
   docs/sema-flow-measurement.md \
   docs/sema-flow-capacity-matrix.md \
   docs/policy-simulation.md \
   docs/runtime-validation.md \
+  docs/runtime-failure-matrix.md \
   docs/decisions/0001-implementation-baseline.md \
   docs/decisions/0002-runtime-adapter-baseline.md \
   docs/decisions/0003-policy-identity.md \
@@ -236,10 +242,12 @@ go run ./cmd/sema-lab -format json batch-frontier-mixed-party-backfill diagnosti
 go run ./examples/compose >/dev/null
 go run ./cmd/sema-server -version >/dev/null
 go run ./cmd/sema-service -version >/dev/null
+go run ./cmd/sema-conformance -version >/dev/null
 go run ./cmd/sema-healthcheck -version >/dev/null
 go run ./cmd/sema-benchmark-gate -version >/dev/null
 go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s >/dev/null
 go run ./cmd/sema-postgres-migrate -version >/dev/null
+go run ./cmd/sema-runtime-matrix -version >/dev/null
 go run ./cmd/sema-tui -version >/dev/null
 go run ./cmd/sema-target-server -version >/dev/null
 go run ./cmd/sema-target-smoke -version >/dev/null

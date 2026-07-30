@@ -19,6 +19,11 @@ postgres_repository: docs/postgres-repository.md
 target_api: docs/target-api.md
 oidc_authentication: docs/oidc-authentication.md
 remote_runtime: docs/remote-runtime.md
+wire_conformance: docs/wire-conformance.md
+reference_client_command: cmd/sema-conformance
+target_smoke_compatibility_command: cmd/sema-target-smoke
+runtime_failure_matrix: docs/runtime-failure-matrix.md
+runtime_failure_matrix_command: cmd/sema-runtime-matrix
 candidate_discovery: docs/candidate-discovery.md
 public_api: alpha
 public_api_guide: docs/public-api.md
@@ -96,9 +101,13 @@ checks:
   repository_memory_benchmark: go test ./internal/repository -run ^$ -bench ^BenchmarkMemoryRepository$ -benchtime=100x -count=3
   repository_file_prototype_benchmark: go test ./internal/repository/fileprototype -run ^$ -bench ^BenchmarkFilePrototypeRepository$ -benchtime=100x -count=3
   postgres_repository_test: scripts/check-postgres.sh
+  runtime_failure_matrix_test: SEMA_POSTGRES_TEST_DSN=<test-dsn> go run ./cmd/sema-runtime-matrix
   target_api_test: go test ./internal/targetapi
   oidc_authentication_test: go test -race ./internal/authn/oidc
   target_runtime_test: go test -race ./internal/targetruntime ./internal/serviceapp ./cmd/sema-service ./cmd/sema-target-server ./cmd/sema-postgres-migrate
+  wire_conformance_test: go test -race ./internal/wireconformance ./cmd/sema-conformance ./cmd/sema-target-smoke
+  wire_conformance_smoke: go run ./cmd/sema-conformance -version
+  runtime_failure_matrix_smoke: go run ./cmd/sema-runtime-matrix -version
   alpha_test: go test ./alpha
   example_consumer: go run ./examples/compose
   release_build: scripts/check-release-build.sh
