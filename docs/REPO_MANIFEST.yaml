@@ -26,6 +26,10 @@ runtime_failure_matrix: docs/runtime-failure-matrix.md
 runtime_failure_matrix_command: cmd/sema-runtime-matrix
 service_workload: docs/service-workload.md
 service_workload_command: cmd/sema-service-workload
+postgres_recovery: docs/postgres-recovery.md
+postgres_recovery_command: cmd/sema-postgres-recovery
+wire_compatibility: docs/wire-compatibility.md
+prometheus_rules: deploy/prometheus-rules.yaml
 candidate_discovery: docs/candidate-discovery.md
 public_api: alpha
 public_api_guide: docs/public-api.md
@@ -87,6 +91,9 @@ remote_runtime_decision: docs/decisions/0026-authenticated-remote-runtime.md
 standalone_product_scope_decision: docs/decisions/0027-standalone-product-scope.md
 standard_service_runtime_decision: docs/decisions/0028-standard-service-runtime.md
 standard_service_resource_profile_decision: docs/decisions/0029-standard-service-resource-profile.md
+standard_service_observability_decision: docs/decisions/0030-standard-service-observability.md
+standard_service_recovery_decision: docs/decisions/0031-standard-service-recovery.md
+stable_admission_decision: docs/decisions/0032-stable-admission-deferred.md
 active_work_glob: docs/todo-*/spec.md
 
 checks:
@@ -113,6 +120,8 @@ checks:
   runtime_failure_matrix_smoke: go run ./cmd/sema-runtime-matrix -version
   service_workload_test: go test ./internal/serviceworkload ./cmd/sema-service-workload
   service_workload_smoke: go run ./cmd/sema-service-workload -version
+  postgres_recovery_test: go test ./internal/postgresrecovery ./cmd/sema-postgres-recovery
+  wire_compatibility_test: go test ./internal/wireconformance ./cmd/sema-target-smoke
   alpha_test: go test ./alpha
   example_consumer: go run ./examples/compose
   release_build: scripts/check-release-build.sh
@@ -121,7 +130,7 @@ checks:
   service_test: go test ./internal/httpapi ./cmd/sema-server
   service_smoke: go run ./cmd/sema-server -version
   standard_service_smoke: go run ./cmd/sema-service -version
-  observability_test: go test ./internal/observability ./internal/httpapi ./internal/durable
+  observability_test: go test ./internal/observability ./internal/httpapi ./internal/targetruntime ./internal/serviceworkload
   operational_validation_test: go test ./internal/operational ./cmd/sema-ops-check
   operational_validation_smoke: go run ./cmd/sema-ops-check -cycles 1 -tickets-per-cycle 20 -concurrency 4 -timeout 30s
   healthcheck_test: go test ./cmd/sema-healthcheck

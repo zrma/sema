@@ -134,6 +134,9 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - 별도 pool의 two-replica reservation single-winner, peer terminal completion, replica restart와 PostgreSQL connection outage/readiness/liveness/recovery matrix.
 - same-tenant concurrent scope commit의 PostgreSQL lock-upgrade deadlock을 제거하고 atomic version reservation으로 ordered authority를 보존하는 transaction regression.
 - 3x100 ticket을 3회 실행하는 `sema-standard-postgres-v1`과 explicit 64-request admission, 16/2 connection pool, 5초 operation deadline 및 p95 750ms regression budget.
+- 표준 runtime의 bounded route/status/failure Prometheus metric, W3C traceparent 기반 redacted JSON span과 readiness/admission/dependency/p95 reference alert.
+- native terminal lifecycle checkpoint를 destructive restore해 semantic manifest, post-checkpoint exclusion, operation replay, terminal assignment와 복원 후 stateless API write를 검증하는 PostgreSQL recovery acceptance.
+- P30 `v0alpha2` legacy client/report baseline과 external TLS gateway fixture, alpha breaking-change/deprecation policy.
 - point-estimate rating boundary와 deterministic coverage/search/oracle regression budget.
 - versioned candidate ticket window, discovery truncation evidence와 oldest-prefix quality tradeoff.
 - 10K correctness, 10K/100K benchmark gate와 planner invariant fuzz target.
@@ -144,8 +147,8 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 
 - production-calibrated outcome curve, 실제 접속률/영구 churn sequence와 rating uncertainty/confidence model.
 - region/skill/role-specific candidate index, production-scale feasible candidate enumeration과 full unmatched output pagination.
-- PostgreSQL backup/PITR와 database failover 제품 계약; file reference adapter는 product storage가 아니다.
-- deployment-calibrated rate limit, telemetry backend/alerts와 production SLA.
+- managed PostgreSQL backup schedule/WAL retention/failover 제품, numeric RPO/RTO와 deployment-specific PITR 운영 계약.
+- deployment-calibrated rate limit, telemetry backend/retention/receiver와 production SLA.
 - stable/v1 Go API, stable wire protocol과 repository-owned multi-version consumer conformance.
 - stable release 자체; 현재 `stable_admitted: false`다.
 - production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
@@ -158,8 +161,10 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 - role composition의 hard/soft 경계.
 - mixed-party battle royale과 현실적인 existing-roster backfill 분포.
 - append-only journal에는 아직 compaction, online backup와 numeric recovery SLO가 없다.
-- PostgreSQL backup/PITR의 numeric recovery SLO와 deployment-specific capacity calibration.
+- PostgreSQL PITR의 numeric recovery SLO, retention/support owner와 deployment-specific capacity calibration.
+- stable 범위를 service wire로 한정할지 public Go alpha package까지 포함할지에 대한 승인.
+- service wire가 포함된 tagged release 두 개 이상의 cross-version conformance.
 
 ## Next Slice
 
-P31의 표준 runtime, current-source wire conformance, two-replica failure matrix와 standard PostgreSQL workload가 완료되었다. `cmd/sema-service`, image entrypoint, Compose와 primary runbook이 PostgreSQL/OIDC authority를 가리키며 `cmd/sema-conformance`가 provider-neutral fixture에서 인증/tenant/lifecycle을 실행한다. `cmd/sema-runtime-matrix`는 reservation single-winner, terminal agreement, replica restart와 PostgreSQL outage/recovery를 검증하고 `cmd/sema-service-workload`는 ordered concurrent commit, admission/pool/timeout과 numeric latency regression을 검증한다. 다음 slice는 표준 runtime의 metrics/tracing/alert contract와 PostgreSQL backup/PITR recovery acceptance다. stable compatibility는 이 evidence와 multi-version conformance 전까지 확정하지 않는다.
+P31 service product readiness는 완료되었다. `cmd/sema-service`, image, Compose와 primary runbook이 PostgreSQL/OIDC authority를 가리키고 reference client, two-replica failure matrix, standard workload, bounded observability/reference alerts와 native PostgreSQL destructive recovery acceptance를 repository gate가 반복한다. `p30-v0alpha2`가 첫 compatibility baseline이며 기존 tagged release에는 이 service가 없다. 다음 milestone은 자동 구현 작업이 아니라 stable surface, support/deprecation window와 tagged cross-version matrix를 승인하는 명시적 contract decision이다. 그 전까지 `stable_admitted: false`를 유지한다.

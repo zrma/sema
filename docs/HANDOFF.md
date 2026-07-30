@@ -55,6 +55,9 @@
 - `cmd/sema-runtime-matrix`가 별도 pool의 두 replica에서 reservation single-winner, peer terminal agreement, replica restart와 PostgreSQL connection outage/readiness/recovery를 sanitized aggregate로 검증한다.
 - PostgreSQL scope version을 transaction 시작에 atomic reserve해 concurrent lock-upgrade deadlock을 제거하고 same-tenant ordered commit을 보존한다.
 - `cmd/sema-service-workload`가 32 concurrent request에서 3x100 ticket lifecycle을 3회 실행하며 64-request admission, 16/2 pool, 5초 deadline과 p95 750ms reference regression budget을 검증한다.
+- 표준 runtime은 bounded route/status/failure metric과 redacted JSON trace를 제공하고 reference alert가 readiness, admission, dependency와 p95 regression을 runbook에 연결한다.
+- `cmd/sema-postgres-recovery`가 native lifecycle checkpoint를 destructive restore한 뒤 exact authority, operation replay, terminal assignment와 복원 후 stateless API write를 검증한다.
+- `p30-v0alpha2` legacy client/report가 첫 wire baseline이며 HTTPS gateway fixture가 external TLS termination 뒤 private listener를 실행한다.
 - BackfillTicket target API는 ticket/roster freshness를 함께 전진시키고 exact cancel하며 같은 historical idempotency와 pagination contract를 사용한다.
 - `demand_identity`와 `backfill_session_claim` resource가 Match/Backfill ID 충돌과 session별 active backfill 경쟁을 PostgreSQL transaction 하나로 직렬화한다.
 - target Policy catalog가 tenant-scoped immutable version/content fingerprint를 PostgreSQL에 저장하고 authenticated create/get/list와 historical operation replay를 제공한다.
@@ -68,11 +71,11 @@
 - complete plan audit와 snapshot ID idempotency, torn-tail recovery, corruption refusal, fixed TTL과 single-writer lock이 P9 persistence authority를 고정한다.
 - `cmd/sema-server`가 explicit `v0alpha1` DTO로 ingestion부터 assignment poll/ack까지 제공한다.
 - HTTP server clock과 durable proposal ID lookup이 TTL manipulation과 forged placement를 service boundary에서 차단한다.
-- `/metrics`, W3C request trace, liveness/readiness와 redacted paged audit가 bounded operational evidence를 제공한다.
+- `/metrics`, W3C request trace, liveness/readiness와 redacted paged V0 audit가 bounded operational evidence를 제공한다.
 - `cmd/sema-ops-check`가 실제 HTTP lifecycle 부하, 완료 assignment restart replay와 incomplete journal tail 복구를 격리된 임시 runtime에서 검증한다.
 - `Dockerfile`과 loopback-published Compose example이 non-root/read-only/capability-free PostgreSQL/OIDC 표준 runtime을 제공한다. V0 single-writer journal 운영 계약은 별도 compatibility runbook에 있다.
 - reference container profile이 repeated service latency/recovery와 planner/engine/replay allocation budget을 검증하고 CI가 redacted aggregate history를 보존한다.
-- release admission은 v0 alpha만 허용하며 stable API/transport/consumer evidence 전에는 v1 tag를 차단한다.
+- release admission은 v0 alpha만 허용하며 stable surface/support 승인과 tagged cross-version evidence 전에는 v1 tag를 차단한다.
 - `cmd/sema-tui`가 실제 loopback HTTP lifecycle 위에서 empty queue로 시작하는 mixed-party arrival, proposal/reservation, concurrent game과 completion을 Unicode animation으로 보여준다.
 - Flow snapshot과 ASCII/reduced-motion fallback이 terminal-independent self-check를 제공하며 demo timing은 production scheduler authority가 아니다.
 - 기본 1,000명 closed population registry가 fixed party로 순차 유입되고 45초 game을 반복하며 hidden true skill 기반 승패 뒤 visible Elo rating을 갱신한다.
@@ -98,7 +101,7 @@
 
 ## Current Work
 
-P0 foundation부터 P28 matcher V0 exit, P29 service productization entry와 P30 authenticated service runtime까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. P31에서 `sema-service`, image, Compose와 primary runbook이 같은 표준 runtime을 가리키고 V0 journal은 optional import 및 development/reference compatibility surface로 분리되었다. `sema-conformance`가 current-source wire lifecycle을, two-replica matrix가 reservation/terminal authority와 PostgreSQL outage/recovery를, `sema-standard-postgres-v1`이 concurrent ordered commit과 admission/pool/timeout numeric regression을 고정한다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 다음 작업은 metrics/tracing/alert contract와 PostgreSQL backup/PITR recovery acceptance다. repository-owned regression 수치는 production quality/SLA 주장이 아니며 stable v1은 현재 차단되어 있다.
+P0 foundation부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 stateless service replica를 허용하며 Redis는 baseline에 없다. `sema-service`, image, Compose와 primary runbook은 같은 표준 runtime을 가리키고 V0 journal은 optional import 및 development/reference compatibility surface다. reference client, two-replica matrix, standard workload, bounded observability/reference alert와 native destructive recovery gate가 repository-owned evidence를 제공한다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 다음 단계는 stable surface, tagged multi-version matrix와 deprecation/support ownership을 승인하는 contract decision이며 그 전까지 stable v1은 차단되어 있다.
 
 ## Completion Rule
 

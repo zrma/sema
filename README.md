@@ -8,9 +8,9 @@ Sema는 플레이어와 파티를 제약 조건에 맞는 게임 세션으로 �
 
 P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authenticated service runtime까지 완료되었다. planner는 immutable snapshot에서 다양한 admissible match candidate를 만들고, ticket/backfill이 겹치지 않는 proposal 집합을 wait-priority, coverage와 quality 순서로 선택한다. Flow/TUI는 1,000명 closed population의 순차 유입, match, synthetic game, rating 변화와 재진입을 보여주지만 game simulation은 Sema service의 책임이 아니다.
 
-P31에서는 PostgreSQL primary와 stateless service replica를 표준 runtime으로 승격했다. `sema-conformance`가 OIDC 인증 실패, tenant isolation과 complete lifecycle을, two-replica matrix가 reservation single-winner, restart와 PostgreSQL outage/recovery를 검증한다. `sema-standard-postgres-v1`은 same-tenant concurrent commit deadlock 회귀를 차단하고 64-request admission, 16/2 PostgreSQL pool, 5초 operation deadline과 p95 750ms reference regression budget을 반복 측정한다.
+P31에서는 PostgreSQL primary와 stateless service replica를 표준 runtime으로 승격했다. `sema-conformance`가 OIDC 인증 실패, tenant isolation과 complete lifecycle을, two-replica matrix가 reservation single-winner, restart와 PostgreSQL outage/recovery를 검증한다. `sema-standard-postgres-v1`은 same-tenant concurrent commit deadlock 회귀를 차단하고 64-request admission, 16/2 PostgreSQL pool, 5초 operation deadline과 p95 750ms reference regression budget을 반복 측정한다. 표준 runtime은 bounded Prometheus metric/redacted trace/reference alert를 제공하고 native PostgreSQL checkpoint를 destructive restore한 뒤 operation replay, terminal assignment와 새 API write까지 검증한다.
 
-Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. 다음 P31 작업은 표준 runtime observability와 PostgreSQL backup/PITR recovery acceptance다. stable SDK와 multi-version wire contract는 아직 아니며 v1 release는 gate가 차단한다.
+Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. P31 product-readiness evidence는 완료되었다. P30 `v0alpha2` wire가 첫 compatibility baseline이므로 stable surface, tagged multi-version matrix와 deprecation/support 약속을 별도 승인하기 전까지 v1 release는 gate가 차단한다.
 
 ## Public Contract
 
@@ -47,7 +47,7 @@ Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가
 - `docs/matcher-v0-exit.md`: matcher completion sequence와 persistence/API productization 진입 기준.
 - `docs/matcher-conformance.md`: matcher V0 invariant와 executable test matrix.
 - `docs/todo-0040-service-productization-entry/spec.md`: persistence/API 제품화 milestone의 시작 계약.
-- `docs/todo-0042-service-product-readiness/spec.md`: 표준 runtime, compatibility와 operational evidence를 닫는 현재 milestone.
+- `docs/todo-0042-service-product-readiness/spec.md`: 완료된 표준 runtime, compatibility와 operational evidence milestone.
 - `docs/repository-adapter-evidence.md`: persistent prototype의 crash/contention evidence와 storage decision outcome.
 - `docs/postgres-repository.md`: PostgreSQL schema, transaction, migration과 no-Redis 운영 경계.
 - `docs/oidc-authentication.md`: provider-neutral JWT claim과 permission mapping 계약.
@@ -55,6 +55,8 @@ Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가
 - `docs/wire-conformance.md`: 표준 reference client, provider-neutral lifecycle fixture와 report contract.
 - `docs/runtime-failure-matrix.md`: two-replica contention, restart와 PostgreSQL outage/recovery evidence.
 - `docs/service-workload.md`: 표준 PostgreSQL service의 admission, pool, timeout과 numeric regression profile.
+- `docs/postgres-recovery.md`: native PostgreSQL checkpoint restore와 deployment PITR acceptance contract.
+- `docs/wire-compatibility.md`: P30 wire baseline, alpha deprecation policy와 stable admission requirement.
 - `docs/v0-runtime.md`: V0 single-writer journal development/reference 및 import compatibility runbook.
 - `docs/candidate-discovery.md`: candidate ticket window와 large-queue tradeoff.
 - `docs/public-api.md`: public `alpha.Compose` 범위와 사용법.

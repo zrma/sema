@@ -1,6 +1,6 @@
 # P31 Service Product Readiness Spec
 
-- Status: In Progress — Standard Runtime Surface
+- Status: Completed — Stable Admission Explicitly Deferred
 
 ## Objective
 
@@ -22,8 +22,8 @@
 - [x] repository-owned reference client와 wire conformance suite로 전체 ticket-to-assignment lifecycle을 검증한다.
 - [x] multi-replica contention, restart, dependency outage와 recovery matrix를 표준 runtime에 대해 실행한다.
 - [x] workload 기반 admission, database pool/timeout과 service SLO를 sanitized repeatable report로 고정한다.
-- [ ] metrics, tracing, alerting contract와 PostgreSQL backup/PITR recovery acceptance를 제품 runbook에 연결한다.
-- [ ] compatibility/deprecation policy와 위 evidence가 충족된 뒤 stable admission을 별도 결정한다.
+- [x] metrics, tracing, alerting contract와 PostgreSQL backup/PITR recovery acceptance를 제품 runbook에 연결한다.
+- [x] compatibility/deprecation policy와 위 evidence를 검토하고 stable admission을 별도 결정한다.
 
 ## Acceptance
 
@@ -44,3 +44,7 @@
 ## Decision Gate
 
 표준 runtime 승격과 reference-client conformance는 repository-owned 작업으로 자율 진행한다. 기존 공개 command나 wire contract를 제거해야 하거나 stable compatibility 약속을 시작하는 시점에는 migration evidence와 별도 승인을 요구한다.
+
+## Completion Decision
+
+P31 operational evidence와 첫 `p30-v0alpha2` compatibility baseline은 완료되었다. 기존 tagged release에는 이 service wire가 없고 stable surface/support window도 승인되지 않았으므로 stable admission 결정은 `false`다. 이는 P31 미완료가 아니라 evidence에 따른 명시적 defer이며 ADR 0032가 소유한다.

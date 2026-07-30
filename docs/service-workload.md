@@ -15,6 +15,7 @@ workload는 유효한 bearer token을 요구하는 authenticated handler 경로�
 - 각 cycle은 5v5 match 10개를 plan, reserve, confirm, terminal acknowledge한다.
 - 독립 run 3회를 연속 실행하므로 총 900 ticket, 90 match와 90 terminal assignment를 검증한다.
 - policy/ticket/planning/proposal/reservation/assignment HTTP operation의 client-side latency와 PostgreSQL pool aggregate를 기록한다.
+- lifecycle 뒤 `/metrics`를 별도 scrape해 bounded `v0alpha2` route와 private run identity 비노출을 검증한다.
 
 이 profile에서 허용하는 regression budget은 다음과 같다.
 
@@ -47,7 +48,7 @@ admission 초과는 대기하지 않고 `503`, `Retry-After: 1`, `X-Sema-Error-C
 
 ## Report
 
-`sema-service-workload`는 `sema.service-workload.v1` JSON을 출력한다. report에는 profile/budget, run별 aggregate lifecycle count, latency, throughput과 pool count/wait만 들어간다. DSN, schema, token, tenant/resource ID, query와 machine identity는 포함하지 않는다.
+`sema-service-workload`는 `sema.service-workload.v1` JSON을 출력한다. report에는 profile/budget, run별 aggregate lifecycle count, metrics verification, latency, throughput과 pool count/wait만 들어간다. DSN, schema, token, tenant/resource ID, query와 machine identity는 포함하지 않는다.
 
 CI PostgreSQL job은 `runtime-failure-matrix.json`과 `service-workload.json`을 30일 artifact로 보존한다.
 

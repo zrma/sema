@@ -35,6 +35,7 @@ type Options struct {
 	Now            func() time.Time
 	CursorKey      []byte
 	ReservationTTL time.Duration
+	Middleware     func(http.Handler) http.Handler
 }
 
 func New(
@@ -79,49 +80,56 @@ func New(
 		assignments: assignments, cursors: codec,
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v0alpha2/match-tickets", server.listMatchTickets)
-	mux.HandleFunc("GET /v0alpha2/match-tickets/{ticket_id}", server.getMatchTicket)
-	mux.HandleFunc("PUT /v0alpha2/match-tickets/{ticket_id}", server.putMatchTicket)
-	mux.HandleFunc("DELETE /v0alpha2/match-tickets/{ticket_id}", server.deleteMatchTicket)
-	mux.HandleFunc("GET /v0alpha2/backfill-tickets", server.listBackfillTickets)
-	mux.HandleFunc("GET /v0alpha2/backfill-tickets/{ticket_id}", server.getBackfillTicket)
-	mux.HandleFunc("PUT /v0alpha2/backfill-tickets/{ticket_id}", server.putBackfillTicket)
-	mux.HandleFunc("DELETE /v0alpha2/backfill-tickets/{ticket_id}", server.deleteBackfillTicket)
-	mux.HandleFunc("GET /v0alpha2/policies", server.listPolicies)
-	mux.HandleFunc("GET /v0alpha2/policies/{version}", server.getPolicy)
-	mux.HandleFunc("PUT /v0alpha2/policies/{version}", server.putPolicy)
-	mux.HandleFunc("POST /v0alpha2/planning-runs/{run_id}", server.postPlanningRun)
-	mux.HandleFunc("GET /v0alpha2/planning-runs/{run_id}", server.getPlanningRun)
-	mux.HandleFunc("GET /v0alpha2/planning-runs/{run_id}/proposals", server.listPlanningRunProposals)
-	mux.HandleFunc("GET /v0alpha2/planning-runs/{run_id}/unmatched", server.listPlanningRunUnmatched)
-	mux.HandleFunc("POST /v0alpha2/reservations/{reservation_id}", server.postReservation)
-	mux.HandleFunc("GET /v0alpha2/reservations/{reservation_id}", server.getReservation)
-	mux.HandleFunc("GET /v0alpha2/reservations", server.listReservations)
-	mux.HandleFunc("POST /v0alpha2/reservations/{reservation_id}/cancel", server.cancelReservation)
-	mux.HandleFunc("POST /v0alpha2/reservations/{reservation_id}/confirm", server.confirmReservation)
-	mux.HandleFunc("GET /v0alpha2/assignments/{assignment_id}", server.getAssignment)
-	mux.HandleFunc("GET /v0alpha2/assignments", server.listAssignments)
-	mux.HandleFunc("POST /v0alpha2/assignments/{assignment_id}/acknowledgments", server.acknowledgeAssignment)
-	mux.HandleFunc("/v0alpha2/match-tickets", methodNotAllowed("GET"))
-	mux.HandleFunc("/v0alpha2/match-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
-	mux.HandleFunc("/v0alpha2/backfill-tickets", methodNotAllowed("GET"))
-	mux.HandleFunc("/v0alpha2/backfill-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
-	mux.HandleFunc("/v0alpha2/policies", methodNotAllowed("GET"))
-	mux.HandleFunc("/v0alpha2/policies/{version}", methodNotAllowed("GET, PUT"))
-	mux.HandleFunc("/v0alpha2/planning-runs/{run_id}", methodNotAllowed("GET, POST"))
-	mux.HandleFunc("/v0alpha2/planning-runs/{run_id}/proposals", methodNotAllowed("GET"))
-	mux.HandleFunc("/v0alpha2/planning-runs/{run_id}/unmatched", methodNotAllowed("GET"))
-	mux.HandleFunc("/v0alpha2/reservations", methodNotAllowed("GET"))
-	mux.HandleFunc("/v0alpha2/reservations/{reservation_id}", methodNotAllowed("GET, POST"))
-	mux.HandleFunc("/v0alpha2/reservations/{reservation_id}/cancel", methodNotAllowed("POST"))
-	mux.HandleFunc("/v0alpha2/reservations/{reservation_id}/confirm", methodNotAllowed("POST"))
-	mux.HandleFunc("/v0alpha2/assignments", methodNotAllowed("GET"))
-	mux.HandleFunc("/v0alpha2/assignments/{assignment_id}", methodNotAllowed("GET"))
-	mux.HandleFunc("/v0alpha2/assignments/{assignment_id}/acknowledgments", methodNotAllowed("POST"))
-	mux.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
+	handle := func(pattern string, handler http.HandlerFunc) {
+		endpoint := http.Handler(server.authenticate(handler))
+		if options.Middleware != nil {
+			endpoint = options.Middleware(endpoint)
+		}
+		mux.Handle(pattern, endpoint)
+	}
+	handle("GET /v0alpha2/match-tickets", server.listMatchTickets)
+	handle("GET /v0alpha2/match-tickets/{ticket_id}", server.getMatchTicket)
+	handle("PUT /v0alpha2/match-tickets/{ticket_id}", server.putMatchTicket)
+	handle("DELETE /v0alpha2/match-tickets/{ticket_id}", server.deleteMatchTicket)
+	handle("GET /v0alpha2/backfill-tickets", server.listBackfillTickets)
+	handle("GET /v0alpha2/backfill-tickets/{ticket_id}", server.getBackfillTicket)
+	handle("PUT /v0alpha2/backfill-tickets/{ticket_id}", server.putBackfillTicket)
+	handle("DELETE /v0alpha2/backfill-tickets/{ticket_id}", server.deleteBackfillTicket)
+	handle("GET /v0alpha2/policies", server.listPolicies)
+	handle("GET /v0alpha2/policies/{version}", server.getPolicy)
+	handle("PUT /v0alpha2/policies/{version}", server.putPolicy)
+	handle("POST /v0alpha2/planning-runs/{run_id}", server.postPlanningRun)
+	handle("GET /v0alpha2/planning-runs/{run_id}", server.getPlanningRun)
+	handle("GET /v0alpha2/planning-runs/{run_id}/proposals", server.listPlanningRunProposals)
+	handle("GET /v0alpha2/planning-runs/{run_id}/unmatched", server.listPlanningRunUnmatched)
+	handle("POST /v0alpha2/reservations/{reservation_id}", server.postReservation)
+	handle("GET /v0alpha2/reservations/{reservation_id}", server.getReservation)
+	handle("GET /v0alpha2/reservations", server.listReservations)
+	handle("POST /v0alpha2/reservations/{reservation_id}/cancel", server.cancelReservation)
+	handle("POST /v0alpha2/reservations/{reservation_id}/confirm", server.confirmReservation)
+	handle("GET /v0alpha2/assignments/{assignment_id}", server.getAssignment)
+	handle("GET /v0alpha2/assignments", server.listAssignments)
+	handle("POST /v0alpha2/assignments/{assignment_id}/acknowledgments", server.acknowledgeAssignment)
+	handle("/v0alpha2/match-tickets", methodNotAllowed("GET"))
+	handle("/v0alpha2/match-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
+	handle("/v0alpha2/backfill-tickets", methodNotAllowed("GET"))
+	handle("/v0alpha2/backfill-tickets/{ticket_id}", methodNotAllowed("DELETE, GET, PUT"))
+	handle("/v0alpha2/policies", methodNotAllowed("GET"))
+	handle("/v0alpha2/policies/{version}", methodNotAllowed("GET, PUT"))
+	handle("/v0alpha2/planning-runs/{run_id}", methodNotAllowed("GET, POST"))
+	handle("/v0alpha2/planning-runs/{run_id}/proposals", methodNotAllowed("GET"))
+	handle("/v0alpha2/planning-runs/{run_id}/unmatched", methodNotAllowed("GET"))
+	handle("/v0alpha2/reservations", methodNotAllowed("GET"))
+	handle("/v0alpha2/reservations/{reservation_id}", methodNotAllowed("GET, POST"))
+	handle("/v0alpha2/reservations/{reservation_id}/cancel", methodNotAllowed("POST"))
+	handle("/v0alpha2/reservations/{reservation_id}/confirm", methodNotAllowed("POST"))
+	handle("/v0alpha2/assignments", methodNotAllowed("GET"))
+	handle("/v0alpha2/assignments/{assignment_id}", methodNotAllowed("GET"))
+	handle("/v0alpha2/assignments/{assignment_id}/acknowledgments", methodNotAllowed("POST"))
+	handle("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writeError(writer, apiError{status: http.StatusNotFound, code: "NotFound", message: "endpoint was not found"})
 	})
-	return recoverPanics(server.authenticate(mux)), nil
+	return recoverPanics(mux), nil
 }
 
 type server struct {

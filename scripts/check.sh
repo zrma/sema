@@ -20,6 +20,7 @@ for required_file in \
   cmd/sema-benchmark-gate/main.go \
   cmd/sema-ops-check/main.go \
   cmd/sema-postgres-migrate/main.go \
+  cmd/sema-postgres-recovery/main.go \
   cmd/sema-runtime-matrix/main.go \
   cmd/sema-tui/main.go \
   cmd/sema-target-server/main.go \
@@ -27,6 +28,7 @@ for required_file in \
   cmd/sema-flow-report/main.go \
   cmd/sema-flow-matrix/main.go \
   deploy/compose.yaml \
+  deploy/prometheus-rules.yaml \
   examples/compose/main.go \
   internal/api/v0alpha1/types.go \
   internal/api/v0alpha2/types.go \
@@ -38,6 +40,7 @@ for required_file in \
   internal/performance/report.go \
   internal/repository/postgres/postgres.go \
   internal/repository/postgres/schema.sql \
+  internal/postgresrecovery/recovery.go \
   internal/runtimevalidation/matrix.go \
   internal/serviceapp/app.go \
   internal/wireconformance/app.go \
@@ -67,6 +70,8 @@ for required_file in \
   docs/durable-runtime.md \
   docs/service-api.md \
   docs/observability.md \
+  docs/postgres-recovery.md \
+  docs/wire-compatibility.md \
   docs/operational-validation.md \
   docs/operations-runbook.md \
   docs/v0-runtime.md \
@@ -110,6 +115,11 @@ for required_file in \
   docs/decisions/0026-authenticated-remote-runtime.md \
   docs/decisions/0027-standalone-product-scope.md \
   docs/decisions/0028-standard-service-runtime.md \
+  docs/decisions/0029-standard-service-resource-profile.md \
+  docs/decisions/0030-standard-service-observability.md \
+  docs/decisions/0031-standard-service-recovery.md \
+  docs/decisions/0032-stable-admission-deferred.md \
+  internal/wireconformance/testdata/p30-v0alpha2.json \
   docs/migrations/v0alpha1-to-v0alpha2.md \
   docs/migrations/v0alpha2-to-v0alpha3.md \
   docs/migrations/v0alpha3-to-v0alpha4.md \

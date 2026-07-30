@@ -74,6 +74,24 @@ OIDC discovery/JWKS는 image의 public CA trust bundle을 사용한다. private 
 repository-owned two-replica contention, restart와 PostgreSQL connection outage/recovery evidence는 `docs/runtime-failure-matrix.md`가 소유한다.
 repository-owned pool/admission/operation deadline과 numeric regression budget은 `docs/service-workload.md`가 소유한다.
 
+## Observability And Alert Response
+
+- `/metrics`, `/livez`와 `/readyz`는 private monitoring path에서만 scrape/probe한다. public ingress route에 추가하지 않는다.
+- stdout은 process lifecycle, stderr JSON Lines는 redacted request trace로 수집한다. trace backend가 없어도 stderr는 private application telemetry로 취급한다.
+- `deploy/prometheus-rules.yaml`은 readiness, admission, dependency와 p95 regression의 기준 rule이다. deployment는 scrape/job scoping과 notification receiver만 추가하며 resource identity label은 추가하지 않는다.
+- readiness alert에서는 먼저 PostgreSQL endpoint, credential rotation과 connection capacity를 확인한다. liveness가 정상인 동안 service restart를 dependency 복구 수단으로 사용하지 않는다.
+- admission alert에서는 caller retry 폭주와 replica별 `-max-in-flight`, PostgreSQL pool wait/canceled acquire를 함께 본다. pool만 키우기 전에 `sema-service-workload`로 같은 profile을 재실행한다.
+- dependency failure code가 `AuthenticationUnavailable`이면 OIDC issuer/JWKS reachability와 signing-key rotation, `Unavailable`이면 PostgreSQL deadline/availability를 우선 확인한다.
+- p95 alert는 repository reference budget의 이탈 신호이지 production SLA 위반 선언이 아니다. 같은 image/database profile로 workload report를 남긴 뒤 capacity 또는 threshold 변경 근거로 사용한다.
+
+metric/trace field, redaction gate와 alert expression의 source of truth는 `docs/observability.md`다.
+
+## Backup And Recovery
+
+신규 설치의 repository-owned gate는 native terminal lifecycle을 checkpoint하고 checkpoint 이후 mutation을 만든 뒤 schema를 삭제/복원한다. semantic manifest, operation receipt, terminal assignment, stateless runtime readiness/read와 새 API write가 모두 일치해야 한다.
+
+deployment backup/PITR 제품은 acceptance 전용 isolated database에서 같은 seed/advance/verify protocol을 사용하고 measured RPO/RTO를 별도 운영 evidence로 남긴다. 원본과 복원 target을 동시에 writer로 열지 않는다. 상세 순서와 failure meaning은 `docs/postgres-recovery.md`가 소유한다.
+
 `sema-conformance`는 provider에서 발급한 token으로 health, no-token `401`, 같은
 tenant read-only token의 write `403`, 다른 tenant의 resource non-disclosure와
 policy/planning/reservation/assignment completion을 한 번에 검증한다. token은 flag나 tracked

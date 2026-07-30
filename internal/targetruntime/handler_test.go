@@ -1,14 +1,18 @@
 package targetruntime
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/zrma/sema/internal/observability"
 	"github.com/zrma/sema/internal/repository"
 	"github.com/zrma/sema/internal/targetapi"
 )
@@ -87,6 +91,59 @@ func TestAdmissionRejectsExcessWithoutBlockingHealth(t *testing.T) {
 	<-finished
 }
 
+func TestSharedAdmissionMetricsRetainRejectedEndpointPattern(t *testing.T) {
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	var once sync.Once
+	blocking := http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		once.Do(func() { close(entered) })
+		<-release
+		writer.WriteHeader(http.StatusNoContent)
+	})
+	var traces bytes.Buffer
+	observer := observability.New(&traces, time.Now)
+	admit := newAdmissionMiddleware(1)
+	mux := http.NewServeMux()
+	mux.Handle(
+		"GET /v0alpha2/match-tickets/{ticket_id}",
+		observer.Middleware(admit(blocking)),
+	)
+	mux.Handle(
+		"GET /v0alpha2/policies/{version}",
+		observer.Middleware(admit(blocking)),
+	)
+
+	finished := make(chan struct{})
+	go func() {
+		mux.ServeHTTP(
+			httptest.NewRecorder(),
+			httptest.NewRequest(http.MethodGet, "https://sema.example/v0alpha2/match-tickets/ticket-a", nil),
+		)
+		close(finished)
+	}()
+	<-entered
+
+	rejected := httptest.NewRecorder()
+	mux.ServeHTTP(
+		rejected,
+		httptest.NewRequest(http.MethodGet, "https://sema.example/v0alpha2/policies/policy-a", nil),
+	)
+	if rejected.Code != http.StatusServiceUnavailable {
+		t.Fatalf("rejected status = %d", rejected.Code)
+	}
+	metrics := httptest.NewRecorder()
+	observer.ServeMetrics(metrics, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	if !strings.Contains(
+		metrics.Body.String(),
+		`route="GET /v0alpha2/policies/{version}",status="503",code="ResourceExhausted"`,
+	) {
+		t.Fatalf("admission metric lost endpoint pattern: %s", metrics.Body.String())
+	}
+
+	close(release)
+	<-finished
+}
+
 func TestRequestTimeoutCancelsTargetOperation(t *testing.T) {
 	cancelled := make(chan struct{})
 	next := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -104,6 +161,89 @@ func TestRequestTimeoutCancelsTargetOperation(t *testing.T) {
 	}
 	if recorder.Code != http.StatusServiceUnavailable {
 		t.Fatalf("timeout status = %d", recorder.Code)
+	}
+}
+
+func TestMetricsAndTracesUseBoundedRouteWithoutResourceIdentity(t *testing.T) {
+	var traces bytes.Buffer
+	observer := observability.New(&traces, time.Now)
+	handler, err := New(
+		repository.NewMemory(),
+		targetapi.AuthenticatorFunc(func(request *http.Request) (targetapi.Principal, error) {
+			if request.Header.Get("Authorization") != "Bearer redacted-test-token" {
+				return targetapi.Principal{}, targetapi.ErrUnauthenticated
+			}
+			return targetapi.Principal{
+				Subject: "subject-private", Tenant: "tenant-private",
+				Permissions: map[targetapi.Permission]bool{
+					targetapi.PermissionMatchTicketsRead: true,
+				},
+			}, nil
+		}),
+		Options{
+			CursorKey: make([]byte, 32), ReservationTTL: time.Minute,
+			MaxInFlight: 2, RequestTimeout: time.Second, ReadinessTimeout: time.Second,
+			ReadinessCheck: func(context.Context) error { return nil },
+			Observer:       observer,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const resourceID = "ticket-private-identity"
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"https://sema.example/v0alpha2/match-tickets/"+resourceID,
+		nil,
+	)
+	request.Header.Set("Authorization", "Bearer redacted-test-token")
+	request.Header.Set(
+		"traceparent",
+		"00-0123456789abcdef0123456789abcdef-0123456789abcdef-01",
+	)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound ||
+		response.Header().Get("traceparent") == "" {
+		t.Fatalf("response status=%d traceparent=%q", response.Code, response.Header().Get("traceparent"))
+	}
+
+	metrics := httptest.NewRecorder()
+	handler.ServeHTTP(
+		metrics,
+		httptest.NewRequest(http.MethodGet, "https://sema.example/metrics", nil),
+	)
+	metricBody := metrics.Body.String()
+	if metrics.Code != http.StatusOK ||
+		!strings.Contains(metricBody, `route="GET /v0alpha2/match-tickets/{ticket_id}"`) ||
+		!strings.Contains(metricBody, `status="404",code="NotFound"`) {
+		t.Fatalf("metrics status=%d body=%s", metrics.Code, metricBody)
+	}
+	combined := metricBody + traces.String()
+	for _, forbidden := range []string{
+		resourceID, "redacted-test-token", "tenant-private", "subject-private",
+	} {
+		if strings.Contains(combined, forbidden) {
+			t.Fatalf("observability output exposed %q: %s", forbidden, combined)
+		}
+	}
+	var span struct {
+		TraceID     string `json:"trace_id"`
+		ParentSpan  string `json:"parent_span_id"`
+		Route       string `json:"route"`
+		Status      int    `json:"status"`
+		FailureCode string `json:"failure_code"`
+	}
+	decoder := json.NewDecoder(&traces)
+	if err := decoder.Decode(&span); err != nil {
+		t.Fatal(err)
+	}
+	if span.TraceID != "0123456789abcdef0123456789abcdef" ||
+		span.ParentSpan != "0123456789abcdef" ||
+		span.Route != "GET /v0alpha2/match-tickets/{ticket_id}" ||
+		span.Status != http.StatusNotFound ||
+		span.FailureCode != "NotFound" {
+		t.Fatalf("span = %#v", span)
 	}
 }
 

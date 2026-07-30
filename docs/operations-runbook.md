@@ -72,6 +72,8 @@ service startup은 schema migration을 암묵적으로 실행하지 않는다. �
 
 repository-owned default는 API 64 in-flight, operation deadline 5초, replica당 PostgreSQL maximum 16/minimum idle 2 connection이다. `-max-in-flight`, `-request-timeout`, `-postgres-max-conns`와 `-postgres-min-idle-conns`를 바꾸기 전에는 `docs/service-workload.md`의 profile 또는 deployment-owned representative workload로 tail latency, rejection과 database connection budget을 다시 검증한다.
 
+private monitoring path에서 `/metrics`를 scrape하고 `/livez`, `/readyz`를 probe한다. `deploy/prometheus-rules.yaml`은 readiness, admission, dependency와 p95 reference alert의 시작점이며 public ingress에 운영 endpoint를 노출하지 않는다. stderr JSON trace와 metric label은 bounded route/status/failure만 포함한다.
+
 ## Failure Triage
 
 | Symptom | Expected action |
@@ -91,7 +93,9 @@ request, token, DSN, tenant resource와 raw database/log output은 private appli
 
 binary rollout 전에 migration Job을 실행하고 compatible schema가 확인된 뒤 stateless replica를 점진적으로 교체한다. rollback binary가 현재 schema와 wire contract를 읽을 수 있는지 확인하지 않은 상태에서 image만 되돌리지 않는다.
 
-PostgreSQL backup encryption, retention, PITR, restore location과 RPO/RTO는 deployment 책임이다. 현재 repository gate는 disposable PostgreSQL의 logical backup/restore와 semantic manifest equality를 검증하지만 제품 backup/PITR acceptance는 P31의 남은 항목이다. 따라서 이 문서는 아직 특정 numeric recovery promise를 선언하지 않는다.
+PostgreSQL backup encryption, retention, PITR, restore location과 numeric RPO/RTO는 deployment 책임이다. repository gate는 native terminal lifecycle checkpoint 뒤 mutation을 만들고 schema를 삭제/복원한 다음 exact semantic authority, post-checkpoint exclusion, operation replay, terminal assignment와 복원 후 stateless API write를 검증한다.
+
+deployment PITR drill은 acceptance 전용 isolated database에서 같은 seed/advance/verify sequence를 사용하되 logical dump 대신 provider backup/WAL recovery로 seed와 advance 사이를 복원한다. 원본과 복원 target을 동시에 writer로 열지 않는다. 명령과 failure meaning은 `docs/postgres-recovery.md`를 따른다.
 
 optional V0 journal import/recovery와 single-writer compatibility runtime은 `docs/v0-import.md`와 `docs/v0-runtime.md`를 따른다. 신규 설치는 V0 journal을 요구하지 않는다.
 
@@ -103,4 +107,4 @@ scripts/check-postgres.sh
 scripts/check-container.sh
 ```
 
-첫 command는 command composition과 bounded runtime을, PostgreSQL gate는 repository/OIDC lifecycle, two-replica failure matrix, 3-run standard service workload 및 logical recovery fixture를, container gate는 standard entrypoint와 호환 binary/restart surface를 확인한다. 실제 provider reference deployment acceptance는 tracked credential 없이 `docs/remote-runtime.md`의 redacted acceptance 절차를 따른다.
+첫 command는 command composition과 bounded runtime을, PostgreSQL gate는 repository/OIDC lifecycle, two-replica failure matrix, 3-run standard service workload, V0 import rehearsal과 native standard recovery acceptance를, container gate는 standard entrypoint와 호환 binary/restart surface를 확인한다. 실제 provider reference deployment acceptance는 tracked credential 없이 `docs/remote-runtime.md`의 redacted acceptance 절차를 따른다.

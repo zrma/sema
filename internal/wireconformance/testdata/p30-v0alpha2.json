@@ -1,0 +1,24 @@
+{
+  "schema": "sema.wire-compatibility-baseline.v1",
+  "baseline": "p30-v0alpha2",
+  "wire_api": "v0alpha2",
+  "compatibility_command": "sema-target-smoke",
+  "compatibility_report": "sema.target-smoke.v1",
+  "required_routes": [
+    "GET /livez",
+    "GET /readyz",
+    "GET /v0alpha2/match-tickets/{ticket_id}",
+    "PUT /v0alpha2/match-tickets/{ticket_id}",
+    "PUT /v0alpha2/policies/{version}",
+    "POST /v0alpha2/planning-runs/{run_id}",
+    "GET /v0alpha2/planning-runs/{run_id}/proposals",
+    "POST /v0alpha2/reservations/{reservation_id}",
+    "POST /v0alpha2/reservations/{reservation_id}/confirm",
+    "POST /v0alpha2/assignments/{assignment_id}/acknowledgments"
+  ],
+  "required_failures": [
+    "Unauthenticated",
+    "PermissionDenied",
+    "NotFound"
+  ]
+}

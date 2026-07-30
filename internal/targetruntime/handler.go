@@ -11,6 +11,7 @@ import (
 	"time"
 
 	api "github.com/zrma/sema/internal/api/v0alpha2"
+	"github.com/zrma/sema/internal/observability"
 	"github.com/zrma/sema/internal/repository"
 	"github.com/zrma/sema/internal/targetapi"
 )
@@ -22,6 +23,7 @@ type Options struct {
 	RequestTimeout   time.Duration
 	ReadinessTimeout time.Duration
 	ReadinessCheck   func(context.Context) error
+	Observer         *observability.Recorder
 }
 
 // New returns one handler with unauthenticated health probes and an
@@ -47,18 +49,25 @@ func New(
 	if options.ReadinessCheck == nil {
 		return nil, fmt.Errorf("target runtime readiness check is required")
 	}
+	if options.Observer == nil {
+		options.Observer = observability.New(nil, time.Now)
+	}
+	admit := newAdmissionMiddleware(options.MaxInFlight)
 	apiHandler, err := targetapi.New(owner, authenticator, targetapi.Options{
 		CursorKey: options.CursorKey, ReservationTTL: options.ReservationTTL,
+		Middleware: func(next http.Handler) http.Handler {
+			return options.Observer.Middleware(admit(withTimeout(next, options.RequestTimeout)))
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /livez", func(writer http.ResponseWriter, _ *http.Request) {
+	mux.Handle("GET /livez", options.Observer.Middleware(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		writeHealth(writer, http.StatusOK, "ok")
-	})
-	mux.HandleFunc("GET /readyz", func(writer http.ResponseWriter, request *http.Request) {
+	})))
+	mux.Handle("GET /readyz", options.Observer.Middleware(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		ctx, cancel := context.WithTimeout(request.Context(), options.ReadinessTimeout)
 		defer cancel()
 		if err := options.ReadinessCheck(ctx); err != nil {
@@ -66,10 +75,12 @@ func New(
 			return
 		}
 		writeHealth(writer, http.StatusOK, "ok")
-	})
-	mux.HandleFunc("/livez", healthMethodNotAllowed)
-	mux.HandleFunc("/readyz", healthMethodNotAllowed)
-	mux.Handle("/", bounded(withTimeout(apiHandler, options.RequestTimeout), options.MaxInFlight))
+	})))
+	mux.Handle("GET /metrics", options.Observer)
+	mux.Handle("/livez", options.Observer.Middleware(http.HandlerFunc(healthMethodNotAllowed)))
+	mux.Handle("/readyz", options.Observer.Middleware(http.HandlerFunc(healthMethodNotAllowed)))
+	mux.HandleFunc("/metrics", healthMethodNotAllowed)
+	mux.Handle("/", apiHandler)
 	return mux, nil
 }
 
@@ -82,23 +93,29 @@ func withTimeout(next http.Handler, timeout time.Duration) http.Handler {
 }
 
 func bounded(next http.Handler, maximum int) http.Handler {
+	return newAdmissionMiddleware(maximum)(next)
+}
+
+func newAdmissionMiddleware(maximum int) func(http.Handler) http.Handler {
 	permits := make(chan struct{}, maximum)
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		select {
-		case permits <- struct{}{}:
-			defer func() { <-permits }()
-			next.ServeHTTP(writer, request)
-		default:
-			writer.Header().Set("Retry-After", "1")
-			writer.Header().Set("X-Sema-Error-Code", "ResourceExhausted")
-			writeEnvelope(writer, http.StatusServiceUnavailable, api.Envelope{
-				APIVersion: api.Version,
-				Error: &api.Failure{
-					Code: "ResourceExhausted", Message: "target runtime request capacity is exhausted", Retryable: true,
-				},
-			})
-		}
-	})
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			select {
+			case permits <- struct{}{}:
+				defer func() { <-permits }()
+				next.ServeHTTP(writer, request)
+			default:
+				writer.Header().Set("Retry-After", "1")
+				writer.Header().Set("X-Sema-Error-Code", "ResourceExhausted")
+				writeEnvelope(writer, http.StatusServiceUnavailable, api.Envelope{
+					APIVersion: api.Version,
+					Error: &api.Failure{
+						Code: "ResourceExhausted", Message: "target runtime request capacity is exhausted", Retryable: true,
+					},
+				})
+			}
+		})
+	}
 }
 
 func healthMethodNotAllowed(writer http.ResponseWriter, _ *http.Request) {

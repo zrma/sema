@@ -14,6 +14,7 @@ import (
 	"time"
 
 	oidcauth "github.com/zrma/sema/internal/authn/oidc"
+	"github.com/zrma/sema/internal/observability"
 	"github.com/zrma/sema/internal/repository"
 	postgresrepository "github.com/zrma/sema/internal/repository/postgres"
 	"github.com/zrma/sema/internal/targetapi"
@@ -163,6 +164,7 @@ func runWithIdentity(
 		MaxInFlight: config.maxInFlight, RequestTimeout: config.requestTimeout,
 		ReadinessTimeout: config.readinessTimeout,
 		ReadinessCheck:   owner.Ready,
+		Observer:         observability.New(stderr, time.Now),
 	})
 	if err != nil {
 		fmt.Fprintf(stderr, "%s: configure target runtime: %v\n", identity.ProgramName, err)

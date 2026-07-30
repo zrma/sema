@@ -24,7 +24,7 @@ case "$report_dir" in
     exit 2
     ;;
 esac
-for report in runtime-failure-matrix.json service-workload.json; do
+for report in runtime-failure-matrix.json service-workload.json postgres-recovery.json; do
   [ ! -e "$report_dir/$report" ] || {
     printf 'postgres check failed: report already exists: %s\n' "$report" >&2
     exit 2
@@ -37,12 +37,19 @@ password="sema-integration-only"
 rehearsal_schema="sema_backup_rehearsal"
 rehearsal_directory=""
 container_dump="/tmp/sema-backup-rehearsal.dump"
+recovery_schema="sema_standard_recovery"
+recovery_directory=""
+container_recovery_dump="/tmp/sema-standard-recovery.dump"
 
 cleanup() {
   docker rm -f "$container" >/dev/null 2>&1 || true
   if [ -n "$rehearsal_directory" ]; then
     rm -f -- "$rehearsal_directory/v0.journal" "$rehearsal_directory/manifest.json"
     rmdir -- "$rehearsal_directory" >/dev/null 2>&1 || true
+  fi
+  if [ -n "$recovery_directory" ]; then
+    rm -f -- "$recovery_directory/manifest.json"
+    rmdir -- "$recovery_directory" >/dev/null 2>&1 || true
   fi
   if [ "$temporary_reports" = true ]; then
     rm -rf "$report_dir"
@@ -83,7 +90,7 @@ address=$(docker port "$container" 5432/tcp | sed -n '1p')
 }
 
 SEMA_POSTGRES_TEST_DSN="postgres://postgres:${password}@${address}/sema_test?sslmode=disable" \
-  go test -race ./internal/repository/postgres ./internal/service ./internal/targetapi ./internal/serviceapp ./internal/runtimevalidation ./internal/serviceworkload ./cmd/sema-service ./cmd/sema-target-server ./cmd/sema-service-workload
+  go test -race ./internal/repository/postgres ./internal/service ./internal/targetapi ./internal/serviceapp ./internal/runtimevalidation ./internal/serviceworkload ./internal/postgresrecovery ./cmd/sema-service ./cmd/sema-target-server ./cmd/sema-service-workload ./cmd/sema-postgres-recovery
 
 SEMA_POSTGRES_TEST_DSN="postgres://postgres:${password}@${address}/sema_test?sslmode=disable" \
   go run ./cmd/sema-runtime-matrix -timeout 45s >"$report_dir/runtime-failure-matrix.json"
@@ -120,4 +127,30 @@ docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d sema_test \
 go run ./cmd/sema-postgres-rehearsal \
   -phase rollback -journal "$rehearsal_journal" -manifest "$rehearsal_manifest"
 
-printf 'sema postgres repository, workload, import, and recovery rehearsal passed\n'
+recovery_directory=$(mktemp -d "${TMPDIR:-/tmp}/sema-postgres-recovery.XXXXXX")
+recovery_manifest="$recovery_directory/manifest.json"
+
+docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d sema_test \
+  -c "CREATE SCHEMA $recovery_schema" >/dev/null
+SEMA_POSTGRES_TEST_DSN="$rehearsal_dsn" go run ./cmd/sema-postgres-recovery \
+  -phase seed -schema "$recovery_schema" -manifest "$recovery_manifest" >/dev/null
+
+docker exec "$container" pg_dump -U postgres -d sema_test \
+  --format=custom --no-owner --no-privileges \
+  --schema="$recovery_schema" --file="$container_recovery_dump"
+SEMA_POSTGRES_TEST_DSN="$rehearsal_dsn" go run ./cmd/sema-postgres-recovery \
+  -phase advance -schema "$recovery_schema" -manifest "$recovery_manifest" >/dev/null
+
+docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d sema_test \
+  -c "SET client_min_messages TO warning; DROP SCHEMA $recovery_schema CASCADE" >/dev/null
+docker exec "$container" pg_restore -U postgres -d sema_test \
+  --exit-on-error --no-owner --no-privileges "$container_recovery_dump"
+
+SEMA_POSTGRES_TEST_DSN="$rehearsal_dsn" go run ./cmd/sema-postgres-recovery \
+  -phase verify -schema "$recovery_schema" -manifest "$recovery_manifest" \
+  >"$report_dir/postgres-recovery.json"
+
+docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d sema_test \
+  -c "SET client_min_messages TO warning; DROP SCHEMA $recovery_schema CASCADE" >/dev/null
+
+printf 'sema postgres repository, workload, import, logical recovery, and service recovery acceptance passed\n'

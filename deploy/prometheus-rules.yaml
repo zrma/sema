@@ -1,0 +1,48 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sema-standard-service
+spec:
+  groups:
+    - name: sema.standard-service
+      rules:
+        - alert: SemaReadinessUnavailable
+          expr: >-
+            sum(rate(sema_http_requests_total{route="GET /readyz",status="503"}[5m])) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Sema cannot reach its PostgreSQL authority
+            runbook: docs/remote-runtime.md#observability-and-alert-response
+        - alert: SemaAdmissionExhausted
+          expr: >-
+            sum(rate(sema_http_requests_total{code="ResourceExhausted"}[5m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Sema admission capacity is continuously exhausted
+            runbook: docs/remote-runtime.md#observability-and-alert-response
+        - alert: SemaDependencyUnavailable
+          expr: >-
+            sum(rate(sema_http_requests_total{code=~"Unavailable|AuthenticationUnavailable"}[5m])) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Sema requests are failing on a required dependency
+            runbook: docs/remote-runtime.md#observability-and-alert-response
+        - alert: SemaStandardServiceP95Latency
+          expr: >-
+            histogram_quantile(0.95,
+              sum by (le) (
+                rate(sema_http_request_duration_seconds_bucket{route=~".* /v0alpha2/.*"}[5m])
+              )
+            ) > 0.75
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Sema standard service p95 exceeds the reference regression budget
+            runbook: docs/remote-runtime.md#observability-and-alert-response

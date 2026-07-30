@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -76,6 +77,7 @@ type RunReport struct {
 	ResourceRejected int            `json:"resource_exhausted"`
 	DurationMillis   float64        `json:"duration_millis"`
 	MatchesPerSecond float64        `json:"matches_per_second"`
+	MetricsVerified  bool           `json:"metrics_verified"`
 	Latency          LatencySummary `json:"latency"`
 	Pool             PoolProfile    `json:"pool"`
 }
@@ -138,7 +140,8 @@ func Run(ctx context.Context, options Options, budget Budget) (Report, error) {
 		report.WorstP95Millis = max(report.WorstP95Millis, current.Latency.P95Millis)
 		report.WorstRequestMS = max(report.WorstRequestMS, current.Latency.MaxMillis)
 		report.WorstRunMS = max(report.WorstRunMS, current.DurationMillis)
-		if current.ResourceRejected != 0 || current.Pool.CanceledAcquires != 0 ||
+		if !current.MetricsVerified ||
+			current.ResourceRejected != 0 || current.Pool.CanceledAcquires != 0 ||
 			current.Latency.P95Millis > budget.MaxP95Millis ||
 			current.Latency.MaxMillis > budget.MaxRequestMillis ||
 			current.DurationMillis > budget.MaxRunDurationMillis {
@@ -240,6 +243,10 @@ func runOnce(ctx context.Context, options Options) (RunReport, error) {
 	if err != nil {
 		return RunReport{}, err
 	}
+	if err := verifyMetrics(ctx, server.URL, runID, options.RequestTimeout); err != nil {
+		return RunReport{}, err
+	}
+	result.MetricsVerified = true
 	result.DurationMillis = milliseconds(time.Since(started))
 	if result.DurationMillis > 0 {
 		result.MatchesPerSecond = float64(result.Matches) / (result.DurationMillis / 1_000)
@@ -247,6 +254,48 @@ func runOnce(ctx context.Context, options Options) (RunReport, error) {
 	result.Operations, result.ResourceRejected, result.Latency = recorder.Summary()
 	result.Pool = poolProfile(options.Pool, store.Stats())
 	return result, nil
+}
+
+func verifyMetrics(
+	ctx context.Context,
+	baseURL string,
+	privateRunID string,
+	timeout time.Duration,
+) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/metrics", nil)
+	if err != nil {
+		return fmt.Errorf("build metrics request: %w", err)
+	}
+	client := &http.Client{Timeout: timeout}
+	response, err := client.Do(request)
+	if err != nil {
+		return fmt.Errorf("scrape workload metrics: %w", err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	if err != nil {
+		return fmt.Errorf("read workload metrics: %w", err)
+	}
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("workload metrics returned HTTP %d", response.StatusCode)
+	}
+	text := string(body)
+	for _, route := range []string{
+		"PUT /v0alpha2/match-tickets/{ticket_id}",
+		"POST /v0alpha2/planning-runs/{run_id}",
+		"POST /v0alpha2/reservations/{reservation_id}/confirm",
+		"POST /v0alpha2/assignments/{assignment_id}/acknowledgments",
+	} {
+		if !strings.Contains(text, `route="`+route+`"`) {
+			return fmt.Errorf("workload metrics omit bounded route %q", route)
+		}
+	}
+	for _, forbidden := range []string{privateRunID, workloadToken, "service-workload"} {
+		if strings.Contains(text, forbidden) {
+			return fmt.Errorf("workload metrics exposed private run identity")
+		}
+	}
+	return nil
 }
 
 func executeLifecycle(

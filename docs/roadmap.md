@@ -275,6 +275,13 @@ provider-neutral lifecycle service, optional import fixture, local backup/restor
 - [x] repository-owned reference client와 wire conformance
 - [x] multi-replica contention, dependency failure와 recovery matrix
 - [x] workload 기반 admission, pool/timeout과 numeric service SLO
-- [ ] observability, backup/PITR와 stable compatibility admission evidence
+- [x] observability, backup/PITR acceptance와 stable compatibility admission decision
 
-P31은 실제 consumer나 production traffic을 기다리는 deployment program이 아니다. 저장소가 스스로 재현할 수 있는 compatibility, availability, load/failure와 recovery evidence로 PoC 형태의 V0에서 제품형 service surface로 전진한다. `sema-standard-postgres-v1`은 32 concurrent request에서 100-ticket/10-match cycle을 반복하며 explicit 64-request admission, 16/2 connection pool, 5초 operation deadline과 numeric regression budget을 고정한다.
+P31은 실제 consumer나 production traffic을 기다리는 deployment program이 아니다. 저장소가 스스로 재현할 수 있는 compatibility, availability, load/failure, observability와 recovery evidence로 PoC 형태의 V0에서 제품형 service surface로 전진했다. `sema-standard-postgres-v1`은 32 concurrent request에서 100-ticket/10-match cycle을 반복하며 explicit 64-request admission, 16/2 connection pool, 5초 operation deadline과 numeric regression budget을 고정한다. P30 wire가 첫 baseline이므로 stable admission은 완료로 가장하지 않고 별도 contract milestone로 defer했다.
+
+## Next Decision: Stable Contract Admission
+
+- stable 범위를 service wire로 한정할지 public Go alpha package까지 포함할지 결정한다.
+- service wire가 포함된 tagged release 두 개 이상에서 previous/current client-service matrix를 실행한다.
+- stable compatibility, security exception, deprecation/support window와 support owner를 승인한다.
+- 위 결정과 evidence 뒤에만 `stable_admitted` 변경을 검토한다.

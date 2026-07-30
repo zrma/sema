@@ -6,7 +6,7 @@ public import path는 `github.com/zrma/sema/alpha`, API marker는 `v0alpha5`다.
 
 `internal/` package는 계속 non-public implementation detail이며 외부 consumer가 직접 import할 수 없다.
 
-service wire schema는 별도 `v0alpha1` marker와 `docs/service-api.md`를 사용한다. Go alpha와 같은 version label이어도 compatibility surface는 독립적이며 한쪽 변경이 다른 쪽 version bump를 자동으로 뜻하지 않는다.
+V0 development/reference service는 `v0alpha1`, 표준 authenticated PostgreSQL service는 별도 `v0alpha2` wire marker를 사용한다. Go alpha와 service wire는 독립적인 compatibility surface이며 한쪽 변경이 다른 쪽 version bump를 자동으로 뜻하지 않는다. 표준 wire의 baseline과 deprecation rule은 `docs/wire-compatibility.md`가 소유한다.
 
 ## Alpha Change Policy
 
@@ -20,13 +20,15 @@ Go module이 v1 이전인 동안 semantic versioning은 breaking minor release�
 
 ## Stable API Gate
 
-다음을 모두 만족하기 전에는 root/stable package나 v1을 선언하지 않는다.
+public Go package를 stable surface에 포함하려면 다음을 모두 만족하기 전에는 root/stable package를 선언하지 않는다.
 
-- repository example이 아닌 실제 consumer가 API를 사용한다.
-- 최소 두 release cycle에서 필요한 type/behavior가 관찰된다.
+- stable 범위와 support owner를 명시적으로 승인한다.
+- 최소 두 tagged release cycle에서 reference consumer와 compatibility fixture가 필요한 type/behavior를 관찰한다.
 - deterministic replay, failure behavior와 migration test가 있다.
 - persistence/service boundary와 분리된 composition responsibility가 유지된다.
 - support 범위, deprecation window와 numeric compatibility policy가 문서화된다.
+
+service wire만 stable로 선언할 수 있는지와 Go alpha package를 같은 v1 약속에 포함할지는 아직 결정하지 않았다. external game consumer는 필수 evidence가 아니지만, supported tagged predecessor/current 조합을 repository-owned matrix로 실행해야 한다.
 
 ## Migration Layout
 

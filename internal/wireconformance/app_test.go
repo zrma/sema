@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +17,36 @@ import (
 	"github.com/zrma/sema/internal/targetapi"
 	"github.com/zrma/sema/internal/targetruntime"
 )
+
+type compatibilityBaseline struct {
+	Schema               string   `json:"schema"`
+	Baseline             string   `json:"baseline"`
+	WireAPI              string   `json:"wire_api"`
+	CompatibilityCommand string   `json:"compatibility_command"`
+	CompatibilityReport  string   `json:"compatibility_report"`
+	RequiredRoutes       []string `json:"required_routes"`
+	RequiredFailures     []string `json:"required_failures"`
+}
+
+func TestP30CompatibilityBaselineRemainsBoundToLegacyClient(t *testing.T) {
+	encoded, err := os.ReadFile("testdata/p30-v0alpha2.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var baseline compatibilityBaseline
+	if err := json.Unmarshal(encoded, &baseline); err != nil {
+		t.Fatal(err)
+	}
+	if baseline.Schema != "sema.wire-compatibility-baseline.v1" ||
+		baseline.Baseline != "p30-v0alpha2" ||
+		baseline.WireAPI != "v0alpha2" ||
+		baseline.CompatibilityCommand != compatibilityProgramName ||
+		baseline.CompatibilityReport != compatibilityReportSchema ||
+		len(baseline.RequiredRoutes) != 10 ||
+		len(baseline.RequiredFailures) != 3 {
+		t.Fatalf("compatibility baseline = %#v", baseline)
+	}
+}
 
 func TestRunValidatesAuthenticatedLifecycle(t *testing.T) {
 	handler, err := targetruntime.New(
@@ -54,6 +87,47 @@ func TestRunValidatesAuthenticatedLifecycle(t *testing.T) {
 		!result.Health || !result.Unauthenticated || !result.PermissionDenied ||
 		!result.TenantIsolation || !result.LifecycleComplete {
 		t.Fatalf("report = %#v", result)
+	}
+}
+
+func TestLegacyCompatibilityClientTraversesExternalTLSGateway(t *testing.T) {
+	handler, err := targetruntime.New(
+		repository.NewMemory(), fixtureAuthenticator(),
+		targetruntime.Options{
+			CursorKey: bytes.Repeat([]byte{7}, 32), ReservationTTL: time.Minute,
+			MaxInFlight: 8, RequestTimeout: 5 * time.Second, ReadinessTimeout: time.Second,
+			ReadinessCheck: func(context.Context) error { return nil },
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	private := httptest.NewServer(handler)
+	defer private.Close()
+	privateURL, err := url.Parse(private.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gateway := httptest.NewTLSServer(httputil.NewSingleHostReverseProxy(privateURL))
+	defer gateway.Close()
+
+	result, err := validate(
+		context.Background(),
+		config{
+			baseURL: gateway.URL, writeToken: "write-token", readToken: "read-token",
+			otherTenantToken: "other-token", timeout: 5 * time.Second,
+		},
+		gateway.Client(),
+		bytes.NewReader(bytes.Repeat([]byte{8}, 8)),
+		time.Date(2026, time.July, 30, 0, 0, 0, 0, time.UTC),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Schema != compatibilityReportSchema || !result.Health ||
+		!result.Unauthenticated || !result.PermissionDenied ||
+		!result.TenantIsolation || !result.LifecycleComplete {
+		t.Fatalf("gateway compatibility report = %#v", result)
 	}
 }
 
