@@ -10,7 +10,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry와 P30 authentica
 
 P31에서는 PostgreSQL primary와 stateless service replica를 표준 runtime으로 승격했다. `sema-conformance`가 OIDC 인증 실패, tenant isolation과 complete lifecycle을, two-replica matrix가 reservation single-winner, restart와 PostgreSQL outage/recovery를 검증한다. `sema-standard-postgres-v1`은 same-tenant concurrent commit deadlock 회귀를 차단하고 64-request admission, 16/2 PostgreSQL pool, 5초 operation deadline과 p95 750ms reference regression budget을 반복 측정한다. 표준 runtime은 bounded Prometheus metric/redacted trace/reference alert를 제공하고 native PostgreSQL checkpoint를 destructive restore한 뒤 operation replay, terminal assignment와 새 API write까지 검증한다.
 
-Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. P31 product-readiness evidence는 완료되었고 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. ADR 0033은 HTTP `/v1`만 stable surface로 정하고 Go `alpha`는 experimental로 유지한다. `v0.3.0`/`v0.4.0` tagged matrix와 180일/2개 minor compatibility 약속을 입력으로 migration/release gate를 닫기 전까지 v1 release는 차단한다. P32를 닫은 뒤에는 새 integration program으로 이어가지 않고 maintenance mode로 전환한다.
+Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가 아니라 standalone general-purpose matchmaking service다. P31 product-readiness evidence는 완료되었고 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. ADR 0033은 HTTP `/v1`만 stable surface로 정하고 Go `alpha`는 experimental로 유지한다. `v0.3.0`/`v0.4.0` tagged matrix와 180일/2개 minor compatibility 약속을 release gate에 연결해 stable admission은 열렸으며, `v1.0.0` publication과 maintenance handoff가 남았다.
 
 ## Public Contract
 
@@ -70,7 +70,7 @@ Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가
 - `docs/operational-validation.md`: 부하, soak, restart와 torn-tail failure 검증 계약.
 - `docs/operations-runbook.md`: 표준 PostgreSQL/OIDC container 배포, failure와 recovery 절차.
 - `docs/performance-slo.md`: reference target profile, 반복 latency/allocation budget과 CI history.
-- `docs/release-admission.md`: alpha/stable release gate와 현재 blocker.
+- `docs/release-admission.md`: stable scope, support/migration과 exact release admission gate.
 - `docs/sema-flow.md`: 1,000명 population의 match, game result와 rating 변화를 보여주는 interactive Unicode TUI.
 - `docs/sema-flow-measurement.md`: closed-loop wait, assignment yield, throughput, saturation과 quality report 계약.
 - `docs/sema-flow-capacity-matrix.md`: 여러 seed와 planning batch의 동일-demand 비교 계약.

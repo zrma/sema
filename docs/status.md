@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `/v1`과 `/v0alpha2` compatibility lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30은 optional V0 read-only import, local PostgreSQL backup/restore recovery, provider-neutral OIDC/JWT authentication, 별도 service executable과 reference deployment acceptance를 닫았고 P31은 표준 runtime surface와 repository-owned compatibility, availability, load/failure 및 recovery evidence를 닫았다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. ADR 0033의 stable `/v1` scope와 numeric support policy, `v0.3.0`/`v0.4.0` tagged matrix는 확정되었고 migration/release gate와 stable publication 뒤 maintenance mode로 전환한다.
+P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticated service runtime과 P31 service product readiness까지 완료되었다. PostgreSQL primary가 durable authority이고 service는 stateless replica이며 Redis는 baseline에서 제외했다. provider-neutral authenticated `/v1`과 `/v0alpha2` compatibility lifecycle이 tenant isolation, historical idempotency, opaque pagination/polling과 실제 PostgreSQL composition을 검증한다. P30은 optional V0 read-only import, local PostgreSQL backup/restore recovery, provider-neutral OIDC/JWT authentication, 별도 service executable과 reference deployment acceptance를 닫았고 P31은 표준 runtime surface와 repository-owned compatibility, availability, load/failure 및 recovery evidence를 닫았다. Sema는 기존 배포나 실제 game traffic을 이전하는 프로젝트가 아니다. 현재 P32 Framework Contract Closure가 세 번째이자 마지막 계획 개발 단계다. ADR 0033의 stable `/v1` scope와 numeric support policy, `v0.3.0`/`v0.4.0` tagged matrix, migration/release gate와 stable admission은 확정되었고 `v1.0.0` publication 뒤 maintenance mode로 전환한다.
 
 ## Established
 
@@ -150,7 +150,7 @@ P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticate
 - managed PostgreSQL backup schedule/WAL retention/failover 제품, numeric RPO/RTO와 deployment-specific PITR 운영 계약.
 - deployment-calibrated rate limit, telemetry backend/retention/receiver와 production SLA.
 - stable/v1 Go API. ADR 0033의 stable service wire 범위에서 제외되어 public `alpha`는 experimental이다.
-- stable release 자체; 현재 `stable_admitted: false`다.
+- stable release 자체; admission은 열렸지만 `v1.0.0` remote tag/release evidence가 아직 없다.
 - production cycle scheduler, external producer를 포함한 shared queue observer와 authenticated event stream.
 - target wait/quality에 기반한 automatic planning-batch admission.
 
@@ -167,4 +167,4 @@ P0부터 P28 matcher V0 exit, P29 service productization entry, P30 authenticate
 
 ## Active Slice
 
-P32 Framework Contract Closure가 활성 milestone이다. stable 범위는 HTTP `/v1`, owner는 repository maintainers, 지원 기간은 successor 후 180일과 두 번의 후속 minor 중 더 긴 기간으로 승인되었다. `v0.3.0`/`v0.4.0` 양방향 matrix를 입력으로 migration/end-of-support gate와 stable admission을 닫는다. P32 완료 뒤에는 실제 service integration이나 migration program으로 이어가지 않고 maintenance-only 상태로 전환한다. 그 전까지 `stable_admitted: false`를 유지한다.
+P32 Framework Contract Closure가 활성 milestone이다. stable 범위는 HTTP `/v1`, owner는 repository maintainers, 지원 기간은 successor 후 180일과 두 번의 후속 minor 중 더 긴 기간으로 승인되었다. `v0.3.0`/`v0.4.0` 양방향 matrix, migration/end-of-support gate와 `stable_admitted: true`를 닫았다. `v1.0.0` remote evidence 뒤에는 실제 service integration이나 migration program으로 이어가지 않고 maintenance-only 상태로 전환한다.

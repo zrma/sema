@@ -12,7 +12,7 @@ Sema의 세 번째이자 마지막 계획 개발 단계를 닫는다. P31 standa
 - Sema는 standalone general-purpose matchmaking service이며 실제 consumer, production traffic 또는 predecessor deployment를 전제하지 않는다.
 - PostgreSQL primary가 durable authority이고 service replica는 stateless하다. provider-neutral OIDC와 external TLS ownership을 유지한다.
 - `p30-v0alpha2`가 첫 service wire compatibility baseline이다. 기존 공개 `v0.1.0`과 `v0.2.0`은 이 wire를 포함하지 않는다.
-- 현재 source와 service는 alpha이며 `release.stable_admitted`는 `false`다.
+- public Go package는 alpha이고 service `/v1`만 stable surface다. release gate의 contract blocker는 해소되어 `release.stable_admitted`는 `true`다.
 - public Go `alpha` package와 service wire는 독립적인 compatibility surface다.
 
 ## Implementation Sequence
@@ -24,8 +24,8 @@ Sema의 세 번째이자 마지막 계획 개발 단계를 닫는다. P31 standa
 - [x] immutable tagged service release를 입력으로 previous client → current service와 current client → supported previous service matrix를 실행하는 repository-owned gate를 구현한다.
 - [x] manifest의 exact release pair와 tag workflow를 연결하고 bounded matrix JSON을 checksum 대상 release asset으로 보존한다.
 - [x] service wire를 포함한 `v0.3.0`과 `v0.4.0`을 별도 publication 승인 아래 출고하고 양방향 matrix artifact를 보존한다.
-- [ ] migration, rollback limitation과 end-of-support 신호를 compatibility/release gate에 연결한다.
-- [ ] canonical local, container, PostgreSQL workload/failure/recovery와 public boundary gate를 통과한 뒤 stable admission을 별도 logical change로 전환한다.
+- [x] migration, rollback limitation과 `/v0alpha2` supported/not-scheduled end-of-support 신호를 compatibility/release gate에 연결한다.
+- [x] canonical local, container, PostgreSQL workload/failure/recovery와 public boundary gate를 통과한 뒤 stable admission을 별도 logical change로 전환한다.
 - [ ] stable release의 remote tag, artifact/checksum, same-target CI를 검증한다.
 - [ ] handoff/status/roadmap을 maintenance mode로 닫고 활성 development milestone을 남기지 않는다.
 

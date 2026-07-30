@@ -21,7 +21,7 @@ Sema의 장기 개발은 세 개의 굵은 단계로 닫는다. 이 구분은 �
 - 범위: P32.
 - 상태: 진행 중.
 - 목표: 실제 서비스 연동이나 기존 매치메이커 교체가 아니라, 독립적인 공통 프레임워크가 장기간 유지할 public contract를 확정하고 저장소를 maintenance mode로 전환한다.
-- 입력: P31 standard runtime, `p30-v0alpha2` first wire baseline, `v0.3.0`/`v0.4.0` tagged matrix, ADR 0033 stable service wire contract와 현재 `stable_admitted: false` release gate.
+- 입력: P31 standard runtime, `p30-v0alpha2` first wire baseline, `v0.3.0`/`v0.4.0` tagged matrix, ADR 0033 stable service wire contract와 `stable_admitted: true` release gate.
 - 완료 증거:
   1. stable public surface와 제외 surface를 명시한다.
   2. compatibility, security exception, migration, rollback, numeric deprecation/support window와 maintenance owner를 승인한다.

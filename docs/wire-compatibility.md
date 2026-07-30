@@ -37,4 +37,4 @@ stable 전환은 다음을 모두 요구한다.
 
 ADR 0033은 stable 범위를 `/v1` wire로 한정하고 repository maintainers를 owner로 정했다. 최신 stable minor와 바로 이전 minor는 successor release 후 최소 180일 동안 지원하며, deprecated route/field/command는 두 번의 후속 minor와 180일 중 더 긴 기간 동안 보존한다. critical authentication, tenant isolation 또는 data-integrity security defect만 advisory, migration, rollback limitation, regression evidence와 end-of-support 신호를 갖춘 조기 예외가 될 수 있다.
 
-`/v0alpha2`는 같은 durable state를 사용하는 compatibility alias다. `v1.0.0` 이후 최소 180일과 두 번의 후속 minor release 중 더 긴 기간 동안 유지한다. 실제 game integration은 stable 판단의 필수 조건이 아니다. manifest의 `stable_admitted`는 migration/release gate 연결과 마지막 admission change 전까지 `false`를 유지한다.
+`/v0alpha2`는 같은 durable state를 사용하는 compatibility alias다. `v1.0.0` 이후 최소 180일과 두 번의 후속 minor release 중 더 긴 기간 동안 유지한다. 현재 machine-readable 신호는 `supported`와 `not_scheduled`이며 successor cadence가 실제 removal floor를 결정하면 release note와 manifest를 함께 갱신한다. 실제 game integration은 stable 판단의 필수 조건이 아니다. migration/release gate 연결이 완료되어 manifest의 `stable_admitted`는 `true`다.

@@ -36,7 +36,7 @@ CI는 tag가 공개된 뒤의 backstop이므로 machine-local inventory gate를 
 
 build script는 semantic-version-shaped `VERSION`만 허용한다. release가 이미 존재하거나 tag 검증이 실패하면 workflow는 덮어쓰지 않고 실패한다.
 
-현재 manifest는 v0 alpha만 admit한다. major version 1 이상 tag는 `stable_admitted: true` 전에는 workflow에서 실패한다. ADR 0033은 stable 범위를 `/v1` service wire로 한정했으며 남은 migration/release gate와 변경 절차는 `docs/release-admission.md`가 소유한다.
+현재 manifest는 alpha publication을 닫고 `v1.0.0`을 exact current release로 admit한다. major version 1 이상 tag는 `stable_admitted: true`, ADR 0033의 machine-readable contract와 version-matched `docs/release-notes.md`가 모두 없으면 workflow에서 실패한다. stable 범위는 `/v1` service wire이며 변경 절차는 `docs/release-admission.md`가 소유한다.
 
 GitHub release에서 직접 받은 Unix binary는 archive가 아니므로 executable mode가 보존되지 않을 수 있다. checksum 검증 뒤 실행할 artifact에 `chmod +x <binary>`를 적용한다. 이 packaging 특성은 checksum이나 binary identity 실패가 아니다.
 
@@ -47,6 +47,6 @@ GitHub release에서 직접 받은 Unix binary는 archive가 아니므로 execut
 - `wire-compatibility-matrix.json`의 previous/current tag와 commit이 remote tag에 일치하고 두 방향이 모두 통과했는지 확인한다.
 - host artifact checksum과 네 public command의 `-version`을 검증한다.
 - Go consumer가 tagged module에서 `alpha.Compose` example을 build/test할 수 있는지 확인한다.
-- release note가 alpha compatibility와 known limitations를 정확히 설명하는지 확인한다.
+- release note가 stable wire scope, excluded Go alpha, support/deprecation, migration/rollback과 known limitations를 정확히 설명하는지 확인한다.
 
-현재 workflow만 준비되어 있으며 이 문서 작성 시점에 release/tag publish를 수행했다는 뜻은 아니다.
+`v0.3.0`과 `v0.4.0` tag/release 및 첫 matrix asset은 검증되었다. 현재 exact candidate는 `v1.0.0`이며 이 문구 자체는 stable tag/release publication 완료 증거가 아니다.

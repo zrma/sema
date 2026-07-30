@@ -181,7 +181,7 @@ pinned Linux builder/runtime image를 2 CPU/2 GiB로 제한한다. planner 50v50
 
 ## S31: Release Admission
 
-`v0.*` candidate는 full Go, container, repeated performance/recovery, release build와 publication repository gate를 모두 통과해야 admission된다. major version 1 이상은 같은 검증과 별개로 machine-readable `stable_admitted: true`가 필요하다. 현재 stable API, repository-owned multi-version consumer conformance와 표준 runtime operational evidence가 없으므로 flag는 false이고 v1 admission은 실제 artifact publish 전에 실패해야 한다.
+historical `v0.*` candidate는 full Go, container, repeated performance/recovery, release build와 publication repository gate를 모두 통과해야 admission되었고, stable line에서는 `alpha_admitted: false`로 새 alpha publication을 닫는다. major version 1 이상은 같은 검증과 별개로 machine-readable `stable_admitted: true`, service-wire scope, support/deprecation, migration/rollback, end-of-support status와 version-matched release note가 필요하다. P32는 HTTP `/v1`에 한해 이 evidence를 갖췄으며 tag workflow가 supported predecessor/current matrix를 추가로 실행한다.
 
 ## S32: Exhaustive Batch Quality Frontier
 

@@ -32,4 +32,4 @@ reference container에서 반복 latency/recovery/allocation budget을 실행하
 
 ## Completion Evidence
 
-`scripts/check-performance.sh`와 `scripts/check-release-admission.sh v0.0.0-test`가 통과하고 `v1.0.0`은 stable blocker로 실패한다. profile/budget은 `docs/performance-slo.md`, channel gate는 `docs/release-admission.md`, decision은 ADR 0015가 소유한다.
+P21 완료 시점에는 `scripts/check-performance.sh`와 `scripts/check-release-admission.sh v0.0.0-test`가 통과하고 `v1.0.0`은 stable blocker로 실패했다. P32는 alpha publication을 닫고 별도 stable contract evidence로 `v1.0.0` admission을 열었다. profile/budget은 `docs/performance-slo.md`, current channel gate는 `docs/release-admission.md`, P21 decision은 ADR 0015가 소유한다.
