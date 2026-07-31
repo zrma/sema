@@ -14,10 +14,10 @@ lab_guide: docs/sema-lab.md
 workload_evaluation: docs/workload-evaluation.md
 evaluation_baseline: docs/evaluation-baseline.md
 matcher_conformance: docs/matcher-conformance.md
-service_productization_entry: docs/todo-0040-service-productization-entry/spec.md
-authenticated_service_runtime: docs/todo-0041-authenticated-service-runtime/spec.md
-service_product_readiness: docs/todo-0042-service-product-readiness/spec.md
-framework_contract_closure: docs/todo-0043-framework-contract-closure/spec.md
+service_productization_entry: docs/milestones/0040-service-productization-entry/spec.md
+authenticated_service_runtime: docs/milestones/0041-authenticated-service-runtime/spec.md
+service_product_readiness: docs/milestones/0042-service-product-readiness/spec.md
+framework_contract_closure: docs/milestones/0043-framework-contract-closure/spec.md
 repository_adapter_evidence: docs/repository-adapter-evidence.md
 postgres_repository: docs/postgres-repository.md
 target_api: docs/target-api.md

@@ -48,7 +48,7 @@ Sema의 다음 장기 구간은 match composition core의 algorithmic boundary�
 
 ## Service Productization Entry
 
-P28을 통과했으므로 다음 active milestone은 matcher 알고리즘 확장이 아니라 service boundary 재설계다. `docs/todo-0040-service-productization-entry/spec.md`는 다음을 입력으로 고정한다.
+P28을 통과했으므로 다음 active milestone은 matcher 알고리즘 확장이 아니라 service boundary 재설계다. `docs/milestones/0040-service-productization-entry/spec.md`는 다음을 입력으로 고정한다.
 
 - journal prototype에서 transactional durable authority로 가는 persistence model과 migration.
 - queue/snapshot/assignment source of truth, idempotency scope와 multi-writer 여부.

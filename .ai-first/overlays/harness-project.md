@@ -23,37 +23,37 @@
 - Current state and direction: `docs/status.md`, `docs/roadmap.md`.
 - Architecture: `docs/architecture.md`.
 - Workloads and decisions: `docs/reference-workloads.md`, `docs/decisions/0001-implementation-baseline.md`.
-- Completed foundation: `docs/todo-0001-foundation/spec.md`, `docs/todo-0001-foundation/decisions.md`.
-- Completed objective policy: `docs/todo-0002-objective-policy/spec.md`.
-- Completed assignment lifecycle: `docs/todo-0003-assignment-lifecycle/spec.md`.
-- Completed application runtime: `docs/todo-0004-application-runtime/spec.md`.
-- Completed runtime adapter decision: `docs/todo-0005-runtime-adapter/spec.md`, `docs/decisions/0002-runtime-adapter-baseline.md`.
-- Completed runtime validation: `docs/todo-0006-runtime-validation/spec.md`, `docs/runtime-validation.md`.
-- Demand index: `docs/todo-0007-demand-index/spec.md`.
-- Policy identity: `docs/todo-0008-policy-identity/spec.md`.
-- Policy catalog: `docs/todo-0009-policy-catalog/spec.md`.
-- Policy simulation: `docs/todo-0010-policy-simulation/spec.md`.
-- Completed integration and publication baseline: `docs/todo-0011-integration-decision/spec.md`, `docs/decisions/0005-integration-publication-baseline.md`.
-- Executable evaluation lab: `docs/todo-0012-sema-lab/spec.md`, `docs/sema-lab.md`.
-- Workload evaluation baseline: `docs/todo-0013-workload-evaluation/spec.md`, `docs/workload-evaluation.md`.
+- Completed foundation: `docs/milestones/0001-foundation/spec.md`, `docs/milestones/0001-foundation/decisions.md`.
+- Completed objective policy: `docs/milestones/0002-objective-policy/spec.md`.
+- Completed assignment lifecycle: `docs/milestones/0003-assignment-lifecycle/spec.md`.
+- Completed application runtime: `docs/milestones/0004-application-runtime/spec.md`.
+- Completed runtime adapter decision: `docs/milestones/0005-runtime-adapter/spec.md`, `docs/decisions/0002-runtime-adapter-baseline.md`.
+- Completed runtime validation: `docs/milestones/0006-runtime-validation/spec.md`, `docs/runtime-validation.md`.
+- Demand index: `docs/milestones/0007-demand-index/spec.md`.
+- Policy identity: `docs/milestones/0008-policy-identity/spec.md`.
+- Policy catalog: `docs/milestones/0009-policy-catalog/spec.md`.
+- Policy simulation: `docs/milestones/0010-policy-simulation/spec.md`.
+- Completed integration and publication baseline: `docs/milestones/0011-integration-decision/spec.md`, `docs/decisions/0005-integration-publication-baseline.md`.
+- Executable evaluation lab: `docs/milestones/0012-sema-lab/spec.md`, `docs/sema-lab.md`.
+- Workload evaluation baseline: `docs/milestones/0013-workload-evaluation/spec.md`, `docs/workload-evaluation.md`.
 - Evaluation regression and calibration: `docs/evaluation-baseline.md`, `docs/decisions/0007-evaluation-calibration-baseline.md`.
-- Candidate discovery and scale: `docs/todo-0014-candidate-discovery/spec.md`, `docs/candidate-discovery.md`, `docs/decisions/0008-candidate-window-baseline.md`.
-- Public alpha integration: `docs/todo-0015-public-integration/spec.md`, `docs/public-api.md`, `docs/api-compatibility.md`, `docs/releasing.md`, `docs/decisions/0009-alpha-integration-release-baseline.md`.
-- Durable runtime: `docs/todo-0016-durable-runtime/spec.md`, `docs/durable-runtime.md`, `docs/decisions/0010-durable-journal-baseline.md`.
-- Versioned service: `docs/todo-0017-http-service/spec.md`, `docs/service-api.md`, `docs/decisions/0011-http-service-baseline.md`.
-- Observability: `docs/todo-0018-observability/spec.md`, `docs/observability.md`, `docs/decisions/0012-observability-redaction-baseline.md`.
-- Operational validation: `docs/todo-0019-operational-validation/spec.md`, `docs/operational-validation.md`, `docs/decisions/0013-operational-validation-baseline.md`.
-- Container operations: `docs/todo-0020-container-operations/spec.md`, `docs/operations-runbook.md`, `docs/decisions/0014-container-deployment-baseline.md`.
-- Performance and release admission: `docs/todo-0021-performance-release-gate/spec.md`, `docs/performance-slo.md`, `docs/release-admission.md`, `docs/decisions/0015-performance-release-gate.md`.
-- Service productization: `docs/todo-0040-service-productization-entry/spec.md`, `docs/service-authority.md`, `docs/repository-adapter-evidence.md`, `docs/postgres-repository.md`, `docs/target-api.md`, `docs/decisions/0016-service-authority-contract.md`, `docs/decisions/0017-postgresql-authority-baseline.md`, `docs/decisions/0018-authenticated-target-api-boundary.md`, `docs/decisions/0019-demand-claim-authority.md`, `docs/decisions/0020-planning-run-state-machine.md`.
-- Authenticated service runtime: `docs/todo-0041-authenticated-service-runtime/spec.md`, `docs/oidc-authentication.md`, `docs/remote-runtime.md`, `docs/decisions/0021-reservation-claim-and-replay-authority.md`, `docs/decisions/0022-assignment-delivery-and-acknowledgment.md`, `docs/decisions/0023-v0-read-only-import-boundary.md`, `docs/decisions/0024-postgresql-cutover-rehearsal.md`, `docs/decisions/0025-provider-neutral-oidc-authentication.md`, `docs/decisions/0026-authenticated-remote-runtime.md`.
-- Completed service product readiness: `docs/todo-0042-service-product-readiness/spec.md`, `docs/service-workload.md`, `docs/observability.md`, `docs/postgres-recovery.md`, `docs/wire-compatibility.md`, ADR 0027–0032.
-- Interactive Flow: `docs/todo-0022-sema-flow/spec.md`, `docs/sema-flow.md`.
-- Closed-loop population simulation: `docs/todo-0023-population-simulation/spec.md`, `internal/league`.
-- Flow measurement baseline: `docs/todo-0024-flow-measurement/spec.md`, `docs/sema-flow-measurement.md`, `cmd/sema-flow-report`.
-- Flow discrete-event scheduler: `docs/todo-0025-discrete-event-scheduler/spec.md`, `internal/flow`.
-- Flow capacity matrix: `docs/todo-0026-capacity-matrix/spec.md`, `docs/sema-flow-capacity-matrix.md`, `cmd/sema-flow-matrix`.
-- Flow ownership correction: `docs/todo-0027-unbounded-game-simulation/spec.md`, `internal/flow`, `cmd/sema-tui`.
-- Flow trend panels: `docs/todo-0028-flow-trend-panels/spec.md`, `internal/flowui`, `cmd/sema-tui`.
+- Candidate discovery and scale: `docs/milestones/0014-candidate-discovery/spec.md`, `docs/candidate-discovery.md`, `docs/decisions/0008-candidate-window-baseline.md`.
+- Public alpha integration: `docs/milestones/0015-public-integration/spec.md`, `docs/public-api.md`, `docs/api-compatibility.md`, `docs/releasing.md`, `docs/decisions/0009-alpha-integration-release-baseline.md`.
+- Durable runtime: `docs/milestones/0016-durable-runtime/spec.md`, `docs/durable-runtime.md`, `docs/decisions/0010-durable-journal-baseline.md`.
+- Versioned service: `docs/milestones/0017-http-service/spec.md`, `docs/service-api.md`, `docs/decisions/0011-http-service-baseline.md`.
+- Observability: `docs/milestones/0018-observability/spec.md`, `docs/observability.md`, `docs/decisions/0012-observability-redaction-baseline.md`.
+- Operational validation: `docs/milestones/0019-operational-validation/spec.md`, `docs/operational-validation.md`, `docs/decisions/0013-operational-validation-baseline.md`.
+- Container operations: `docs/milestones/0020-container-operations/spec.md`, `docs/operations-runbook.md`, `docs/decisions/0014-container-deployment-baseline.md`.
+- Performance and release admission: `docs/milestones/0021-performance-release-gate/spec.md`, `docs/performance-slo.md`, `docs/release-admission.md`, `docs/decisions/0015-performance-release-gate.md`.
+- Service productization: `docs/milestones/0040-service-productization-entry/spec.md`, `docs/service-authority.md`, `docs/repository-adapter-evidence.md`, `docs/postgres-repository.md`, `docs/target-api.md`, `docs/decisions/0016-service-authority-contract.md`, `docs/decisions/0017-postgresql-authority-baseline.md`, `docs/decisions/0018-authenticated-target-api-boundary.md`, `docs/decisions/0019-demand-claim-authority.md`, `docs/decisions/0020-planning-run-state-machine.md`.
+- Authenticated service runtime: `docs/milestones/0041-authenticated-service-runtime/spec.md`, `docs/oidc-authentication.md`, `docs/remote-runtime.md`, `docs/decisions/0021-reservation-claim-and-replay-authority.md`, `docs/decisions/0022-assignment-delivery-and-acknowledgment.md`, `docs/decisions/0023-v0-read-only-import-boundary.md`, `docs/decisions/0024-postgresql-cutover-rehearsal.md`, `docs/decisions/0025-provider-neutral-oidc-authentication.md`, `docs/decisions/0026-authenticated-remote-runtime.md`.
+- Completed service product readiness: `docs/milestones/0042-service-product-readiness/spec.md`, `docs/service-workload.md`, `docs/observability.md`, `docs/postgres-recovery.md`, `docs/wire-compatibility.md`, ADR 0027–0032.
+- Interactive Flow: `docs/milestones/0022-sema-flow/spec.md`, `docs/sema-flow.md`.
+- Closed-loop population simulation: `docs/milestones/0023-population-simulation/spec.md`, `internal/league`.
+- Flow measurement baseline: `docs/milestones/0024-flow-measurement/spec.md`, `docs/sema-flow-measurement.md`, `cmd/sema-flow-report`.
+- Flow discrete-event scheduler: `docs/milestones/0025-discrete-event-scheduler/spec.md`, `internal/flow`.
+- Flow capacity matrix: `docs/milestones/0026-capacity-matrix/spec.md`, `docs/sema-flow-capacity-matrix.md`, `cmd/sema-flow-matrix`.
+- Flow ownership correction: `docs/milestones/0027-unbounded-game-simulation/spec.md`, `internal/flow`, `cmd/sema-tui`.
+- Flow trend panels: `docs/milestones/0028-flow-trend-panels/spec.md`, `internal/flowui`, `cmd/sema-tui`.
 - Long-term engine-first sequence: `docs/decisions/0006-product-development-sequence.md`.
 - Declared checks: `docs/REPO_MANIFEST.yaml`.

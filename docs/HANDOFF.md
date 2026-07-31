@@ -5,7 +5,7 @@
 1. `AGENTS.md`와 `docs/agent-harness.md`를 읽는다.
 2. `jj status`로 기존 변경과 현재 change를 확인한다.
 3. `docs/development-stages.md`, `docs/status.md`, `docs/roadmap.md`, `docs/architecture.md`를 읽는다.
-4. maintenance boundary와 완료된 `docs/todo-0043-framework-contract-closure/spec.md`의 acceptance, out-of-scope를 고정한다.
+4. maintenance boundary와 완료된 `docs/milestones/0043-framework-contract-closure/spec.md`의 acceptance, out-of-scope를 고정한다.
 5. focused validation 뒤 `scripts/check.sh`로 닫는다.
 
 ## Current Baseline

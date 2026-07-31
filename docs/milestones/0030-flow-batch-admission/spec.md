@@ -37,4 +37,3 @@ Flow reference workload가 planning interval마다 고정된 두 match만 요청
 - seed 42, 1,000-player 30분 run은 confirmed 2,295 match, 누적 76.5 match/min, wait p50/p90/p99 5/9/18초, maximum 28초와 final queue 91 players를 기록했다.
 - 같은 run의 10분 시점 497 match를 제외한 이후 20분에는 1,798 match, 즉 89.9 match/min이 confirm되었다.
 - 10분 run은 wait p50/p90/p99 5/7/10초, maximum 18초와 ingress lag/backlog 0을 기록했다.
-

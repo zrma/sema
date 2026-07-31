@@ -9,7 +9,7 @@
 ## Accepted Inputs
 
 - canonical entity와 lifecycle: `docs/domain-model.md`, `docs/lifecycle.md`.
-- product priority와 남은 parameters: `docs/todo-0001-foundation/decisions.md`.
+- product priority와 남은 parameters: `docs/milestones/0001-foundation/decisions.md`.
 - correctness와 workload envelope: `docs/reference-scenarios.md`, `docs/reference-workloads.md`.
 - 실행 baseline: `internal/domain`, `internal/planner`, `internal/coordinator`.
 

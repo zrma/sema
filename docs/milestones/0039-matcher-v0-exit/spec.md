@@ -25,7 +25,7 @@ matcher V0의 algorithm-owned TODO는 닫는다. 이후 matcher 변경은 새 co
 - planner focused fuzz가 multi-proposal/backfill 조합을 통과한다.
 - discovery focused fuzz가 linear/indexed exact equality를 통과하며 no-fitting-partition의 nil/empty 차이를 잡은 corpus를 유지한다.
 - exhaustive small-queue, sustained-arrival fairness, roster-aware frontier와 coordinator freshness fixture가 full gate에서 함께 통과한다.
-- `docs/todo-0040-service-productization-entry/spec.md`가 다음 milestone의 input, decision gate와 첫 executable slice를 정의한다.
+- `docs/milestones/0040-service-productization-entry/spec.md`가 다음 milestone의 input, decision gate와 첫 executable slice를 정의한다.
 
 ## Truth Boundary
 

@@ -22,7 +22,7 @@
 - Flow의 hidden true skill은 synthetic game result에만 사용하고 planner에는 visible rating만 전달한다.
 - closed population, outcome curve와 Elo update는 `docs/sema-flow.md`의 reference simulation이며 production MMR이나 scheduler contract로 승격하지 않는다.
 - Flow measurement는 `docs/sema-flow-measurement.md`의 player-weighted wait, time-weighted saturation과 fixed-point throughput 계약을 따르며 제품 SLA로 해석하지 않는다.
-- Flow simulation event frame은 logical time을 소유하지 않는다. `docs/todo-0025-discrete-event-scheduler/spec.md`의 due ingress, stable timestamp ordering과 horizon backlog 계약을 유지한다.
+- Flow simulation event frame은 logical time을 소유하지 않는다. `docs/milestones/0025-discrete-event-scheduler/spec.md`의 due ingress, stable timestamp ordering과 horizon backlog 계약을 유지한다.
 - Flow capacity 비교는 `docs/sema-flow-capacity-matrix.md`의 동일-demand gate와 min/median/max contract를 지키며 product target 없이 profile 권장이나 production capacity를 선언하지 않는다.
 - Sema의 Flow 책임은 assignment confirm까지다. active game 수는 planning eligibility를 제한하지 않으며 frontend-owned game/result/return 흐름을 보여주는 TUI `MATCH LIFECYCLE` 패널은 관찰 surface로 유지한다.
 - Flow trend panel은 같은 logical timestamp를 합치고 bounded history를 유지한다. queue wait는 pre-confirm ticket을 player-weighted하고 rating density는 measurement schema를 바꾸지 않는 1500-centered TUI read model을 사용한다.

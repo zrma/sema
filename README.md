@@ -47,9 +47,9 @@ Sema는 기존 배포나 실제 게임 트래픽을 이전하는 프로젝트가
 - `docs/evaluation-baseline.md`: deterministic coverage/search/oracle regression budget.
 - `docs/matcher-v0-exit.md`: matcher completion sequence와 persistence/API productization 진입 기준.
 - `docs/matcher-conformance.md`: matcher V0 invariant와 executable test matrix.
-- `docs/todo-0040-service-productization-entry/spec.md`: persistence/API 제품화 milestone의 시작 계약.
-- `docs/todo-0042-service-product-readiness/spec.md`: 완료된 표준 runtime, compatibility와 operational evidence milestone.
-- `docs/todo-0043-framework-contract-closure/spec.md`: 완료된 stable contract closure와 maintenance handoff milestone.
+- `docs/milestones/0040-service-productization-entry/spec.md`: persistence/API 제품화 milestone의 시작 계약.
+- `docs/milestones/0042-service-product-readiness/spec.md`: 완료된 표준 runtime, compatibility와 operational evidence milestone.
+- `docs/milestones/0043-framework-contract-closure/spec.md`: 완료된 stable contract closure와 maintenance handoff milestone.
 - `docs/repository-adapter-evidence.md`: persistent prototype의 crash/contention evidence와 storage decision outcome.
 - `docs/postgres-repository.md`: PostgreSQL schema, transaction, migration과 no-Redis 운영 경계.
 - `docs/oidc-authentication.md`: provider-neutral JWT claim과 permission mapping 계약.
